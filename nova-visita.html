@@ -373,6 +373,18 @@
         window.addEventListener('resize', () => {
             if(modal.classList.contains('active')) redimensionarCanvas();
         });
+        // Ação de clicar em Salvar Visita
+        const btnSalvarVisita = document.getElementById('btnSalvar');
+        
+        btnSalvarVisita.addEventListener('click', () => {
+            // Verifica se o botão está realmente ativo
+            if (btnSalvarVisita.classList.contains('active')) {
+                // Simula o salvamento com um aviso
+                alert("Visita salva com sucesso!");
+                // Redireciona de volta para o Dashboard
+                window.location.href = 'index.html';
+            }
+        });
     </script>
 
 </body>
