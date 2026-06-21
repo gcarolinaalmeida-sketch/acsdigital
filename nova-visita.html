@@ -385,6 +385,36 @@
                 window.location.href = 'index.html';
             }
         });
+        // --------------------------------------------------------
+        // AÇÕES DOS BOTÕES DE NAVEGAÇÃO (CABEÇALHO)
+        // --------------------------------------------------------
+        
+        // 1. Ação do botão Cancelar
+        const btnCancelar = document.getElementById('btnCancelar');
+        if (btnCancelar) {
+            btnCancelar.addEventListener('click', () => {
+                // Confirma se o usuário quer mesmo sair se já tiver preenchido algo
+                if (desfechoPreenchido || assinaturaColetada) {
+                    if (confirm("Tem certeza que deseja cancelar? Os dados não salvos serão perdidos.")) {
+                        window.location.href = 'index.html';
+                    }
+                } else {
+                    window.location.href = 'index.html';
+                }
+            });
+        }
+
+        // 2. Ação do botão Salvar Visita
+        const btnSalvarVisita = document.getElementById('btnSalvar');
+        if (btnSalvarVisita) {
+            btnSalvarVisita.addEventListener('click', () => {
+                // Só executa se o botão estiver ativo (verde/azul escuro)
+                if (btnSalvarVisita.classList.contains('active')) {
+                    alert("Visita salva com sucesso!"); // Simula o salvamento
+                    window.location.href = 'index.html'; // Volta para o início
+                }
+            });
+        }
     </script>
 
 </body>
