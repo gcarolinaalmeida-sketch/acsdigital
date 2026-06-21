@@ -1,896 +1,331 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>ACS Digital - Painel de Controle</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
-<style>
-  :root{
-    --bg:#F1F6F4;
-    --surface:#FFFFFF;
-    --surface-soft:#F7FAF9;
-    --sidebar:#123832;
-    --sidebar-soft:#1B4A42;
-    --sidebar-text:#DCEAE6;
-    --sidebar-text-dim:#8FB3AB;
-    --primary:#2E8C7B;
-    --primary-dark:#1F6E60;
-    --primary-soft:#DCEFE9;
-    --amber:#D99A3D;
-    --amber-soft:#FBEDD7;
-    --alert:#D2543F;
-    --alert-soft:#FAE2DD;
-    --text:#15231F;
-    --text-muted:#5C7670;
-    --line:#E1EAE6;
-    --radius:14px;
-    --shadow:0 1px 2px rgba(18,56,50,0.04), 0 8px 24px -12px rgba(18,56,50,0.12);
-    font-family:'Inter',sans-serif;
-  }
-  *{box-sizing:border-box;}
-  html,body{margin:0;padding:0;background:var(--bg);color:var(--text);height:100%;-webkit-font-smoothing:antialiased;}
-  body{display:flex;min-height:100vh;}
-  ::selection{background:var(--primary-soft);}
-  button{font-family:inherit;cursor:pointer;}
-  input,select,textarea{font-family:inherit;}
-  h1,h2,h3,h4{font-family:'Space Grotesk',sans-serif;margin:0;letter-spacing:-0.01em;}
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ACS Digital - Micro-área 03</title>
+    <style>
+        :root {
+            --bg-color: #FAFAFA;
+            --surface: #FFFFFF;
+            --text-main: #111827;
+            --text-muted: #6B7280;
+            --border: #E5E7EB;
+            --primary: #000000;
+            --danger: #EF4444;
+            --success: #10B981;
+            --radius: 8px;
+        }
 
-  /* ---------- App shell ---------- */
-  .app-container{display:flex;width:100%;min-height:100vh;}
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
 
-  /* ---------- Sidebar ---------- */
-  .sidebar{
-    width:264px;flex:0 0 264px;background:var(--sidebar);color:var(--sidebar-text);
-    display:flex;flex-direction:column;padding:22px 16px;position:sticky;top:0;height:100vh;
-  }
-  .sidebar-header{display:flex;align-items:center;gap:12px;padding:6px 8px 22px;border-bottom:1px solid rgba(255,255,255,0.08);margin-bottom:18px;}
-  .logo-icon{width:38px;height:38px;border-radius:10px;background:var(--primary);display:flex;align-items:center;justify-content:center;flex:0 0 38px;}
-  .logo-icon svg{width:20px;height:20px;stroke:white;}
-  .sidebar-header h1{font-size:16px;color:#fff;}
-  .subtitle{font-size:11.5px;color:var(--sidebar-text-dim);}
-  .sidebar-nav{display:flex;flex-direction:column;gap:2px;flex:1;overflow-y:auto;}
-  .nav-section-title{font-size:10.5px;text-transform:uppercase;letter-spacing:0.08em;color:var(--sidebar-text-dim);margin:16px 8px 6px;font-weight:600;}
-  .nav-item{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:9px;color:var(--sidebar-text);text-decoration:none;font-size:13.5px;font-weight:500;border:none;background:transparent;width:100%;text-align:left;}
-  .nav-item svg{width:17px;height:17px;stroke:currentColor;flex:0 0 17px;}
-  .nav-item:hover{background:rgba(255,255,255,0.06);}
-  .nav-item.active{background:var(--primary);color:#fff;}
-  .sidebar-footer{border-top:1px solid rgba(255,255,255,0.08);padding-top:12px;margin-top:8px;}
-  .sync-status{display:flex;align-items:center;gap:7px;font-size:11.5px;color:var(--sidebar-text-dim);padding:8px 10px 2px;}
-  .sync-status svg{width:14px;height:14px;}
-  .sync-status.saving svg{stroke:var(--amber);}
-  .sync-status.ok svg{stroke:#6FCBAF;}
-  .sync-status.error svg{stroke:var(--alert);}
+        body {
+            display: flex;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            height: 100vh;
+            overflow: hidden;
+        }
 
-  /* ---------- Main ---------- */
-  .main-content{flex:1;padding:28px 36px 60px;max-width:1180px;}
-  .main-header{display:flex;justify-content:space-between;align-items:flex-end;gap:24px;margin-bottom:26px;flex-wrap:wrap;}
-  .welcome-zone h2{font-size:23px;}
-  .current-date{margin:4px 0 0;color:var(--text-muted);font-size:13px;}
-  .search-zone{position:relative;min-width:300px;}
-  .search-icon{position:absolute;left:13px;top:50%;transform:translateY(-50%);width:15px;height:15px;stroke:var(--text-muted);}
-  .search-input{width:100%;padding:10px 14px 10px 36px;border-radius:10px;border:1px solid var(--line);background:var(--surface);font-size:13px;outline:none;}
-  .search-input:focus{border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-soft);}
+        /* Sidebar Minimalista */
+        .sidebar {
+            width: 260px;
+            background-color: var(--bg-color);
+            border-right: 1px solid var(--border);
+            padding: 24px 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
 
-  .overview-section{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:26px;}
-  .compact-card{background:var(--surface);border-radius:var(--radius);padding:16px 18px;box-shadow:var(--shadow);display:flex;flex-direction:column;gap:4px;}
-  .card-label{font-size:12px;color:var(--text-muted);font-weight:600;}
-  .card-value{font-family:'IBM Plex Mono',monospace;font-size:26px;font-weight:600;}
-  .card-value .goal{font-size:14px;color:var(--text-muted);font-weight:500;}
-  .card-subtext{font-size:11.5px;color:var(--text-muted);}
-  .card-subtext.positive{color:var(--primary-dark);}
-  .card-subtext.highlight{color:var(--amber);font-weight:600;}
-  .text-alert{color:var(--alert);}
+        .sidebar-header h2 {
+            font-size: 14px;
+            font-weight: 600;
+        }
 
-  .section-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;}
-  .section-header h3{font-size:16px;}
-  .btn-secondary,.btn-primary,.btn-ghost,.btn-danger{border-radius:9px;border:1px solid var(--line);background:var(--surface);padding:8px 14px;font-size:12.5px;font-weight:600;color:var(--text);display:inline-flex;align-items:center;gap:6px;}
-  .btn-secondary svg,.btn-primary svg,.btn-ghost svg{width:14px;height:14px;}
-  .btn-primary{background:var(--primary);border-color:var(--primary);color:#fff;}
-  .btn-danger{background:var(--alert-soft);border-color:var(--alert-soft);color:var(--alert);}
-  .btn-ghost{background:transparent;border-color:transparent;color:var(--text-muted);}
-  .btn-ghost:hover{color:var(--text);}
+        .sidebar-header span {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
 
-  .priority-section{margin-bottom:26px;}
-  .priority-list{display:flex;flex-direction:column;gap:8px;}
-  .priority-item{background:var(--surface);border-radius:12px;padding:12px 14px;display:flex;justify-content:space-between;align-items:center;box-shadow:var(--shadow);border-left:4px solid var(--line);}
-  .priority-item.alta{border-left-color:var(--alert);}
-  .priority-item.media{border-left-color:var(--amber);}
-  .priority-item.baixa{border-left-color:var(--primary);}
-  .item-left{display:flex;align-items:center;gap:12px;}
-  .badge-priority{width:9px;height:9px;border-radius:50%;flex:0 0 9px;}
-  .badge-priority.high{background:var(--alert);box-shadow:0 0 0 0 rgba(210,84,63,0.5);animation:pulse 1.8s infinite;}
-  .badge-priority.medium{background:var(--amber);}
-  .badge-priority.low{background:var(--primary);}
-  @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(210,84,63,0.45);}70%{box-shadow:0 0 0 7px rgba(210,84,63,0);}100%{box-shadow:0 0 0 0 rgba(210,84,63,0);}}
-  .patient-info{display:flex;flex-direction:column;gap:1px;}
-  .patient-condition{font-size:13.5px;font-weight:600;}
-  .patient-meta{font-size:12px;color:var(--text-muted);}
-  .btn-action{border:none;background:var(--primary-soft);color:var(--primary-dark);padding:7px 14px;border-radius:8px;font-size:12px;font-weight:700;}
-  .empty-note{color:var(--text-muted);font-size:13px;padding:16px;background:var(--surface);border-radius:12px;border:1px dashed var(--line);text-align:center;}
+        .nav-links {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
 
-  .split-section{display:grid;grid-template-columns:1.3fr 1fr;gap:16px;}
-  .split-block{background:var(--surface);border-radius:var(--radius);padding:18px;box-shadow:var(--shadow);}
-  .split-block h4{font-size:14px;margin-bottom:12px;}
-  .map-placeholder{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;background:var(--surface-soft);border-radius:10px;padding:34px 10px;color:var(--text-muted);text-align:center;}
-  .map-placeholder svg{width:30px;height:30px;stroke:var(--primary);}
-  .map-placeholder p{font-size:12.5px;margin:0;}
-  .indicator-ranking{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:12px;}
-  .indicator-ranking li{display:flex;flex-direction:column;gap:5px;}
-  .indicator-top{display:flex;justify-content:space-between;font-size:12.5px;}
-  .indicator-name{font-weight:600;}
-  .indicator-percent{font-family:'IBM Plex Mono',monospace;font-weight:600;color:var(--primary-dark);}
-  .bar-track{height:6px;border-radius:4px;background:var(--surface-soft);overflow:hidden;}
-  .bar-fill{height:100%;background:var(--primary);border-radius:4px;transition:width .4s ease;}
+        .nav-links li a {
+            text-decoration: none;
+            color: var(--text-muted);
+            font-size: 14px;
+            padding: 8px 12px;
+            border-radius: var(--radius);
+            display: block;
+            transition: all 0.2s;
+        }
 
-  /* tabs */
-  .tab-panel{display:none;}
-  .tab-panel.active{display:block;}
+        .nav-links li a:hover, .nav-links li a.active {
+            background-color: #F3F4F6;
+            color: var(--text-main);
+            font-weight: 500;
+        }
 
-  /* generic page bits */
-  .page-toolbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;gap:12px;flex-wrap:wrap;}
-  .page-toolbar h2{font-size:20px;}
-  .form-panel{background:var(--surface);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px;margin-bottom:18px;display:none;}
-  .form-panel.open{display:block;}
-  .form-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;}
-  .field{display:flex;flex-direction:column;gap:5px;}
-  .field.full{grid-column:1/-1;}
-  .field label{font-size:12px;font-weight:600;color:var(--text-muted);}
-  .field input,.field select,.field textarea{padding:9px 11px;border:1px solid var(--line);border-radius:8px;font-size:13px;outline:none;background:var(--surface-soft);}
-  .field input:focus,.field select:focus,.field textarea:focus{border-color:var(--primary);background:var(--surface);}
-  .field textarea{resize:vertical;min-height:60px;}
-  .checkbox-row{display:flex;align-items:center;gap:7px;font-size:13px;}
-  .checkbox-row input{width:15px;height:15px;}
+        /* Área de Conteúdo Principal */
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+        }
 
-  .member-block{border:1px solid var(--line);border-radius:10px;padding:14px;margin-bottom:10px;background:var(--surface-soft);}
-  .member-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;}
-  .member-head span{font-size:12px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.04em;}
-  .member-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;}
-  .member-flags{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:12px;margin-top:6px;padding-top:10px;border-top:1px solid var(--line);}
-  .sub-field{display:none;margin-top:8px;}
-  .member-block:has(.chk-gestante:checked) .sub-field-gestante{display:flex;flex-wrap:wrap;gap:12px;}
-  .member-block:has(.chk-diabetes:checked) .sub-field-diabetes{display:inline-flex;}
-  .member-block:has(.chk-crianca:checked) .sub-field-crianca{display:inline-flex;}
+        .topbar {
+            height: 56px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 48px;
+            border-bottom: 1px solid var(--border);
+            background-color: var(--bg-color);
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
 
-  .form-actions{display:flex;gap:10px;margin-top:14px;}
+        .breadcrumb {
+            font-size: 14px;
+            color: var(--text-muted);
+        }
 
-  .data-table{width:100%;border-collapse:collapse;background:var(--surface);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden;}
-  .data-table th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted);padding:12px 14px;border-bottom:1px solid var(--line);}
-  .data-table td{padding:12px 14px;font-size:13px;border-bottom:1px solid var(--line);vertical-align:top;}
-  .data-table tr:last-child td{border-bottom:none;}
-  .row-actions{display:flex;gap:6px;}
-  .icon-btn{border:none;background:transparent;padding:5px;border-radius:6px;color:var(--text-muted);display:flex;}
-  .icon-btn svg{width:15px;height:15px;}
-  .icon-btn:hover{background:var(--surface-soft);color:var(--text);}
-  .icon-btn.danger:hover{color:var(--alert);background:var(--alert-soft);}
-  .tag{display:inline-flex;align-items:center;font-size:11px;font-weight:700;padding:3px 8px;border-radius:6px;}
-  .tag.gestante{background:var(--amber-soft);color:var(--amber);}
-  .tag.hipertenso{background:var(--alert-soft);color:var(--alert);}
-  .tag.diabetes{background:#E6E1F7;color:#6750A4;}
-  .tag.crianca{background:var(--primary-soft);color:var(--primary-dark);}
-  .tag.leve{background:var(--primary-soft);color:var(--primary-dark);}
-  .tag.moderada{background:var(--amber-soft);color:var(--amber);}
-  .tag.grave{background:var(--alert-soft);color:var(--alert);}
+        .content-wrapper {
+            padding: 48px;
+            max-width: 1200px;
+            margin: 0 auto;
+            width: 100%;
+        }
 
-  .config-card{background:var(--surface);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px;max-width:480px;}
-  .config-card .field{margin-bottom:12px;}
-  .danger-zone{margin-top:24px;padding-top:18px;border-top:1px dashed var(--line);}
-  .danger-zone p{font-size:12px;color:var(--text-muted);margin:0 0 10px;}
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            margin-bottom: 40px;
+        }
 
-  @media (max-width:980px){
-    .overview-section{grid-template-columns:repeat(2,1fr);}
-    .split-section{grid-template-columns:1fr;}
-    .form-grid,.member-grid{grid-template-columns:repeat(2,1fr);}
-  }
-  @media (max-width:680px){
-    .sidebar{display:none;}
-    .main-content{padding:18px;}
-    .overview-section{grid-template-columns:1fr 1fr;}
-    .form-grid,.member-grid{grid-template-columns:1fr;}
-  }
-  @media (prefers-reduced-motion:reduce){
-    .badge-priority.high{animation:none;}
-    .bar-fill{transition:none;}
-  }
-  :focus-visible{outline:2px solid var(--primary);outline-offset:2px;}
-</style>
+        .page-header h1 {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .page-header p {
+            color: var(--text-muted);
+            font-size: 14px;
+        }
+
+        .btn-primary {
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: var(--radius);
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+        }
+
+        /* Seções e Cards */
+        .section-title {
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-muted);
+            margin-bottom: 16px;
+            font-weight: 600;
+        }
+
+        /* Grid de Prioridades */
+        .priority-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 16px;
+            margin-bottom: 48px;
+        }
+
+        .card {
+            background-color: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .card-tag {
+            font-size: 12px;
+            font-weight: 500;
+            display: inline-block;
+        }
+
+        .tag-urgent { color: var(--danger); }
+        .tag-return { color: #F59E0B; }
+        .tag-goal { color: var(--success); }
+
+        .card-title {
+            font-size: 16px;
+            font-weight: 500;
+        }
+
+        .card-desc {
+            font-size: 14px;
+            color: var(--text-muted);
+            margin-bottom: auto;
+        }
+
+        .card-action {
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text-main);
+            text-decoration: none;
+            border-top: 1px solid var(--border);
+            padding-top: 12px;
+            margin-top: 8px;
+        }
+
+        /* Grid de Indicadores */
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 48px;
+        }
+
+        .metric-card {
+            background-color: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 16px;
+        }
+
+        .metric-value {
+            font-size: 28px;
+            font-weight: 600;
+            margin: 8px 0 4px 0;
+        }
+
+        .metric-trend {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        /* Responsividade para telas menores/iPad */
+        @media (max-width: 768px) {
+            body { flex-direction: column; }
+            .sidebar { width: 100%; border-right: none; border-bottom: 1px solid var(--border); padding: 16px; }
+            .topbar, .content-wrapper { padding: 24px; }
+            .page-header { flex-direction: column; align-items: flex-start; gap: 16px; }
+        }
+    </style>
 </head>
 <body>
 
-<div class="app-container">
-
-  <aside class="sidebar">
-    <div class="sidebar-header">
-      <div class="logo-icon">
-        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h4l2.5 7L14 5l2.5 7H21"/></svg>
-      </div>
-      <div>
-        <h1>ACS Digital</h1>
-        <span class="subtitle" id="subtitle-microarea">Microárea 03 - Guarda-Mor</span>
-      </div>
-    </div>
-
-    <nav class="sidebar-nav">
-      <span class="nav-section-title">Navegação Principal</span>
-      <button class="nav-item active" data-tab="dashboard"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/></svg> Dashboard</button>
-      <button class="nav-item" data-tab="familias"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.2"/><path d="M2.5 20c0-3.6 2.9-6 6.5-6s6.5 2.4 6.5 6"/><circle cx="17" cy="9" r="2.6"/><path d="M15.5 13.2c2.7.4 4.5 2.4 4.5 5.3"/></svg> Famílias</button>
-      <button class="nav-item" data-tab="visitas"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-5.2-7-11a7 7 0 0114 0c0 5.8-7 11-7 11z"/><circle cx="12" cy="10" r="2.4"/></svg> Visitas</button>
-      <button class="nav-item" data-tab="indicadores"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V10M11 19V5M18 19v-7"/></svg> Indicadores</button>
-
-      <span class="nav-section-title">Atalhos Rápidos</span>
-      <button class="nav-item" data-tab="familias" data-action="novo-cadastro"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.2"/><path d="M2.5 20c0-3.6 2.9-6 6.5-6s6.5 2.4 6.5 6"/><path d="M17 7v6M14 10h6"/></svg> Novo Cadastro</button>
-      <button class="nav-item" data-tab="sintomas"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 3v2h6V3M8 11h8M8 15h5"/></svg> Ficha de Sintomas</button>
-    </nav>
-
-    <div class="sidebar-footer">
-      <button class="nav-item" data-tab="config"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 00.3 1.9l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.7 1.7 0 00-1.9-.3 1.7 1.7 0 00-1 1.5V21a2 2 0 11-4 0v-.1a1.7 1.7 0 00-1-1.6 1.7 1.7 0 00-1.9.3l-.1.1a2 2 0 11-2.8-2.8l.1-.1a1.7 1.7 0 00.3-1.9 1.7 1.7 0 00-1.5-1H3a2 2 0 110-4h.1a1.7 1.7 0 001.6-1 1.7 1.7 0 00-.3-1.9l-.1-.1a2 2 0 112.8-2.8l.1.1a1.7 1.7 0 001.9.3H9a1.7 1.7 0 001-1.5V3a2 2 0 114 0v.1a1.7 1.7 0 001 1.5 1.7 1.7 0 001.9-.3l.1-.1a2 2 0 112.8 2.8l-.1.1a1.7 1.7 0 00-.3 1.9V9a1.7 1.7 0 001.5 1H21a2 2 0 110 4h-.1a1.7 1.7 0 00-1.5 1z"/></svg> Configurações</button>
-      <div class="sync-status ok" id="sync-status">
-        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 18a4.5 4.5 0 01-.6-9 5.5 5.5 0 0110.7-1.6A4.5 4.5 0 0117 18H7z"/><path d="M9 14l2 2 4-4"/></svg>
-        <span id="sync-status-text">Sincronizado (local)</span>
-      </div>
-    </div>
-  </aside>
-
-  <main class="main-content">
-
-    <header class="main-header">
-      <div class="welcome-zone">
-        <h2 id="greeting">Bom dia.</h2>
-        <p class="current-date" id="live-date"></p>
-      </div>
-      <div class="search-zone">
-        <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
-        <input type="text" id="global-search" placeholder="Busca rápida por nome ou rua..." class="search-input">
-      </div>
-    </header>
-
-    <!-- ===== DASHBOARD ===== -->
-    <section class="tab-panel active" id="tab-dashboard">
-      <section class="overview-section">
-        <div class="compact-card">
-          <span class="card-label">Famílias</span>
-          <span class="card-value" id="kpi-familias">0</span>
-          <span class="card-subtext positive" id="kpi-familias-sub">&nbsp;</span>
+    <!-- Sidebar -->
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <h2>UBS Guarda-Mor</h2>
+            <span>Micro-área 03</span>
         </div>
-        <div class="compact-card">
-          <span class="card-label">Visitas Mês</span>
-          <span class="card-value" id="kpi-visitas">0 <span class="goal" id="kpi-visitas-goal">/ 0</span></span>
-          <span class="card-subtext" id="kpi-visitas-sub">Meta: 0% concluída</span>
-        </div>
-        <div class="compact-card">
-          <span class="card-label">Gestantes</span>
-          <span class="card-value" id="kpi-gestantes">0</span>
-          <span class="card-subtext highlight" id="kpi-gestantes-sub">0 no 3º trimestre</span>
-        </div>
-        <div class="compact-card">
-          <span class="card-label">Pendências</span>
-          <span class="card-value text-alert" id="kpi-pendencias">0</span>
-          <span class="card-subtext">Sem visita há 30+ dias</span>
-        </div>
-      </section>
+        <ul class="nav-links">
+            <li><a href="#" class="active">Início</a></li>
+            <li><a href="#">Visitas Diárias</a></li>
+            <li><a href="#">Indicadores</a></li>
+            <li><a href="#">Famílias</a></li>
+            <li><a href="#">Mapa da Micro-área</a></li>
+        </ul>
+    </aside>
 
-      <section class="priority-section">
-        <div class="section-header">
-          <h3>Visitas Prioritárias</h3>
-          <button class="btn-secondary" id="btn-nova-visita-top"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg> Nova Visita</button>
-        </div>
-        <div class="priority-list" id="priority-list"></div>
-      </section>
-
-      <section class="split-section">
-        <div class="split-block map-block">
-          <h4>Contexto Geoespacial</h4>
-          <div class="map-placeholder">
-            <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 20l-6-3V4l6 3 6-3 6 3v13l-6-3-6 3z"/><path d="M9 4v13M15 7v13"/></svg>
-            <p id="map-note">Exibindo 0 visitas prioritárias</p>
-          </div>
-        </div>
-        <div class="split-block indicators-block">
-          <h4>Indicadores da Semana</h4>
-          <ul class="indicator-ranking" id="dash-indicators"></ul>
-        </div>
-      </section>
-    </section>
-
-    <!-- ===== FAMÍLIAS ===== -->
-    <section class="tab-panel" id="tab-familias">
-      <div class="page-toolbar">
-        <h2>Famílias</h2>
-        <button class="btn-primary" id="btn-toggle-familia-form"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg> Nova Família</button>
-      </div>
-
-      <div class="form-panel" id="familia-form-panel">
-        <h3 style="margin-bottom:14px;font-size:15px;">Cadastro de família</h3>
-        <input type="hidden" id="familia-edit-id">
-        <div class="form-grid">
-          <div class="field"><label>Responsável pela família</label><input type="text" id="familia-nome" placeholder="Nome completo"></div>
-          <div class="field"><label>Telefone</label><input type="text" id="familia-telefone" placeholder="(00) 00000-0000"></div>
-          <div class="field"><label>Rua</label><input type="text" id="familia-rua" placeholder="Ex: Rua A"></div>
-          <div class="field"><label>Número</label><input type="text" id="familia-numero" placeholder="Ex: 12"></div>
-        </div>
-
-        <h4 style="margin:16px 0 8px;font-size:13px;">Moradores</h4>
-        <div id="membros-container"></div>
-        <button class="btn-secondary" id="btn-add-membro" type="button"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg> Adicionar morador</button>
-
-        <div class="form-actions">
-          <button class="btn-primary" id="btn-save-familia">Salvar família</button>
-          <button class="btn-ghost" id="btn-cancel-familia">Cancelar</button>
-        </div>
-      </div>
-
-      <table class="data-table">
-        <thead><tr><th>Responsável</th><th>Endereço</th><th>Moradores</th><th>Última visita</th><th></th></tr></thead>
-        <tbody id="familias-tbody"></tbody>
-      </table>
-      <div class="empty-note" id="familias-empty" style="display:none;">Nenhuma família cadastrada ainda. Clique em "Nova Família" para começar.</div>
-    </section>
-
-    <!-- ===== VISITAS ===== -->
-    <section class="tab-panel" id="tab-visitas">
-      <div class="page-toolbar">
-        <h2>Visitas</h2>
-        <button class="btn-primary" id="btn-toggle-visita-form"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg> Registrar visita</button>
-      </div>
-
-      <div class="form-panel" id="visita-form-panel">
-        <div class="form-grid">
-          <div class="field"><label>Família</label><select id="visita-familia"></select></div>
-          <div class="field"><label>Data</label><input type="date" id="visita-data"></div>
-          <div class="field"><label>Tipo de visita</label>
-            <select id="visita-tipo">
-              <option>Rotina Mensal</option>
-              <option>Pré-Natal</option>
-              <option>Hipertensão/Diabetes</option>
-              <option>Puerpério</option>
-              <option>Busca Ativa</option>
-              <option>Outro</option>
-            </select>
-          </div>
-          <div class="field full"><label>Observações</label><textarea id="visita-obs" placeholder="O que foi observado/orientado na visita"></textarea></div>
-        </div>
-        <div class="form-actions">
-          <button class="btn-primary" id="btn-save-visita">Salvar visita</button>
-          <button class="btn-ghost" id="btn-cancel-visita">Cancelar</button>
-        </div>
-      </div>
-
-      <table class="data-table">
-        <thead><tr><th>Data</th><th>Família</th><th>Tipo</th><th>Observações</th><th></th></tr></thead>
-        <tbody id="visitas-tbody"></tbody>
-      </table>
-      <div class="empty-note" id="visitas-empty" style="display:none;">Nenhuma visita registrada ainda.</div>
-    </section>
-
-    <!-- ===== INDICADORES ===== -->
-    <section class="tab-panel" id="tab-indicadores">
-      <div class="page-toolbar"><h2>Indicadores</h2></div>
-      <div class="split-block" style="max-width:560px;">
-        <ul class="indicator-ranking" id="full-indicators" style="gap:18px;"></ul>
-      </div>
-    </section>
-
-    <!-- ===== FICHA DE SINTOMAS ===== -->
-    <section class="tab-panel" id="tab-sintomas">
-      <div class="page-toolbar">
-        <h2>Ficha de Sintomas</h2>
-        <button class="btn-primary" id="btn-toggle-sintoma-form"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg> Nova ficha</button>
-      </div>
-
-      <div class="form-panel" id="sintoma-form-panel">
-        <div class="form-grid">
-          <div class="field"><label>Nome do paciente</label><input type="text" id="sintoma-nome"></div>
-          <div class="field"><label>Data</label><input type="date" id="sintoma-data"></div>
-          <div class="field full">
-            <label>Sintomas observados</label>
-            <div style="display:flex;flex-wrap:wrap;gap:14px;">
-              <label class="checkbox-row"><input type="checkbox" class="sintoma-chk" value="Febre"> Febre</label>
-              <label class="checkbox-row"><input type="checkbox" class="sintoma-chk" value="Tosse"> Tosse</label>
-              <label class="checkbox-row"><input type="checkbox" class="sintoma-chk" value="Falta de ar"> Falta de ar</label>
-              <label class="checkbox-row"><input type="checkbox" class="sintoma-chk" value="Dor de cabeça"> Dor de cabeça</label>
-              <label class="checkbox-row"><input type="checkbox" class="sintoma-chk" value="Diarreia"> Diarreia</label>
-              <label class="checkbox-row"><input type="checkbox" class="sintoma-chk" value="Dor no corpo"> Dor no corpo</label>
+    <!-- Main Content -->
+    <main class="main-content">
+        
+        <!-- Topbar -->
+        <header class="topbar">
+            <div class="breadcrumb">Início / Dashboard</div>
+            <div class="user-menu" style="font-size: 14px; color: var(--text-muted);">
+                Buscar (Cmd+K) &nbsp;&nbsp;|&nbsp;&nbsp; Perfil
             </div>
-          </div>
-          <div class="field"><label>Gravidade percebida</label>
-            <select id="sintoma-gravidade"><option value="leve">Leve</option><option value="moderada">Moderada</option><option value="grave">Grave - encaminhar</option></select>
-          </div>
-          <div class="field full"><label>Observações</label><textarea id="sintoma-obs"></textarea></div>
+        </header>
+
+        <!-- Wrapper do Conteúdo -->
+        <div class="content-wrapper">
+            
+            <div class="page-header">
+                <div>
+                    <h1>Bom dia, Gabriela.</h1>
+                    <p>Aqui está o seu panorama para hoje.</p>
+                </div>
+                <button class="btn-primary">+ Nova Visita</button>
+            </div>
+
+            <!-- Ações Prioritárias -->
+            <div class="section-title">Ações Prioritárias</div>
+            <div class="priority-grid">
+                
+                <div class="card">
+                    <span class="card-tag tag-urgent">● Urgente</span>
+                    <div class="card-title">Gestante no 3º Trimestre</div>
+                    <div class="card-desc">Família Silva - Rua A, 12</div>
+                    <a href="#" class="card-action">Iniciar Visita →</a>
+                </div>
+
+                <div class="card">
+                    <span class="card-tag tag-return">● Retorno</span>
+                    <div class="card-title">Recém-nascido (5 dias)</div>
+                    <div class="card-desc">Família Costa - Beco 2</div>
+                    <a href="#" class="card-action">Iniciar Visita →</a>
+                </div>
+
+                <div class="card">
+                    <span class="card-tag tag-goal">● Meta do Mês</span>
+                    <div class="card-title">Visitas Domiciliares</div>
+                    <div class="card-desc">112 de 150 realizadas</div>
+                    <div style="height: 4px; background: var(--border); border-radius: 2px; margin-top: 12px; overflow: hidden;">
+                        <div style="width: 75%; height: 100%; background: var(--success);"></div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Indicadores -->
+            <div class="section-title">Indicadores da Micro-área 03</div>
+            <div class="metrics-grid">
+                
+                <div class="metric-card">
+                    <div class="section-title" style="margin-bottom: 0;">Famílias</div>
+                    <div class="metric-value">145</div>
+                    <div class="metric-trend">+2 cadastradas este mês</div>
+                </div>
+
+                <div class="metric-card">
+                    <div class="section-title" style="margin-bottom: 0;">Hipertensos (HAS)</div>
+                    <div class="metric-value">42</div>
+                    <div class="metric-trend">100% acompanhados</div>
+                </div>
+
+                <div class="metric-card">
+                    <div class="section-title" style="margin-bottom: 0;">Diabéticos (DM)</div>
+                    <div class="metric-value">18</div>
+                    <div class="metric-trend">2 pendentes de visita</div>
+                </div>
+
+            </div>
+
         </div>
-        <div class="form-actions">
-          <button class="btn-primary" id="btn-save-sintoma">Salvar ficha</button>
-          <button class="btn-ghost" id="btn-cancel-sintoma">Cancelar</button>
-        </div>
-      </div>
+    </main>
 
-      <table class="data-table">
-        <thead><tr><th>Data</th><th>Paciente</th><th>Sintomas</th><th>Gravidade</th><th></th></tr></thead>
-        <tbody id="sintomas-tbody"></tbody>
-      </table>
-      <div class="empty-note" id="sintomas-empty" style="display:none;">Nenhuma ficha registrada ainda.</div>
-    </section>
-
-    <!-- ===== CONFIGURAÇÕES ===== -->
-    <section class="tab-panel" id="tab-config">
-      <div class="page-toolbar"><h2>Configurações</h2></div>
-      <div class="config-card">
-        <div class="field"><label>Nome do agente</label><input type="text" id="cfg-agente" placeholder="Gabi"></div>
-        <div class="field"><label>Microárea</label><input type="text" id="cfg-microarea" placeholder="Microárea 03 - Guarda-Mor"></div>
-        <div class="field"><label>Meta mensal de visitas</label><input type="number" id="cfg-meta" min="1"></div>
-        <button class="btn-primary" id="btn-save-config">Salvar configurações</button>
-
-        <div class="danger-zone">
-          <p>Isso remove todas as famílias, visitas e fichas salvas neste app. Não pode ser desfeito.</p>
-          <button class="btn-danger" id="btn-clear-data">Apagar todos os dados</button>
-        </div>
-      </div>
-    </section>
-
-  </main>
-</div>
-
-<script>
-(function(){
-  "use strict";
-
-  const STORAGE_KEY = "acs-data";
-  let state = { families: [], visits: [], symptoms: [], config: { agente:"Gabi", microarea:"Microárea 03 - Guarda-Mor", meta: 30 } };
-  let pendingFamilyId = null;
-
-  // ---------- storage ----------
-  function setSync(mode, text){
-    const el = document.getElementById('sync-status');
-    const txt = document.getElementById('sync-status-text');
-    el.classList.remove('saving','ok','error');
-    el.classList.add(mode);
-    txt.textContent = text;
-  }
-
-  async function loadState(){
-    try{
-      const res = await window.storage.get(STORAGE_KEY, false);
-      if(res && res.value){
-        const parsed = JSON.parse(res.value);
-        state = Object.assign(state, parsed);
-      } else {
-        seedExample();
-      }
-    }catch(e){
-      seedExample();
-    }
-    renderAll();
-  }
-
-  let saveTimer = null;
-  function saveState(){
-    setSync('saving','Salvando...');
-    clearTimeout(saveTimer);
-    saveTimer = setTimeout(async ()=>{
-      try{
-        await window.storage.set(STORAGE_KEY, JSON.stringify(state), false);
-        setSync('ok','Sincronizado (local)');
-      }catch(e){
-        setSync('error','Erro ao salvar — tente de novo');
-      }
-    }, 250);
-  }
-
-  function seedExample(){
-    state.families = [
-      { id: uid(), nome:"Ana Silva", telefone:"", rua:"Rua A", numero:"12", ultimaVisita:null,
-        membros:[{id:uid(), nome:"Ana Silva", idade:27, sexo:"F", gestante:true, trimestre:3, prenatal:true, hipertensao:false, diabetes:false, diabetesControlado:false, crianca:false, vacinacao:false}] },
-      { id: uid(), nome:"João Costa", telefone:"", rua:"Rua B", numero:"44", ultimaVisita: daysAgoISO(40),
-        membros:[{id:uid(), nome:"João Costa", idade:58, sexo:"M", gestante:false, trimestre:1, prenatal:false, hipertensao:true, diabetes:false, diabetesControlado:false, crianca:false, vacinacao:false}] },
-      { id: uid(), nome:"Maria José", telefone:"", rua:"Rua C", numero:"10", ultimaVisita: daysAgoISO(10),
-        membros:[{id:uid(), nome:"Maria José", idade:64, sexo:"F", gestante:false, trimestre:1, prenatal:false, hipertensao:false, diabetes:true, diabetesControlado:true, crianca:false, vacinacao:false}] }
-    ];
-    state.visits = [];
-    state.symptoms = [];
-  }
-
-  function uid(){ return Math.random().toString(36).slice(2,10) + Date.now().toString(36).slice(-4); }
-  function daysAgoISO(n){ const d = new Date(); d.setDate(d.getDate()-n); return d.toISOString().slice(0,10); }
-  function todayISO(){ return new Date().toISOString().slice(0,10); }
-  function fmtDate(iso){ if(!iso) return "—"; const [y,m,d]=iso.split("-"); return `${d}/${m}/${y}`; }
-  function daysSince(iso){ if(!iso) return Infinity; const then = new Date(iso); const now = new Date(); return Math.floor((now-then)/86400000); }
-
-  // ---------- nav ----------
-  document.querySelectorAll('.nav-item[data-tab]').forEach(btn=>{
-    btn.addEventListener('click', ()=>{
-      document.querySelectorAll('.nav-item[data-tab]').forEach(b=>b.classList.remove('active'));
-      // mark all buttons that target this tab as active (handles duplicate "familias" shortcut)
-      const tab = btn.dataset.tab;
-      document.querySelectorAll('.nav-item[data-tab="'+tab+'"]').forEach(b=>b.classList.add('active'));
-      document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
-      document.getElementById('tab-'+tab).classList.add('active');
-      if(btn.dataset.action === 'novo-cadastro'){ openFamiliaForm(); }
-      if(tab === 'sintomas'){ openSintomaForm(); }
-    });
-  });
-
-  // ---------- greeting / date ----------
-  function renderHeader(){
-    const hour = new Date().getHours();
-    const greet = hour < 12 ? "Bom dia" : hour < 18 ? "Boa tarde" : "Boa noite";
-    document.getElementById('greeting').textContent = `${greet}, ${state.config.agente || "agente"}.`;
-    document.getElementById('subtitle-microarea').textContent = state.config.microarea || "Microárea";
-    document.getElementById('live-date').textContent = new Date().toLocaleDateString('pt-BR', { weekday:'long', day:'2-digit', month:'long' });
-  }
-
-  // ---------- computed metrics ----------
-  function allMembros(){
-    const list = [];
-    state.families.forEach(f=> f.membros.forEach(m=> list.push(Object.assign({familyId:f.id, familyNome:f.nome}, m))));
-    return list;
-  }
-
-  function computeMetrics(){
-    const membros = allMembros();
-    const gestantes = membros.filter(m=>m.gestante);
-    const gestantes3 = gestantes.filter(m=>Number(m.trimestre)===3);
-    const now = new Date();
-    const visitasMes = state.visits.filter(v=>{
-      const d = new Date(v.data); return d.getMonth()===now.getMonth() && d.getFullYear()===now.getFullYear();
-    });
-    const meta = Number(state.config.meta) || (state.families.length * 1) || 1;
-    const pendentes = state.families.filter(f=> daysSince(f.ultimaVisita) >= 30);
-    const criancas = membros.filter(m=>m.crianca);
-    const diabeticos = membros.filter(m=>m.diabetes);
-    const vacPct = criancas.length ? Math.round(criancas.filter(m=>m.vacinacao).length / criancas.length * 100) : 100;
-    const glicPct = diabeticos.length ? Math.round(diabeticos.filter(m=>m.diabetesControlado).length / diabeticos.length * 100) : 100;
-    const prenatalPct = gestantes.length ? Math.round(gestantes.filter(m=>m.prenatal).length / gestantes.length * 100) : 100;
-    const emDiaPct = state.families.length ? Math.round((state.families.length - pendentes.length) / state.families.length * 100) : 100;
-    return { membros, gestantes, gestantes3, visitasMes, meta, pendentes, vacPct, glicPct, prenatalPct, emDiaPct };
-  }
-
-  function computePriorities(m){
-    const items = [];
-    m.gestantes3.forEach(g=> items.push({ priority:'alta', label:'Gestante 3º Trimestre', familyId:g.familyId, nome:g.familyNome, endereco: enderecoOf(g.familyId) }));
-    state.families.forEach(f=>{
-      const overdue = daysSince(f.ultimaVisita) >= 30;
-      const hasCondicao = f.membros.some(mm=>mm.hipertensao || mm.diabetes);
-      if(overdue && hasCondicao && !m.gestantes3.some(g=>g.familyId===f.id)){
-        items.push({ priority:'media', label:'Hipertenso/Diabético - Atrasado', familyId:f.id, nome:f.nome, endereco: enderecoOf(f.id) });
-      }
-    });
-    state.families.forEach(f=>{
-      if(!items.some(it=>it.familyId===f.id)){
-        items.push({ priority:'baixa', label:'Rotina Mensal', familyId:f.id, nome:f.nome, endereco: enderecoOf(f.id) });
-      }
-    });
-    return items.slice(0,6);
-  }
-
-  function enderecoOf(familyId){
-    const f = state.families.find(x=>x.id===familyId);
-    if(!f) return "";
-    return [f.rua, f.numero].filter(Boolean).join(", ");
-  }
-
-  // ---------- dashboard render ----------
-  function renderDashboard(){
-    const m = computeMetrics();
-    document.getElementById('kpi-familias').textContent = state.families.length;
-    document.getElementById('kpi-familias-sub').textContent = "famílias na microárea";
-    document.getElementById('kpi-visitas').innerHTML = `${m.visitasMes.length} <span class="goal">/ ${m.meta}</span>`;
-    const pct = Math.min(100, Math.round(m.visitasMes.length / m.meta * 100));
-    document.getElementById('kpi-visitas-sub').textContent = `Meta: ${pct}% concluída`;
-    document.getElementById('kpi-gestantes').textContent = m.gestantes.length;
-    document.getElementById('kpi-gestantes-sub').textContent = `${m.gestantes3.length} no 3º trimestre`;
-    document.getElementById('kpi-pendencias').textContent = m.pendentes.length;
-
-    const list = document.getElementById('priority-list');
-    const priorities = computePriorities(m);
-    list.innerHTML = priorities.length ? priorities.map(p=>`
-      <div class="priority-item ${p.priority}">
-        <div class="item-left">
-          <span class="badge-priority ${p.priority==='alta'?'high':p.priority==='media'?'medium':'low'}"></span>
-          <div class="patient-info">
-            <span class="patient-condition">${p.label}</span>
-            <span class="patient-meta">${p.nome} — ${p.endereco || 'endereço não informado'}</span>
-          </div>
-        </div>
-        <button class="btn-action" data-family="${p.familyId}">Iniciar</button>
-      </div>`).join('') : `<div class="empty-note">Nenhuma visita prioritária — cadastre famílias para começar.</div>`;
-
-    document.getElementById('map-note').textContent = `Exibindo ${priorities.length} visita(s) prioritária(s) na microárea`;
-
-    renderIndicatorList(document.getElementById('dash-indicators'), m, true);
-    renderIndicatorList(document.getElementById('full-indicators'), m, false);
-
-    list.querySelectorAll('.btn-action').forEach(btn=>{
-      btn.addEventListener('click', ()=>{
-        pendingFamilyId = btn.dataset.family;
-        switchTab('visitas');
-        openVisitaForm();
-      });
-    });
-  }
-
-  function renderIndicatorList(el, m, compact){
-    const rows = [
-      { name:'Vacinação Infantil', pct:m.vacPct },
-      { name:'Controle Glicêmico', pct:m.glicPct },
-      { name:'Pré-Natal Iniciado', pct:m.prenatalPct },
-      { name:'Visitas em Dia', pct:m.emDiaPct }
-    ];
-    const useRows = compact ? rows.slice(0,3) : rows;
-    el.innerHTML = useRows.map(r=>`
-      <li>
-        <div class="indicator-top"><span class="indicator-name">${r.name}</span><span class="indicator-percent">${r.pct}%</span></div>
-        <div class="bar-track"><div class="bar-fill" style="width:${r.pct}%"></div></div>
-      </li>`).join('');
-  }
-
-  function switchTab(tab){
-    document.querySelectorAll('.nav-item[data-tab]').forEach(b=>b.classList.remove('active'));
-    document.querySelectorAll('.nav-item[data-tab="'+tab+'"]').forEach(b=>b.classList.add('active'));
-    document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
-    document.getElementById('tab-'+tab).classList.add('active');
-  }
-
-  // ---------- Famílias ----------
-  function memberRowHTML(mm){
-    mm = mm || {};
-    const rid = mm.id || uid();
-    return `
-    <div class="member-block" data-id="${rid}">
-      <div class="member-head"><span>Morador</span><button type="button" class="icon-btn danger btn-remove-membro"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M9 7V5a2 2 0 012-2h2a2 2 0 012 2v2m2 0l-1 13a2 2 0 01-2 2H9a2 2 0 01-2-2L6 7"/></svg></button></div>
-      <div class="member-grid">
-        <div class="field"><label>Nome</label><input type="text" class="m-nome" value="${mm.nome||''}"></div>
-        <div class="field"><label>Idade</label><input type="number" class="m-idade" min="0" value="${mm.idade!=null?mm.idade:''}"></div>
-        <div class="field"><label>Sexo</label><select class="m-sexo"><option value="F" ${mm.sexo==='F'?'selected':''}>Feminino</option><option value="M" ${mm.sexo==='M'?'selected':''}>Masculino</option></select></div>
-      </div>
-      <div class="member-flags">
-        <label class="checkbox-row"><input type="checkbox" class="chk-gestante" ${mm.gestante?'checked':''}> Gestante</label>
-        <label class="checkbox-row"><input type="checkbox" class="chk-hipertensao" ${mm.hipertensao?'checked':''}> Hipertensão</label>
-        <label class="checkbox-row"><input type="checkbox" class="chk-diabetes" ${mm.diabetes?'checked':''}> Diabetes</label>
-        <label class="checkbox-row"><input type="checkbox" class="chk-crianca" ${mm.crianca?'checked':''}> Criança até 10 anos</label>
-      </div>
-      <div class="sub-field sub-field-gestante">
-        <div class="field" style="flex:0 0 140px;"><label>Trimestre</label>
-          <select class="m-trimestre"><option value="1" ${mm.trimestre==1?'selected':''}>1º</option><option value="2" ${mm.trimestre==2?'selected':''}>2º</option><option value="3" ${mm.trimestre==3?'selected':''}>3º</option></select>
-        </div>
-        <label class="checkbox-row" style="align-self:center;"><input type="checkbox" class="chk-prenatal" ${mm.prenatal?'checked':''}> Pré-natal iniciado</label>
-      </div>
-      <span class="sub-field sub-field-diabetes"><label class="checkbox-row"><input type="checkbox" class="chk-diabetes-controlado" ${mm.diabetesControlado?'checked':''}> Diabetes controlado</label></span>
-      <span class="sub-field sub-field-crianca"><label class="checkbox-row"><input type="checkbox" class="chk-vacinacao" ${mm.vacinacao?'checked':''}> Vacinação completa</label></span>
-    </div>`;
-  }
-
-  document.getElementById('btn-add-membro').addEventListener('click', ()=>{
-    document.getElementById('membros-container').insertAdjacentHTML('beforeend', memberRowHTML());
-  });
-  document.getElementById('membros-container').addEventListener('click', (e)=>{
-    const btn = e.target.closest('.btn-remove-membro');
-    if(btn) btn.closest('.member-block').remove();
-  });
-
-  function openFamiliaForm(family){
-    const panel = document.getElementById('familia-form-panel');
-    panel.classList.add('open');
-    document.getElementById('familia-edit-id').value = family ? family.id : '';
-    document.getElementById('familia-nome').value = family ? family.nome : '';
-    document.getElementById('familia-telefone').value = family ? family.telefone||'' : '';
-    document.getElementById('familia-rua').value = family ? family.rua||'' : '';
-    document.getElementById('familia-numero').value = family ? family.numero||'' : '';
-    const container = document.getElementById('membros-container');
-    container.innerHTML = '';
-    if(family && family.membros.length){
-      family.membros.forEach(mm=> container.insertAdjacentHTML('beforeend', memberRowHTML(mm)));
-    } else {
-      container.insertAdjacentHTML('beforeend', memberRowHTML());
-    }
-    panel.scrollIntoView({behavior:'smooth', block:'start'});
-  }
-  function closeFamiliaForm(){ document.getElementById('familia-form-panel').classList.remove('open'); }
-
-  document.getElementById('btn-toggle-familia-form').addEventListener('click', ()=>{
-    const panel = document.getElementById('familia-form-panel');
-    if(panel.classList.contains('open')) closeFamiliaForm(); else openFamiliaForm();
-  });
-  document.getElementById('btn-cancel-familia').addEventListener('click', closeFamiliaForm);
-
-  document.getElementById('btn-save-familia').addEventListener('click', ()=>{
-    const nome = document.getElementById('familia-nome').value.trim();
-    if(!nome){ alert('Informe o nome do responsável pela família.'); return; }
-    const id = document.getElementById('familia-edit-id').value || uid();
-    const membros = Array.from(document.querySelectorAll('#membros-container .member-block')).map(block=>({
-      id: block.dataset.id,
-      nome: block.querySelector('.m-nome').value.trim(),
-      idade: Number(block.querySelector('.m-idade').value) || 0,
-      sexo: block.querySelector('.m-sexo').value,
-      gestante: block.querySelector('.chk-gestante').checked,
-      trimestre: Number(block.querySelector('.m-trimestre').value),
-      prenatal: block.querySelector('.chk-prenatal').checked,
-      hipertensao: block.querySelector('.chk-hipertensao').checked,
-      diabetes: block.querySelector('.chk-diabetes').checked,
-      diabetesControlado: block.querySelector('.chk-diabetes-controlado').checked,
-      crianca: block.querySelector('.chk-crianca').checked,
-      vacinacao: block.querySelector('.chk-vacinacao').checked
-    })).filter(m=>m.nome);
-
-    const existing = state.families.find(f=>f.id===id);
-    const record = { id, nome, telefone: document.getElementById('familia-telefone').value.trim(),
-      rua: document.getElementById('familia-rua').value.trim(), numero: document.getElementById('familia-numero').value.trim(),
-      ultimaVisita: existing ? existing.ultimaVisita : null, membros };
-
-    if(existing){ Object.assign(existing, record); } else { state.families.push(record); }
-    saveState(); closeFamiliaForm(); renderAll();
-  });
-
-  function renderFamilias(){
-    const tbody = document.getElementById('familias-tbody');
-    document.getElementById('familias-empty').style.display = state.families.length ? 'none' : 'block';
-    tbody.innerHTML = state.families.map(f=>{
-      const flags = [];
-      if(f.membros.some(m=>m.gestante)) flags.push('<span class="tag gestante">Gestante</span>');
-      if(f.membros.some(m=>m.hipertensao)) flags.push('<span class="tag hipertenso">Hipertensão</span>');
-      if(f.membros.some(m=>m.diabetes)) flags.push('<span class="tag diabetes">Diabetes</span>');
-      if(f.membros.some(m=>m.crianca)) flags.push('<span class="tag crianca">Criança</span>');
-      return `<tr>
-        <td><strong>${f.nome}</strong><br><span style="color:var(--text-muted);font-size:11.5px;">${f.membros.length} morador(es)</span></td>
-        <td>${[f.rua,f.numero].filter(Boolean).join(', ')||'—'}</td>
-        <td>${flags.join(' ')||'—'}</td>
-        <td>${fmtDate(f.ultimaVisita)}</td>
-        <td><div class="row-actions">
-          <button class="icon-btn btn-edit-familia" data-id="${f.id}"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4z"/></svg></button>
-          <button class="icon-btn danger btn-del-familia" data-id="${f.id}"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M9 7V5a2 2 0 012-2h2a2 2 0 012 2v2m2 0l-1 13a2 2 0 01-2 2H9a2 2 0 01-2-2L6 7"/></svg></button>
-        </div></td>
-      </tr>`;
-    }).join('');
-
-    tbody.querySelectorAll('.btn-edit-familia').forEach(b=>b.addEventListener('click', ()=>{
-      openFamiliaForm(state.families.find(f=>f.id===b.dataset.id));
-    }));
-    tbody.querySelectorAll('.btn-del-familia').forEach(b=>b.addEventListener('click', ()=>{
-      if(confirm('Remover esta família e seu histórico de visitas associado?')){
-        state.families = state.families.filter(f=>f.id!==b.dataset.id);
-        state.visits = state.visits.filter(v=>v.familyId!==b.dataset.id);
-        saveState(); renderAll();
-      }
-    }));
-  }
-
-  // ---------- Visitas ----------
-  function populateFamiliaSelect(){
-    const sel = document.getElementById('visita-familia');
-    sel.innerHTML = state.families.map(f=>`<option value="${f.id}">${f.nome} — ${[f.rua,f.numero].filter(Boolean).join(', ')}</option>`).join('') || '<option value="">Nenhuma família cadastrada</option>';
-  }
-  function openVisitaForm(){
-    populateFamiliaSelect();
-    document.getElementById('visita-form-panel').classList.add('open');
-    document.getElementById('visita-data').value = todayISO();
-    if(pendingFamilyId){ document.getElementById('visita-familia').value = pendingFamilyId; pendingFamilyId = null; }
-    document.getElementById('visita-form-panel').scrollIntoView({behavior:'smooth', block:'start'});
-  }
-  function closeVisitaForm(){ document.getElementById('visita-form-panel').classList.remove('open'); }
-
-  document.getElementById('btn-toggle-visita-form').addEventListener('click', ()=>{
-    const panel = document.getElementById('visita-form-panel');
-    if(panel.classList.contains('open')) closeVisitaForm(); else openVisitaForm();
-  });
-  document.getElementById('btn-nova-visita-top').addEventListener('click', ()=>{ switchTab('visitas'); openVisitaForm(); });
-  document.getElementById('btn-cancel-visita').addEventListener('click', closeVisitaForm);
-
-  document.getElementById('btn-save-visita').addEventListener('click', ()=>{
-    const familyId = document.getElementById('visita-familia').value;
-    if(!familyId){ alert('Cadastre uma família antes de registrar a visita.'); return; }
-    const data = document.getElementById('visita-data').value || todayISO();
-    const visit = { id: uid(), familyId, data, tipo: document.getElementById('visita-tipo').value, observacoes: document.getElementById('visita-obs').value.trim() };
-    state.visits.push(visit);
-    const fam = state.families.find(f=>f.id===familyId);
-    if(fam && (!fam.ultimaVisita || data > fam.ultimaVisita)) fam.ultimaVisita = data;
-    saveState();
-    document.getElementById('visita-obs').value = '';
-    closeVisitaForm(); renderAll();
-  });
-
-  function renderVisitas(){
-    const tbody = document.getElementById('visitas-tbody');
-    const sorted = [...state.visits].sort((a,b)=> b.data.localeCompare(a.data));
-    document.getElementById('visitas-empty').style.display = sorted.length ? 'none' : 'block';
-    tbody.innerHTML = sorted.map(v=>{
-      const fam = state.families.find(f=>f.id===v.familyId);
-      return `<tr>
-        <td>${fmtDate(v.data)}</td>
-        <td>${fam ? fam.nome : '<span style="color:var(--text-muted)">família removida</span>'}</td>
-        <td>${v.tipo}</td>
-        <td>${v.observacoes||'—'}</td>
-        <td><button class="icon-btn danger btn-del-visita" data-id="${v.id}"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M9 7V5a2 2 0 012-2h2a2 2 0 012 2v2m2 0l-1 13a2 2 0 01-2 2H9a2 2 0 01-2-2L6 7"/></svg></button></td>
-      </tr>`;
-    }).join('');
-    tbody.querySelectorAll('.btn-del-visita').forEach(b=>b.addEventListener('click', ()=>{
-      state.visits = state.visits.filter(v=>v.id!==b.dataset.id);
-      saveState(); renderAll();
-    }));
-  }
-
-  // ---------- Ficha de Sintomas ----------
-  function openSintomaForm(){
-    document.getElementById('sintoma-form-panel').classList.add('open');
-    document.getElementById('sintoma-data').value = todayISO();
-  }
-  function closeSintomaForm(){ document.getElementById('sintoma-form-panel').classList.remove('open'); }
-  document.getElementById('btn-toggle-sintoma-form').addEventListener('click', ()=>{
-    const panel = document.getElementById('sintoma-form-panel');
-    if(panel.classList.contains('open')) closeSintomaForm(); else openSintomaForm();
-  });
-  document.getElementById('btn-cancel-sintoma').addEventListener('click', closeSintomaForm);
-
-  document.getElementById('btn-save-sintoma').addEventListener('click', ()=>{
-    const nome = document.getElementById('sintoma-nome').value.trim();
-    if(!nome){ alert('Informe o nome do paciente.'); return; }
-    const sintomas = Array.from(document.querySelectorAll('.sintoma-chk:checked')).map(c=>c.value);
-    const record = { id: uid(), nome, data: document.getElementById('sintoma-data').value || todayISO(),
-      sintomas, gravidade: document.getElementById('sintoma-gravidade').value, observacoes: document.getElementById('sintoma-obs').value.trim() };
-    state.symptoms.push(record);
-    saveState();
-    document.getElementById('sintoma-nome').value=''; document.getElementById('sintoma-obs').value='';
-    document.querySelectorAll('.sintoma-chk').forEach(c=>c.checked=false);
-    closeSintomaForm(); renderAll();
-  });
-
-  function renderSintomas(){
-    const tbody = document.getElementById('sintomas-tbody');
-    const sorted = [...state.symptoms].sort((a,b)=> b.data.localeCompare(a.data));
-    document.getElementById('sintomas-empty').style.display = sorted.length ? 'none' : 'block';
-    tbody.innerHTML = sorted.map(s=>`
-      <tr>
-        <td>${fmtDate(s.data)}</td>
-        <td>${s.nome}</td>
-        <td>${s.sintomas.join(', ')||'—'}</td>
-        <td><span class="tag ${s.gravidade}">${s.gravidade==='leve'?'Leve':s.gravidade==='moderada'?'Moderada':'Grave'}</span></td>
-        <td><button class="icon-btn danger btn-del-sintoma" data-id="${s.id}"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M9 7V5a2 2 0 012-2h2a2 2 0 012 2v2m2 0l-1 13a2 2 0 01-2 2H9a2 2 0 01-2-2L6 7"/></svg></button></td>
-      </tr>`).join('');
-    tbody.querySelectorAll('.btn-del-sintoma').forEach(b=>b.addEventListener('click', ()=>{
-      state.symptoms = state.symptoms.filter(s=>s.id!==b.dataset.id);
-      saveState(); renderAll();
-    }));
-  }
-
-  // ---------- Config ----------
-  function renderConfig(){
-    document.getElementById('cfg-agente').value = state.config.agente || '';
-    document.getElementById('cfg-microarea').value = state.config.microarea || '';
-    document.getElementById('cfg-meta').value = state.config.meta || 30;
-  }
-  document.getElementById('btn-save-config').addEventListener('click', ()=>{
-    state.config.agente = document.getElementById('cfg-agente').value.trim() || 'Agente';
-    state.config.microarea = document.getElementById('cfg-microarea').value.trim();
-    state.config.meta = Number(document.getElementById('cfg-meta').value) || 30;
-    saveState(); renderAll();
-  });
-  document.getElementById('btn-clear-data').addEventListener('click', ()=>{
-    if(confirm('Tem certeza? Todos os dados serão apagados permanentemente.')){
-      state.families = []; state.visits = []; state.symptoms = [];
-      saveState(); renderAll();
-    }
-  });
-
-  // ---------- search ----------
-  document.getElementById('global-search').addEventListener('input', (e)=>{
-    const q = e.target.value.toLowerCase();
-    switchTab('familias');
-    const tbody = document.getElementById('familias-tbody');
-    tbody.querySelectorAll('tr').forEach(tr=>{
-      tr.style.display = tr.textContent.toLowerCase().includes(q) ? '' : 'none';
-    });
-  });
-
-  // ---------- render all ----------
-  function renderAll(){
-    renderHeader();
-    renderFamilias();
-    renderVisitas();
-    renderSintomas();
-    renderConfig();
-    renderDashboard();
-  }
-
-  loadState();
-})();
-</script>
 </body>
 </html>
