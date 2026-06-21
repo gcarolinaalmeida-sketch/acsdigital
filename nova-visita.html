@@ -12,7 +12,6 @@
             --text-muted: #6B7280;
             --border: #E5E7EB;
             --primary: #0A84FF;
-            --primary-hover: #0070E0;
             --success: #34C759;
             --danger: #FF3B30;
             --warning: #FF9500;
@@ -56,9 +55,7 @@
 
         .family-info h2 { font-size: 20px; margin-bottom: 8px; }
         .info-row { display: flex; gap: 8px; color: var(--text-muted); font-size: 14px; margin-bottom: 8px; }
-        
         .divider { height: 1px; background-color: var(--border); margin: 24px 0; }
-
         .section-label { font-size: 12px; font-weight: 600; color: var(--text-muted); letter-spacing: 0.5px; margin-bottom: 12px; }
         .history-text { font-size: 14px; margin-bottom: 4px; }
         .alert-text { color: var(--warning); font-size: 14px; font-weight: 500; margin-top: 8px; }
@@ -71,7 +68,7 @@
             overflow-y: auto;
         }
 
-        /* Chips (Botões de Seleção) */
+        /* Chips */
         .chip-group { display: flex; flex-wrap: wrap; gap: 12px; }
         .chip {
             background-color: var(--chip-bg);
@@ -85,7 +82,6 @@
             transition: all 0.2s ease;
             user-select: none;
         }
-        
         .chip:hover { background-color: #E5E5EA; }
         .chip.selected { background-color: var(--primary); color: white; }
 
@@ -120,7 +116,6 @@
             gap: 8px;
             transition: 0.2s;
         }
-        .btn-signature:hover { background-color: rgba(10, 132, 255, 0.15); }
         .btn-signature.signed { background-color: var(--success); color: white; border-style: solid; border-color: var(--success); }
 
         /* Modal de Assinatura */
@@ -131,23 +126,19 @@
             z-index: 100; opacity: 0; pointer-events: none; transition: 0.3s;
         }
         .modal-overlay.active { opacity: 1; pointer-events: auto; }
-
         .modal-content {
             background: var(--surface); width: 90%; max-width: 600px;
             border-radius: 16px; padding: 24px; display: flex; flex-direction: column; gap: 16px;
         }
-
         .canvas-container { border: 2px solid var(--border); border-radius: 12px; background: #fff; overflow: hidden; touch-action: none; }
         canvas { width: 100%; height: 250px; cursor: crosshair; display: block; }
-
         .modal-actions { display: flex; justify-content: space-between; margin-top: 8px; }
         .btn-clear { color: var(--danger); background: none; border: none; font-size: 15px; font-weight: 600; cursor: pointer; }
         .btn-confirm { background: var(--primary); color: white; border: none; padding: 10px 20px; border-radius: 8px; font-weight: 600; cursor: pointer; }
 
-        /* Responsividade para Celulares */
         @media (max-width: 768px) {
             .container { flex-direction: column; overflow-y: auto; }
-            .sidebar-context, .main-action { width: 100%; overflow-y: visible; border-right: none; }
+            .sidebar-context, .main-action { width: 100%; border-right: none; }
             .sidebar-context { padding: 24px; border-bottom: 1px solid var(--border); }
             .main-action { padding: 24px; }
             body { height: auto; min-height: 100vh; overflow-y: auto; }
@@ -156,54 +147,33 @@
 </head>
 <body>
 
-    <!-- Cabeçalho -->
     <header class="navbar">
-      <button class="btn-text" id="btnCancelar">Cancelar</button>
+        <button class="btn-text" id="btnCancelar">Cancelar</button>
         <h1>Nova Visita</h1>
         <button class="btn-save" id="btnSalvar">Salvar Visita</button>
     </header>
 
-    <!-- Estrutura Principal -->
     <div class="container">
         
-        <!-- Lado Esquerdo: Contexto -->
         <aside class="sidebar-context">
             <div class="family-info">
                 <h2>👨‍👩‍👧 Família Silva Costa</h2>
                 <div class="info-row">📍 Rua das Flores, 123 - Centro</div>
-                <div class="info-row">📞 (11) 98765-4321</div>
             </div>
-
             <div class="divider"></div>
-
             <div class="history-info">
                 <div class="section-label">HISTÓRICO RESUMIDO</div>
                 <div class="history-text"><strong>Última Visita:</strong> 15 de Maio de 2026</div>
-                <div class="history-text" style="color: var(--text-muted);">ACS: Gabriela Souza</div>
-                
                 <div class="alert-text">⚠️ Criança com vacina atrasada</div>
-                <div class="alert-text">⚠️ Hipertenso (João)</div>
-            </div>
-
-            <div class="divider"></div>
-
-            <div class="members-info">
-                <div class="section-label">MEMBROS DA FAMÍLIA</div>
-                <div class="history-text">• João da Silva (45a) - Chefe</div>
-                <div class="history-text">• Maria Costa (42a) - Cônjuge</div>
-                <div class="history-text">• Pedro Costa (2a) - Filho</div>
             </div>
         </aside>
 
-        <!-- Lado Direito: Ação -->
         <main class="main-action">
-            
             <div class="section-label">DESFECHO DA VISITA (Obrigatório)</div>
             <div class="chip-group" id="desfechoGroup" style="margin-bottom: 32px;">
                 <div class="chip" data-type="radio">Realizada</div>
                 <div class="chip" data-type="radio">Ausente</div>
                 <div class="chip" data-type="radio">Recusada</div>
-                <div class="chip" data-type="radio">Reagendada</div>
             </div>
 
             <div class="section-label">ACOMPANHAMENTOS REALIZADOS</div>
@@ -211,27 +181,16 @@
                 <div class="chip" data-type="checkbox">🫀 Hipertenso</div>
                 <div class="chip" data-type="checkbox">🍬 Diabético</div>
                 <div class="chip" data-type="checkbox">🤰 Gestante</div>
-                <div class="chip" data-type="checkbox">👶 Criança</div>
-                <div class="chip" data-type="checkbox">👴 Idoso</div>
-                <div class="chip" data-type="checkbox">🛏️ Acamado</div>
-                <div class="chip" data-type="checkbox">💉 Vacinação</div>
             </div>
 
-            <div class="section-label">OBSERVAÇÕES</div>
-            <textarea placeholder="Digite ou dite as observações da visita..." style="margin-bottom: 32px;"></textarea>
-
             <div class="section-label">ASSINATURA DO PACIENTE (Obrigatório)</div>
-            <button class="btn-signature" id="btnAbrirAssinatura">
-                ✍️ Coletar Assinatura
-            </button>
-
+            <button class="btn-signature" id="btnAbrirAssinatura">✍️ Coletar Assinatura</button>
         </main>
     </div>
 
-    <!-- Modal de Assinatura -->
     <div class="modal-overlay" id="modalAssinatura">
         <div class="modal-content">
-            <div class="section-label" style="text-align: center; margin-bottom: 0;">ASSINE NO QUADRO ABAIXO</div>
+            <div class="section-label" style="text-align: center;">ASSINE NO QUADRO ABAIXO</div>
             <div class="canvas-container">
                 <canvas id="signatureCanvas"></canvas>
             </div>
@@ -245,17 +204,13 @@
         </div>
     </div>
 
-    <!-- Lógica JavaScript -->
     <script>
-        // Variáveis de Estado
+        // Variáveis de controle
         let desfechoPreenchido = false;
         let assinaturaColetada = false;
 
-        // Seleção de Chips
+        // 1. Lógica dos Chips de Desfecho
         const desfechoChips = document.querySelectorAll('#desfechoGroup .chip');
-        const acompanhamentoChips = document.querySelectorAll('#acompanhamentosGroup .chip');
-
-        // Lógica de Desfecho (Radio - Apenas um)
         desfechoChips.forEach(chip => {
             chip.addEventListener('click', () => {
                 desfechoChips.forEach(c => c.classList.remove('selected'));
@@ -265,103 +220,15 @@
             });
         });
 
-        // Lógica de Acompanhamentos (Checkbox - Múltiplos)
+        // 2. Lógica dos Chips de Acompanhamento
+        const acompanhamentoChips = document.querySelectorAll('#acompanhamentosGroup .chip');
         acompanhamentoChips.forEach(chip => {
-            chip.addEventListener('click', () => {
-                chip.classList.toggle('selected');
-            });
+            chip.addEventListener('click', () => chip.classList.toggle('selected'));
         });
 
-        // Controle do Modal de Assinatura
-        const modal = document.getElementById('modalAssinatura');
-        const btnAbrir = document.getElementById('btnAbrirAssinatura');
-        const btnCancelarModal = document.getElementById('btnCancelarModal');
-        const btnConfirmar = document.getElementById('btnConfirmarAssinatura');
-        const btnLimpar = document.getElementById('btnLimpar');
-        
-        btnAbrir.addEventListener('click', () => {
-            modal.classList.add('active');
-            redimensionarCanvas(); // Garante o tamanho correto ao abrir
-        });
-        
-        btnCancelarModal.addEventListener('click', () => modal.classList.remove('active'));
-
-        // Lógica do Canvas (Desenho da Assinatura)
-        const canvas = document.getElementById('signatureCanvas');
-        const ctx = canvas.getContext('2d');
-        let desenhando = false;
-        let assinou = false;
-
-        function redimensionarCanvas() {
-            canvas.width = canvas.parentElement.clientWidth;
-            canvas.height = 250;
-            ctx.lineWidth = 3;
-            ctx.lineCap = 'round';
-            ctx.strokeStyle = '#000';
-        }
-
-        function getPosicao(e) {
-            const rect = canvas.getBoundingClientRect();
-            const clienteX = e.touches ? e.touches[0].clientX : e.clientX;
-            const clienteY = e.touches ? e.touches[0].clientY : e.clientY;
-            return {
-                x: clienteX - rect.left,
-                y: clienteY - rect.top
-            };
-        }
-
-        function iniciarDesenho(e) {
-            e.preventDefault();
-            desenhando = true;
-            assinou = true;
-            const pos = getPosicao(e);
-            ctx.beginPath();
-            ctx.moveTo(pos.x, pos.y);
-        }
-
-        function desenhar(e) {
-            if (!desenhando) return;
-            e.preventDefault();
-            const pos = getPosicao(e);
-            ctx.lineTo(pos.x, pos.y);
-            ctx.stroke();
-        }
-
-        function pararDesenho() { desenhando = false; }
-
-        // Eventos de Mouse
-        canvas.addEventListener('mousedown', iniciarDesenho);
-        canvas.addEventListener('mousemove', desenhar);
-        canvas.addEventListener('mouseup', pararDesenho);
-        canvas.addEventListener('mouseout', pararDesenho);
-
-        // Eventos de Toque (Celular/Tablet)
-        canvas.addEventListener('touchstart', iniciarDesenho, {passive: false});
-        canvas.addEventListener('touchmove', desenhar, {passive: false});
-        canvas.addEventListener('touchend', pararDesenho);
-
-        // Limpar Assinatura
-        btnLimpar.addEventListener('click', () => {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            assinou = false;
-        });
-
-        // Confirmar Assinatura
-        btnConfirmar.addEventListener('click', () => {
-            if (assinou) {
-                assinaturaColetada = true;
-                btnAbrir.classList.add('signed');
-                btnAbrir.innerHTML = '✔️ Assinatura Coletada';
-                modal.classList.remove('active');
-                validarFormulario();
-            } else {
-                alert("Por favor, assine no quadro antes de confirmar.");
-            }
-        });
-
-        // Validação final para liberar o botão "Salvar"
+        // 3. Validação do Botão Salvar
+        const btnSalvar = document.getElementById('btnSalvar');
         function validarFormulario() {
-            const btnSalvar = document.getElementById('btnSalvar');
             if (desfechoPreenchido && assinaturaColetada) {
                 btnSalvar.classList.add('active');
             } else {
@@ -369,53 +236,80 @@
             }
         }
 
-        // Ajusta canvas se redimensionar a tela
-        window.addEventListener('resize', () => {
-            if(modal.classList.contains('active')) redimensionarCanvas();
+        // 4. Lógica do Modal de Assinatura
+        const modal = document.getElementById('modalAssinatura');
+        const btnAbrir = document.getElementById('btnAbrirAssinatura');
+        const canvas = document.getElementById('signatureCanvas');
+        const ctx = canvas.getContext('2d');
+        let desenhando = false, assinou = false;
+
+        function redimensionarCanvas() {
+            canvas.width = canvas.parentElement.clientWidth;
+            canvas.height = 250;
+            ctx.lineWidth = 3; ctx.lineCap = 'round'; ctx.strokeStyle = '#000';
+        }
+
+        btnAbrir.addEventListener('click', () => {
+            modal.classList.add('active');
+            setTimeout(redimensionarCanvas, 50); // Dá tempo para o modal abrir antes de medir o canvas
         });
-        // Ação de clicar em Salvar Visita
-        const btnSalvarVisita = document.getElementById('btnSalvar');
-        
-        btnSalvarVisita.addEventListener('click', () => {
-            // Verifica se o botão está realmente ativo
-            if (btnSalvarVisita.classList.contains('active')) {
-                // Simula o salvamento com um aviso
-                alert("Visita salva com sucesso!");
-                // Redireciona de volta para o Dashboard
+
+        document.getElementById('btnCancelarModal').addEventListener('click', () => modal.classList.remove('active'));
+
+        // Eventos de Desenho no Canvas
+        function getPos(e) {
+            const rect = canvas.getBoundingClientRect();
+            const clienteX = e.touches ? e.touches[0].clientX : e.clientX;
+            const clienteY = e.touches ? e.touches[0].clientY : e.clientY;
+            return { x: clienteX - rect.left, y: clienteY - rect.top };
+        }
+
+        function iniciarDesenho(e) { e.preventDefault(); desenhando = true; assinou = true; ctx.beginPath(); ctx.moveTo(getPos(e).x, getPos(e).y); }
+        function desenhar(e) { if (!desenhando) return; e.preventDefault(); ctx.lineTo(getPos(e).x, getPos(e).y); ctx.stroke(); }
+        function pararDesenho() { desenhando = false; }
+
+        canvas.addEventListener('mousedown', iniciarDesenho);
+        canvas.addEventListener('mousemove', desenhar);
+        canvas.addEventListener('mouseup', pararDesenho);
+        canvas.addEventListener('touchstart', iniciarDesenho, {passive: false});
+        canvas.addEventListener('touchmove', desenhar, {passive: false});
+        canvas.addEventListener('touchend', pararDesenho);
+
+        document.getElementById('btnLimpar').addEventListener('click', () => {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            assinou = false;
+        });
+
+        document.getElementById('btnConfirmarAssinatura').addEventListener('click', () => {
+            if (assinou) {
+                assinaturaColetada = true;
+                btnAbrir.classList.add('signed');
+                btnAbrir.innerHTML = '✔️ Assinatura Coletada';
+                modal.classList.remove('active');
+                validarFormulario();
+            } else {
+                alert("Por favor, assine no quadro.");
+            }
+        });
+
+        // 5. Lógica de Navegação (Cancelar e Salvar)
+        const btnCancelar = document.getElementById('btnCancelar');
+        btnCancelar.addEventListener('click', () => {
+            if (desfechoPreenchido || assinaturaColetada) {
+                if (confirm("Tem certeza que deseja cancelar? Os dados não salvos serão perdidos.")) {
+                    window.location.href = 'index.html';
+                }
+            } else {
                 window.location.href = 'index.html';
             }
         });
-        // --------------------------------------------------------
-        // AÇÕES DOS BOTÕES DE NAVEGAÇÃO (CABEÇALHO)
-        // --------------------------------------------------------
-        
-        // 1. Ação do botão Cancelar
-        const btnCancelar = document.getElementById('btnCancelar');
-        if (btnCancelar) {
-            btnCancelar.addEventListener('click', () => {
-                // Confirma se o usuário quer mesmo sair se já tiver preenchido algo
-                if (desfechoPreenchido || assinaturaColetada) {
-                    if (confirm("Tem certeza que deseja cancelar? Os dados não salvos serão perdidos.")) {
-                        window.location.href = 'index.html';
-                    }
-                } else {
-                    window.location.href = 'index.html';
-                }
-            });
-        }
 
-        // 2. Ação do botão Salvar Visita
-        const btnSalvarVisita = document.getElementById('btnSalvar');
-        if (btnSalvarVisita) {
-            btnSalvarVisita.addEventListener('click', () => {
-                // Só executa se o botão estiver ativo (verde/azul escuro)
-                if (btnSalvarVisita.classList.contains('active')) {
-                    alert("Visita salva com sucesso!"); // Simula o salvamento
-                    window.location.href = 'index.html'; // Volta para o início
-                }
-            });
-        }
+        btnSalvar.addEventListener('click', () => {
+            if (btnSalvar.classList.contains('active')) {
+                alert("Visita salva com sucesso!");
+                window.location.href = 'index.html';
+            }
+        });
     </script>
-
 </body>
 </html>
