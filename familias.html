@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Famílias - ACS Digital</title>
+    <style>
+        :root {
+            --bg-color: #FAFAFA;
+            --surface: #FFFFFF;
+            --text-main: #111827;
+            --text-muted: #6B7280;
+            --border: #E5E7EB;
+            --primary: #0A84FF;
+            --success: #34C759;
+            --danger: #FF3B30;
+            --warning: #FF9500;
+            --radius: 12px;
+            --chip-bg: #F2F2F7;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+        body { display: flex; background-color: var(--bg-color); color: var(--text-main); height: 100vh; overflow: hidden; }
+
+        /* Sidebar e Topbar (Reaproveitados) */
+        .sidebar { width: 260px; background-color: var(--bg-color); border-right: 1px solid var(--border); padding: 24px 16px; display: flex; flex-direction: column; gap: 24px; z-index: 10; }
+        .sidebar-header h2 { font-size: 14px; font-weight: 600; }
+        .sidebar-header span { font-size: 12px; color: var(--text-muted); }
+        .nav-links { list-style: none; display: flex; flex-direction: column; gap: 4px; }
+        .nav-links li a { text-decoration: none; color: var(--text-muted); font-size: 14px; padding: 8px 12px; border-radius: 8px; display: block; transition: 0.2s; }
+        .nav-links li a:hover, .nav-links li a.active { background-color: #F3F4F6; color: var(--text-main); font-weight: 500; }
+
+        .main-content { flex: 1; display: flex; flex-direction: column; overflow-y: auto; position: relative; }
+        .topbar { height: 60px; display: flex; align-items: center; justify-content: space-between; padding: 0 48px; border-bottom: 1px solid var(--border); background-color: var(--surface); position: sticky; top: 0; z-index: 5; }
+
+        /* Conteúdo Famílias */
+        .content-wrapper { padding: 40px 48px; max-width: 1200px; margin: 0 auto; width: 100%; }
+        
+        .search-container { display: flex; gap: 16px; margin-bottom: 24px; }
+        .search-bar { flex: 1; padding: 14px 16px; border: 1px solid var(--border); border-radius: var(--radius); font-size: 16px; background-color: var(--surface); outline: none; transition: 0.2s; }
+        .search-bar:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(10, 132, 255, 0.1); }
+        
+        /* Filtros horizontais */
+        .filters-scroll { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 8px; margin-bottom: 32px; scrollbar-width: none; }
+        .filters-scroll::-webkit-scrollbar { display: none; }
+        .filter-chip { padding: 8px 16px; background: var(--surface); border: 1px solid var(--border); border-radius: 20px; font-size: 14px; white-space: nowrap; cursor: pointer; }
+        .filter-chip.active { background: var(--primary); color: white; border-color: var(--primary); }
+
+        /* Grid de Famílias */
+        .family-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px; }
+        .family-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; cursor: pointer; transition: 0.2s; }
+        .family-card:hover { border-color: #D1D5DB; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); }
+        .family-title { font-size: 18px; font-weight: 600; margin-bottom: 4px; }
+        .family-info { font-size: 14px; color: var(--text-muted); margin-bottom: 16px; line-height: 1.5; }
+        .badges { display: flex; gap: 8px; flex-wrap: wrap; }
+        .badge { padding: 4px 8px; border-radius: 6px; font-size: 12px; font-weight: 500; background: var(--chip-bg); }
+        .badge.alert { background: rgba(255, 59, 48, 0.1); color: var(--danger); }
+
+        /* SLIDE-OVER (Gavetas Laterais) */
+        .overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.4); opacity: 0; pointer-events: none; transition: 0.3s; z-index: 20; backdrop-filter: blur(2px); }
+        .overlay.active { opacity: 1; pointer-events: auto; }
+        
+        .drawer { position: fixed; top: 0; right: -100%; width: 100%; max-width: 600px; height: 100vh; background: var(--surface); z-index: 30; transition: right 0.3s ease; display: flex; flex-direction: column; box-shadow: -4px 0 15px rgba(0,0,0,0.1); }
+        .drawer.active { right: 0; }
+        
+        .drawer-header { padding: 20px 24px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; background: var(--surface); }
+        .drawer-body { padding: 24px; overflow-y: auto; flex: 1; }
+        
+        .btn-icon { background: none; border: none; font-size: 20px; cursor: pointer; color: var(--text-main); }
+        .btn-action { background: var(--chip-bg); border: none; padding: 8px 16px; border-radius: 8px; font-weight: 600; font-size: 14px; cursor: pointer; }
+        .btn-action.primary { background: var(--primary); color: white; }
+
+        /* Lista de Cidadãos no Prontuário Familiar */
+        .citizen-item { padding: 16px; border: 1px solid var(--border); border-radius: 8px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; transition: 0.2s; }
+        .citizen-item:hover { background: var(--bg-color); }
+        .citizen-name { font-weight: 600; font-size: 15px; }
+        .citizen-cns { font-size: 13px; color: var(--text-muted); margin-top: 4px; }
+
+        /* Timeline (Histórico do Cidadão) */
+        .timeline { border-left: 2px solid var(--border); margin-left: 12px; padding-left: 24px; position: relative; margin-top: 16px; }
+        .timeline-event { margin-bottom: 24px; position: relative; }
+        .timeline-dot { position: absolute; left: -31px; top: 0; width: 14px; height: 14px; border-radius: 50%; background: var(--border); border: 2px solid var(--surface); }
+        .timeline-dot.current { background: var(--success); }
+        .timeline-title { font-size: 15px; font-weight: 600; }
+        .timeline-date { font-size: 13px; color: var(--text-muted); margin: 4px 0; }
+
+        /* Responsividade */
+        @media (max-width: 768px) {
+            body { flex-direction: column; }
+            .sidebar { width: 100%; height: auto; border-right: none; border-bottom: 1px solid var(--border); padding: 16px; }
+            .content-wrapper { padding: 24px; }
+            .drawer { max-width: 100%; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Sidebar -->
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <h2>UBS Guarda-Mor</h2>
+            <span>Micro-área 03</span>
+        </div>
+        <ul class="nav-links">
+            <li><a href="index.html">Início</a></li>
+            <li><a href="nova-visita.html">Visitas Diárias</a></li>
+            <li><a href="#" class="active">Famílias</a></li>
+            <li><a href="#">Mapa da Micro-área</a></li>
+        </ul>
+    </aside>
+
+    <main class="main-content">
+        <header class="topbar">
+            <div style="font-size: 14px; color: var(--text-muted);">Famílias / Diretório</div>
+        </header>
+
+        <div class="content-wrapper">
+            <h1 style="font-size: 24px; margin-bottom: 24px;">Diretório de Famílias</h1>
+
+            <div class="search-container">
+                <input type="text" class="search-bar" placeholder="Buscar por nome, rua, CNS ou telefone (Cmd+K)...">
+                <button class="btn-action primary" style="padding: 0 24px;">+ Nova Família</button>
+            </div>
+
+            <div class="filters-scroll">
+                <div class="filter-chip active">🏠 Todas</div>
+                <div class="filter-chip">⚠️ Alto Risco</div>
+                <div class="filter-chip">🤰 Gestantes</div>
+                <div class="filter-chip">🛏️ Acamados</div>
+                <div class="filter-chip">💰 Bolsa Família</div>
+            </div>
+
+            <!-- Grade de Famílias -->
+            <div class="family-grid">
+                <!-- Card Família Silva -->
+                <div class="family-card" onclick="abrirDrawer('drawerFamilia')">
+                    <div class="family-title">Família Silva</div>
+                    <div class="family-info">
+                        Resp: Maria Silva<br>
+                        📍 Rua das Flores, 123<br>
+                        ⏱️ Última visita: 15 dias atrás
+                    </div>
+                    <div class="badges">
+                        <span class="badge">👨‍👩‍👧‍👦 5 moradores</span>
+                        <span class="badge alert">🔴 Alto Risco</span>
+                        <span class="badge">🤰 1 Gestante</span>
+                    </div>
+                </div>
+
+                <!-- Card Família Costa -->
+                <div class="family-card">
+                    <div class="family-title">Família Costa</div>
+                    <div class="family-info">
+                        Resp: João Costa<br>
+                        📍 Beco 2, S/N<br>
+                        ⏱️ Última visita: Ontem
+                    </div>
+                    <div class="badges">
+                        <span class="badge">👨‍👩‍👧‍👦 2 moradores</span>
+                        <span class="badge" style="background: rgba(52, 199, 89, 0.1); color: var(--success);">🟢 Risco Baixo</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- OVERLAY ESCURO -->
+    <div class="overlay" id="overlay" onclick="fecharTodosDrawers()"></div>
+
+    <!-- DRAWER 1: PRONTUÁRIO FAMILIAR -->
+    <div class="drawer" id="drawerFamilia">
+        <div class="drawer-header">
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <button class="btn-icon" onclick="fecharDrawer('drawerFamilia')">←</button>
+                <h2 style="font-size: 18px;">Família Silva</h2>
+            </div>
+            <button class="btn-action">+ Cidadão</button>
+        </div>
+        <div class="drawer-body">
+            <p style="color: var(--text-muted); font-size: 14px; margin-bottom: 24px;">📍 Rua das Flores, 123 - Centro | 📞 (11) 98765-4321</p>
+            
+            <div class="badges" style="margin-bottom: 32px;">
+                <span class="badge">👨‍👩‍👧‍👦 5</span>
+                <span class="badge">👴 1</span>
+                <span class="badge">🤰 1</span>
+                <span class="badge">🫀 2</span>
+                <span class="badge alert">⚠️ 3 Vacinas Pendentes</span>
+            </div>
+
+            <h3 style="font-size: 14px; color: var(--text-muted); text-transform: uppercase; margin-bottom: 16px;">Membros da Família</h3>
+            
+            <!-- Cidadão Maria -->
+            <div class="citizen-item" onclick="abrirDrawer('drawerCidadao')">
+                <div>
+                    <div class="citizen-name">Maria Silva (45a) <span class="badge" style="font-size: 10px;">Responsável</span></div>
+                    <div class="citizen-cns">CNS: 123.456.789-00 | 🫀 Hipertensa</div>
+                </div>
+                <div style="color: var(--text-muted);">→</div>
+            </div>
+
+            <!-- Cidadão João -->
+            <div class="citizen-item" onclick="abrirDrawer('drawerCidadao')">
+                <div>
+                    <div class="citizen-name">João Silva (68a)</div>
+                    <div class="citizen-cns">CNS: 987.654.321-11 | 🫀 HAS, 🍬 DM</div>
+                </div>
+                <div style="color: var(--text-muted);">→</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- DRAWER 2: PRONTUÁRIO DO CIDADÃO (Com Histórico) -->
+    <div class="drawer" id="drawerCidadao" style="z-index: 40;"> <!-- z-index maior para sobrepor o da família -->
+        <div class="drawer-header">
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <button class="btn-icon" onclick="fecharDrawer('drawerCidadao')">←</button>
+                <h2 style="font-size: 18px;">João Silva</h2>
+            </div>
+            <!-- Botão de Ação: Transferir -->
+            <button class="btn-action primary" onclick="alert('Abrindo modal de transferência de residência...')">Transferir 🔄</button>
+        </div>
+        <div class="drawer-body">
+            <div class="badges" style="margin-bottom: 24px;">
+                <span class="badge" style="background: rgba(52, 199, 89, 0.1); color: var(--success);">🟢 Ativo na Micro-área 03</span>
+                <span class="badge">CNS: 987.654.321-11</span>
+            </div>
+
+            <h3 style="font-size: 14px; color: var(--text-muted); text-transform: uppercase; margin-top: 32px; margin-bottom: 16px;">📍 Histórico Territorial</h3>
+            
+            <div class="timeline">
+                <!-- Vínculo Atual -->
+                <div class="timeline-event">
+                    <div class="timeline-dot current"></div>
+                    <div class="timeline-title">Família Silva (Atual)</div>
+                    <div class="timeline-date">📍 Rua das Flores, 123</div>
+                    <div class="timeline-date">Desde 16/05/2026 até o momento</div>
+                </div>
+
+                <!-- Vínculo Anterior -->
+                <div class="timeline-event">
+                    <div class="timeline-dot"></div>
+                    <div class="timeline-title">Família Souza</div>
+                    <div class="timeline-date">📍 Beco 2, S/N</div>
+                    <div class="timeline-date">De 01/01/2024 a 15/05/2026 (2 anos)</div>
+                    <div class="badge" style="display: inline-block; margin-top: 4px;">Motivo: Mudança interna</div>
+                </div>
+            </div>
+
+            <h3 style="font-size: 14px; color: var(--text-muted); text-transform: uppercase; margin-top: 32px; margin-bottom: 16px;">📅 Histórico de Visitas Recentes</h3>
+            <div style="font-size: 14px; line-height: 2;">
+                ✓ 20/06/2026 - Realizada (Residência Atual)<br>
+                ✓ 10/04/2026 - Realizada (Na Família Souza)<br>
+            </div>
+        </div>
+    </div>
+
+    <!-- LÓGICA DE NAVEGAÇÃO -->
+    <script>
+        const overlay = document.getElementById('overlay');
+
+        function abrirDrawer(id) {
+            overlay.classList.add('active');
+            document.getElementById(id).classList.add('active');
+        }
+
+        function fecharDrawer(id) {
+            document.getElementById(id).classList.remove('active');
+            
+            // Se fechar o cidadão, mas a família ainda estiver aberta, mantém o fundo escuro
+            const drawerFamilia = document.getElementById('drawerFamilia');
+            if (id === 'drawerCidadao' && drawerFamilia.classList.contains('active')) {
+                // Não remove o overlay
+            } else {
+                overlay.classList.remove('active');
+            }
+        }
+
+        function fecharTodosDrawers() {
+            document.querySelectorAll('.drawer').forEach(d => d.classList.remove('active'));
+            overlay.classList.remove('active');
+        }
+    </script>
+</body>
+</html>
