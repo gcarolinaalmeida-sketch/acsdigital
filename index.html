@@ -11,10 +11,12 @@
             --text-main: #111827;
             --text-muted: #6B7280;
             --border: #E5E7EB;
-            --primary: #000000;
-            --danger: #EF4444;
-            --success: #10B981;
-            --radius: 8px;
+            --primary: #0A84FF;
+            --danger: #FF3B30;
+            --success: #34C759;
+            --warning: #FF9500;
+            --radius: 12px;
+            --chip-bg: #F2F2F7;
         }
 
         * {
@@ -230,47 +232,7 @@
             .topbar, .content-wrapper { padding: 24px; }
             .page-header { flex-direction: column; align-items: flex-start; gap: 16px; }
         }
-        /* Status de Conexão (Topbar) */
-        .sync-status {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            padding: 6px 12px;
-            background: var(--chip-bg);
-            border-radius: 20px;
-            font-size: 13px;
-            font-weight: 500;
-            color: var(--text-muted);
-            cursor: pointer;
-            transition: 0.2s;
-        }
-        .sync-status:hover { background: #E5E5EA; }
-        .status-dot { width: 8px; height: 8px; border-radius: 50%; }
-        .dot-online { background-color: var(--text-muted); }
-        .dot-offline { background-color: var(--warning); box-shadow: 0 0 0 3px rgba(255, 149, 0, 0.2); }
-        .dot-syncing { background-color: var(--primary); animation: pulse 1s infinite; }
-        
-        @keyframes pulse {
-            0% { transform: scale(0.95); opacity: 1; }
-            50% { transform: scale(1.2); opacity: 0.7; }
-            100% { transform: scale(0.95); opacity: 1; }
-        }
 
-        /* DRAWER (Gaveta de Sincronização) */
-        .overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.4); opacity: 0; pointer-events: none; transition: 0.3s; z-index: 20; backdrop-filter: blur(2px); }
-        .overlay.active { opacity: 1; pointer-events: auto; }
-        .drawer { position: fixed; top: 0; right: -100%; width: 100%; max-width: 400px; height: 100vh; background: var(--surface); z-index: 30; transition: right 0.3s ease; display: flex; flex-direction: column; box-shadow: -4px 0 15px rgba(0,0,0,0.1); }
-        .drawer.active { right: 0; }
-        .drawer-header { padding: 20px 24px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
-        .drawer-body { padding: 24px; overflow-y: auto; flex: 1; }
-        .btn-icon { background: none; border: none; font-size: 20px; cursor: pointer; color: var(--text-main); }
-        
-        /* Itens da Fila Offline */
-        .sync-item { padding: 16px; border: 1px solid var(--border); border-radius: 8px; margin-bottom: 12px; }
-        .sync-tag { font-size: 11px; font-weight: 700; color: var(--primary); background: rgba(10, 132, 255, 0.1); padding: 4px 8px; border-radius: 4px; display: inline-block; margin-bottom: 8px; text-transform: uppercase; }
-        .sync-title { font-size: 14px; font-weight: 600; margin-bottom: 4px; }
-        .sync-time { font-size: 12px; color: var(--text-muted); }
-    </style>
 </head>
 <body>
 
@@ -281,11 +243,11 @@
             <span>Micro-área 03</span>
         </div>
         <ul class="nav-links">
-            <li><a href="index" class="active">Início</a></li>
-            <li><a href="#">Visitas Diárias</a></li>
+            <li><a href="index.html" class="active">Início</a></li>
+            <li><a href="nova-visita.html">Visitas Diárias</a></li>
+            <li><a href="familias.html">Famílias</a></li>
+            <li><a href="mapa.html">Mapa da Micro-área</a></li>
             <li><a href="indicadores.html">Indicadores</a></li>
-           <li><a href="familias.html">Famílias</a></li>
-           <li><a href="mapa.html">Mapa da Micro-área</a></li>
         </ul>
     </aside>
 
