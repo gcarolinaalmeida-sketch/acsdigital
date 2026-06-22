@@ -3,18 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Prontuário - ACS Digital</title>
+    <title>Prontuário Individual - ACS Digital</title>
     <style>
         :root {
-            --bg-color: #FAFAFA;
+            --bg-color: #F4F7F9;
             --surface: #FFFFFF;
             --text-main: #111827;
             --text-muted: #6B7280;
             --border: #E5E7EB;
             --primary: #0A84FF;
+            --primary-light: #EBF4FF;
             --success: #34C759;
             --danger: #FF3B30;
             --warning: #FF9500;
+            --warning-light: #FFF9E6;
             --radius: 12px;
             --chip-bg: #F2F2F7;
         }
@@ -22,229 +24,381 @@
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
         body { display: flex; background-color: var(--bg-color); color: var(--text-main); height: 100vh; overflow: hidden; }
 
-        /* Sidebar e Topbar */
-        .sidebar { width: 260px; background-color: var(--bg-color); border-right: 1px solid var(--border); padding: 24px 16px; display: flex; flex-direction: column; gap: 24px; z-index: 10; }
-        .sidebar-header h2 { font-size: 14px; font-weight: 600; }
-        .sidebar-header span { font-size: 12px; color: var(--text-muted); }
-        .nav-links { list-style: none; display: flex; flex-direction: column; gap: 4px; }
-        .nav-links li a { text-decoration: none; color: var(--text-muted); font-size: 14px; padding: 8px 12px; border-radius: 8px; display: block; transition: 0.2s; }
-        .nav-links li a:hover, .nav-links li a.active { background-color: #F3F4F6; color: var(--text-main); font-weight: 500; }
-
-        .main-content { flex: 1; display: flex; flex-direction: column; overflow-y: auto; }
-        .topbar { height: 60px; display: flex; align-items: center; justify-content: space-between; padding: 0 48px; border-bottom: 1px solid var(--border); background-color: var(--surface); position: sticky; top: 0; z-index: 5; }
-        .content-wrapper { padding: 40px 48px; max-width: 900px; margin: 0 auto; width: 100%; }
-
-        /* Cabeçalho do Prontuário */
-        .header-actions { display: flex; align-items: center; gap: 16px; margin-bottom: 24px; }
-        .btn-back { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 8px 12px; font-weight: 600; cursor: pointer; color: var(--text-main); text-decoration: none; }
+        /* Sidebar Base */
+        .sidebar { width: 260px; background-color: var(--surface); border-right: 1px solid var(--border); padding: 24px 16px; display: flex; flex-direction: column; z-index: 10; }
+        .sidebar-header { margin-bottom: 32px; display: flex; align-items: center; gap: 12px; }
+        .sidebar-header h2 { font-size: 15px; font-weight: 700; color: var(--primary); }
+        .sidebar-header span { font-size: 12px; color: var(--text-muted); display: block; font-weight: normal; }
         
-        .patient-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; margin-bottom: 24px; display: flex; justify-content: space-between; align-items: flex-start; }
-        .patient-name { font-size: 24px; font-weight: 700; margin-bottom: 4px; }
-        .patient-info { font-size: 14px; color: var(--text-muted); }
-        .badges { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
-        .badge { padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: 600; background: var(--chip-bg); }
+        .nav-links { list-style: none; display: flex; flex-direction: column; gap: 4px; flex: 1; }
+        .nav-links li a { text-decoration: none; color: var(--text-muted); font-size: 14px; padding: 10px 12px; border-radius: 8px; display: flex; align-items: center; gap: 12px; transition: 0.2s; font-weight: 500; }
+        .nav-links li a:hover { background-color: #F3F4F6; }
+        .nav-links li a.active { background-color: var(--primary-light); color: var(--primary); }
+
+        .user-profile { margin-top: auto; padding-top: 16px; border-top: 1px solid var(--border); display: flex; align-items: center; gap: 12px; }
+        .avatar-small { width: 32px; height: 32px; border-radius: 50%; background: var(--primary); color: white; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 12px; }
+
+        /* Main Content */
+        .main-content { flex: 1; display: flex; flex-direction: column; overflow-y: auto; background-color: var(--surface); }
+        .topbar { height: 60px; display: flex; align-items: center; justify-content: space-between; padding: 0 40px; border-bottom: 1px solid var(--border); background-color: var(--surface); position: sticky; top: 0; z-index: 5; }
+        
+        .content-wrapper { padding: 32px 40px; max-width: 1200px; margin: 0 auto; width: 100%; }
+
+        /* Header do Paciente */
+        .back-link { font-size: 14px; color: var(--text-main); text-decoration: none; display: inline-flex; align-items: center; gap: 8px; margin-bottom: 24px; font-weight: 500; }
+        
+        .patient-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 32px; padding-bottom: 32px; border-bottom: 1px solid var(--border); }
+        .patient-profile { display: flex; gap: 20px; align-items: center; }
+        .avatar-large { width: 80px; height: 80px; border-radius: 50%; background-color: #E5E7EB; display: flex; align-items: center; justify-content: center; font-size: 40px; }
+        .patient-info h1 { font-size: 24px; font-weight: 700; margin-bottom: 4px; }
+        .patient-details { font-size: 13px; color: var(--text-muted); margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
+        .badges { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+        .badge { padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; background: var(--primary-light); color: var(--primary); }
         .badge.alert { background: rgba(255, 59, 48, 0.1); color: var(--danger); }
+        .btn-outline { background: white; border: 1px solid var(--border); border-radius: 8px; padding: 8px 16px; font-weight: 600; font-size: 13px; cursor: pointer; display: flex; align-items: center; gap: 8px; color: var(--text-main); }
 
-        /* Alertas Inteligentes */
-        .smart-alerts { background: rgba(255, 149, 0, 0.1); border: 1px solid var(--warning); border-radius: var(--radius); padding: 16px; margin-bottom: 32px; }
-        .alert-title { font-size: 13px; font-weight: 700; color: var(--warning); text-transform: uppercase; margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
-        .alert-item { font-size: 14px; margin-bottom: 4px; color: var(--text-main); }
+        /* Grid de Duas Colunas (A Mágica do Layout) */
+        .dashboard-grid { display: grid; grid-template-columns: 1.5fr 1fr; gap: 32px; align-items: start; }
 
-        /* Ação Rápida: Nova Evolução */
-        .action-box { background: var(--surface); border: 1px solid var(--primary); border-radius: var(--radius); padding: 20px; margin-bottom: 40px; box-shadow: 0 4px 12px rgba(10, 132, 255, 0.05); }
-        .btn-voice { width: 100%; background: var(--primary); color: white; border: none; padding: 14px; border-radius: 8px; font-size: 16px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; transition: 0.2s; }
-        .btn-voice:hover { background: #0070E0; }
-        .btn-voice.recording { background: var(--danger); animation: pulse 1.5s infinite; }
-
-        @keyframes pulse {
-            0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 59, 48, 0.4); }
-            70% { transform: scale(1.02); box-shadow: 0 0 0 10px rgba(255, 59, 48, 0); }
-            100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 59, 48, 0); }
-        }
-
-        .text-area-ai { width: 100%; height: 100px; border: 1px solid var(--border); border-radius: 8px; padding: 12px; font-size: 15px; margin-top: 16px; display: none; resize: none; outline: none; background: #F8FBFF; }
-        .text-area-ai:focus { border-color: var(--primary); }
+        /* Coluna Esquerda: Alertas, Ações e Timeline */
+        .alerts-box { background: var(--warning-light); border: 1px solid rgba(255, 149, 0, 0.3); border-radius: var(--radius); padding: 16px 20px; margin-bottom: 24px; }
+        .section-title { font-size: 14px; font-weight: 700; text-transform: uppercase; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; color: var(--text-main); }
+        .alerts-box .section-title { color: #CC7A00; }
+        .alert-item { font-size: 13px; margin-bottom: 8px; color: #4D4D4D; display: flex; gap: 8px; }
         
-        .btn-save-ev { background: var(--success); color: white; border: none; padding: 10px 20px; border-radius: 8px; font-weight: 600; margin-top: 12px; cursor: pointer; display: none; float: right; }
+        .action-box { background: white; border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; margin-bottom: 32px; }
+        .action-buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        .btn-action { padding: 12px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; border: 1px solid var(--border); background: white; transition: 0.2s; text-align: center; }
+        .btn-action:hover { background: var(--bg-color); }
+        .btn-primary { background: var(--primary); color: white; border-color: var(--primary); }
+        .btn-primary:hover { background: #0070E0; }
 
-        /* Timeline Clínica (Histórico) */
-        .section-title { font-size: 18px; font-weight: 600; margin-bottom: 24px; border-bottom: 1px solid var(--border); padding-bottom: 8px; }
-        
-        .timeline { border-left: 2px solid var(--border); margin-left: 12px; padding-left: 24px; position: relative; }
-        .timeline-item { margin-bottom: 32px; position: relative; }
-        .timeline-dot { position: absolute; left: -31px; top: 0; width: 16px; height: 16px; border-radius: 50%; background: var(--surface); border: 3px solid var(--primary); }
-        .timeline-date { font-size: 13px; font-weight: 600; color: var(--primary); margin-bottom: 4px; }
-        .timeline-content { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 16px; margin-top: 8px; }
-        .timeline-content p { font-size: 14px; color: var(--text-main); line-height: 1.5; margin-bottom: 12px; }
-        
-        .esou-tags { display: flex; gap: 6px; }
-        .esou-tag { background: #E5E7EB; font-size: 11px; padding: 4px 8px; border-radius: 4px; font-weight: 600; color: #4B5563; }
+        .ai-recording-area { margin-top: 16px; display: none; }
+        .ai-textarea { width: 100%; height: 80px; border: 1px solid var(--primary); border-radius: 8px; padding: 12px; font-size: 14px; resize: none; outline: none; background: #F8FBFF; margin-bottom: 12px; }
+        .btn-save-ai { background: var(--success); color: white; border: none; padding: 8px 16px; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 13px; float: right; }
 
-        @media (max-width: 768px) {
+        /* Timeline de Visitas */
+        .timeline { position: relative; margin-left: 8px; border-left: 2px solid var(--border); padding-left: 24px; padding-bottom: 24px; }
+        .timeline-item { position: relative; margin-bottom: 32px; }
+        .timeline-dot { position: absolute; left: -31px; top: 0; width: 14px; height: 14px; border-radius: 50%; background: white; border: 2px solid var(--success); }
+        .timeline-dot.warning { border-color: var(--warning); }
+        
+        .timeline-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; }
+        .timeline-date { font-size: 13px; font-weight: 600; color: var(--text-main); }
+        .timeline-tag { font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 12px; }
+        .tag-success { background: rgba(52, 199, 89, 0.1); color: var(--success); }
+        .tag-warning { background: rgba(255, 149, 0, 0.1); color: var(--warning); }
+        
+        .timeline-desc { font-size: 13px; color: var(--text-muted); line-height: 1.5; margin-bottom: 8px; }
+        .timeline-link { font-size: 12px; color: var(--primary); font-weight: 600; text-decoration: none; cursor: pointer; }
+
+        /* Coluna Direita: Resumo Clínico */
+        .summary-card { background: var(--bg-color); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; }
+        .summary-section { margin-bottom: 24px; }
+        .summary-section:last-child { margin-bottom: 0; }
+        .summary-title { font-size: 12px; font-weight: 600; color: var(--text-muted); margin-bottom: 12px; }
+        
+        .summary-list { list-style: none; font-size: 13px; color: var(--text-main); }
+        .summary-list li { margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
+        .summary-list li::before { content: "•"; color: var(--primary); font-weight: bold; }
+
+        .vital-record { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 16px; }
+        .vital-icon { width: 32px; height: 32px; border-radius: 8px; background: white; display: flex; align-items: center; justify-content: center; font-size: 14px; border: 1px solid var(--border); }
+        .vital-info strong { display: block; font-size: 13px; color: var(--danger); margin-bottom: 2px; }
+        .vital-info span { font-size: 11px; color: var(--text-muted); }
+        .vital-info.normal strong { color: var(--text-main); }
+
+        .doc-box { border: 1px dashed var(--border); border-radius: 8px; padding: 16px; text-align: center; font-size: 12px; color: var(--text-muted); background: white; cursor: pointer; transition: 0.2s; }
+        .doc-box:hover { border-color: var(--primary); color: var(--primary); }
+
+        @media (max-width: 900px) {
+            .dashboard-grid { grid-template-columns: 1fr; }
             body { flex-direction: column; }
             .sidebar { width: 100%; height: auto; border-right: none; border-bottom: 1px solid var(--border); padding: 16px; }
-            .content-wrapper { padding: 24px; }
         }
     </style>
 </head>
 <body>
 
+    <!-- Sidebar Lateral -->
     <aside class="sidebar">
         <div class="sidebar-header">
-            <h2>UBS Guarda-Mor</h2>
-            <span>Micro-área 03</span>
+            <div>
+                <h2>ACS Digital</h2>
+                <span>UBS Guarda-Mor</span>
+            </div>
         </div>
+        
+        <div style="font-size: 11px; font-weight: 600; color: var(--text-muted); margin-bottom: 12px; text-transform: uppercase;">Micro-área 03</div>
+        
         <ul class="nav-links">
-            <li><a href="index.html">Início</a></li>
-            <li><a href="nova-visita.html">Visitas Diárias</a></li>
-            <li><a href="familias.html" class="active">Famílias</a></li>
-            <li><a href="mapa.html">Mapa da Micro-área</a></li>
-            <li><a href="indicadores.html">Indicadores</a></li>
+            <li><a href="index.html">🏠 Início</a></li>
+            <li><a href="nova-visita.html">📅 Visitas Diárias</a></li>
+            <li><a href="familias.html" class="active">👥 Famílias</a></li>
+            <li><a href="mapa.html">🗺️ Mapa da Micro-área</a></li>
+            <li><a href="indicadores.html">📊 Indicadores</a></li>
         </ul>
+
+        <div class="user-profile">
+            <div class="avatar-small">GA</div>
+            <div>
+                <div style="font-size: 13px; font-weight: 600;">Gabriela A.</div>
+                <div style="font-size: 11px; color: var(--text-muted);">ACS</div>
+            </div>
+        </div>
     </aside>
 
     <main class="main-content">
+        <!-- Topbar -->
         <header class="topbar">
-            <div style="font-size: 14px; color: var(--text-muted);">Famílias / Diretório / Prontuário Individual</div>
-            <div style="font-size: 13px; font-weight: 500; color: var(--text-muted);">☁️ Sincronizado</div>
+            <div style="font-size: 13px; color: var(--text-muted);">Famílias / Diretório / Prontuário Individual</div>
+            <div style="font-size: 12px; font-weight: 600; color: var(--success); display: flex; align-items: center; gap: 6px;">
+                ☁️ Sincronizado
+            </div>
         </header>
 
         <div class="content-wrapper">
             
-            <div class="header-actions">
-                <a href="familias.html" class="btn-back">← Voltar para Família</a>
-            </div>
+            <a href="familias.html" class="back-link">← Voltar para Família</a>
 
-            <div class="patient-card">
-                <div>
-                    <div class="patient-name">Dona Maria Silva</div>
-                    <div class="patient-info">45 anos (Nasc: 12/04/1981) | CNS: 123.456.789-00</div>
-                    <div class="badges">
-                        <span class="badge" style="background: rgba(10, 132, 255, 0.1); color: var(--primary);">🫀 Hipertensa</span>
-                        <span class="badge alert">⚠️ Diabética (Não controlada)</span>
+            <!-- Header da Paciente -->
+            <div class="patient-header">
+                <div class="patient-profile">
+                    <div class="avatar-large">👩🏽‍🦳</div>
+                    <div class="patient-info">
+                        <h1>Dona Maria Silva</h1>
+                        <div class="patient-details">
+                            45 anos (12/04/1981) &nbsp;•&nbsp; CNS: 123.456.789-00
+                        </div>
+                        <div class="patient-details">
+                            📍 Rua das Flores, 123 - Casa 01 &nbsp;•&nbsp; <a href="#" style="color: var(--primary); text-decoration: none;">Família Silva</a>
+                        </div>
+                        <div class="badges">
+                            <span class="badge">🫀 Hipertensa</span>
+                            <span class="badge alert">⚠️ Diabética (Não controlada)</span>
+                            <span style="font-size: 12px; color: var(--text-muted); cursor: pointer;">+ Ver mais</span>
+                        </div>
                     </div>
                 </div>
-                <button class="btn-back" style="background: var(--chip-bg); border: none;">Editar Cadastro</button>
+                <button class="btn-outline">✏️ Editar Cadastro</button>
             </div>
 
-            <div class="smart-alerts">
-                <div class="alert-title">🚨 Alertas do Sistema</div>
-                <div class="alert-item">• A paciente completou 45 anos. Lembrete: <strong>Rastreio de Mamografia</strong> recomendado.</div>
-                <div class="alert-item">• Última aferição de Pressão Arterial foi há mais de 6 meses.</div>
-            </div>
-
-            <div class="action-box">
-                <h3 style="font-size: 16px; margin-bottom: 12px;">Registrar Visita de Hoje</h3>
-                <button class="btn-voice" id="btnRecord" onclick="iniciarGravacao()">
-                    🎙️ Gravar evolução por voz
-                </button>
-                <textarea class="text-area-ai" id="aiTextArea" placeholder="A IA transcreverá o seu áudio aqui..."></textarea>
-                <button class="btn-save-ev" id="btnSave" onclick="salvarEvolucao()">Salvar no e-SUS</button>
-                <div style="clear: both;"></div>
-            </div>
-
-            <div class="section-title">Histórico Clínico e Territorial</div>
-
-            <div class="timeline" id="timelineList">
+            <!-- LAYOUT EM GRID (2 Colunas) -->
+            <div class="dashboard-grid">
                 
-                <div class="timeline-item">
-                    <div class="timeline-dot" style="border-color: var(--warning);"></div>
-                    <div class="timeline-date" style="color: var(--warning);">10 de Maio, 2026 - Busca Ativa</div>
-                    <div class="timeline-content">
-                        <p>Paciente não estava em casa durante a visita de rotina. Deixado recado com o vizinho (Sr. João) para comparecer à UBS Guarda-Mor para renovar a receita de Losartana.</p>
-                        <div class="esou-tags">
-                            <span class="esou-tag">Desfecho: Ausente</span>
-                            <span class="esou-tag">Busca Ativa</span>
+                <!-- COLUNA ESQUERDA (Fluxo de Trabalho) -->
+                <div class="left-column">
+                    
+                    <!-- Box de Alertas -->
+                    <div class="alerts-box">
+                        <div class="section-title">🔔 Alertas & Pendências</div>
+                        <div class="alert-item">⚠️ Paciente completou 45 anos. Lembrete: <strong>Rastreio de Mamografia</strong> recomendado.</div>
+                        <div class="alert-item">⚠️ Última aferição de Pressão Arterial foi há mais de 6 meses.</div>
+                        <a href="#" style="font-size: 12px; color: var(--primary); text-decoration: none; font-weight: 600; margin-top: 8px; display: inline-block;">Ver todos os alertas (2)</a>
+                    </div>
+
+                    <!-- Box de Registro de Visita -->
+                    <div class="action-box">
+                        <div class="section-title">🏠 Registrar Visita de Hoje</div>
+                        <div class="action-buttons">
+                            <button class="btn-action btn-primary" id="btnRecord" onclick="iniciarGravacao()">
+                                <span style="font-size: 20px;">🎙️</span> Gravar evolução por voz
+                            </button>
+                            <button class="btn-action">
+                                <span style="font-size: 20px;">📝</span> Registrar Visita Manualmente
+                            </button>
+                            <button class="btn-action">
+                                <span style="font-size: 20px;">📸</span> Adicionar Foto
+                            </button>
+                            <button class="btn-action">
+                                <span style="font-size: 20px;">📎</span> Anexar Documento
+                            </button>
+                        </div>
+
+                        <!-- Área Oculta da IA (Aparece ao gravar) -->
+                        <div class="ai-recording-area" id="aiArea">
+                            <textarea class="ai-textarea" id="aiTextArea" placeholder="A IA transcreverá seu áudio e estruturará para o e-SUS aqui..."></textarea>
+                            <button class="btn-save-ai" onclick="salvarEvolucao()">Salvar no Prontuário</button>
+                            <div style="clear: both;"></div>
                         </div>
                     </div>
+
+                    <!-- Timeline de Histórico -->
+                    <div class="section-title" style="margin-top: 40px; margin-bottom: 24px;">📋 Histórico de Visitas</div>
+                    
+                    <div class="timeline" id="timelineList">
+                        
+                        <div class="timeline-item">
+                            <div class="timeline-dot"></div>
+                            <div class="timeline-header">
+                                <div class="timeline-date">10 de Maio, 2026 <span class="timeline-tag tag-success">Busca Ativa</span></div>
+                                <span class="timeline-link">Ver detalhes</span>
+                            </div>
+                            <div class="timeline-desc">
+                                <strong>Visita realizada por Gabriela A. (ACS)</strong><br>
+                                Orientações sobre alimentação e uso correto das medicações. PA elevada, paciente refere esquecimento da medicação.
+                            </div>
+                        </div>
+
+                        <div class="timeline-item">
+                            <div class="timeline-dot warning"></div>
+                            <div class="timeline-header">
+                                <div class="timeline-date">15 de Abril, 2026 <span class="timeline-tag tag-warning">Ausente</span></div>
+                                <span class="timeline-link">Ver detalhes</span>
+                            </div>
+                            <div class="timeline-desc">
+                                <strong>Visita não realizada - Ausente</strong><br>
+                                Casa fechada. Vizinha informou que paciente viajou.
+                            </div>
+                        </div>
+
+                        <div class="timeline-item">
+                            <div class="timeline-dot"></div>
+                            <div class="timeline-header">
+                                <div class="timeline-date">20 de Março, 2026 <span class="timeline-tag tag-success">Visita realizada</span></div>
+                                <span class="timeline-link">Ver detalhes</span>
+                            </div>
+                            <div class="timeline-desc">
+                                <strong>Visita realizada por Gabriela A. (ACS)</strong><br>
+                                Paciente refere dor de cabeça frequente. PA 145 x 90 mmHg.
+                            </div>
+                        </div>
+
+                    </div>
+                    
+                    <div style="text-align: center; margin-top: 16px;">
+                        <span class="timeline-link">Ver todo histórico ▾</span>
+                    </div>
+
                 </div>
 
-                <div class="timeline-item">
-                    <div class="timeline-dot"></div>
-                    <div class="timeline-date">15 de Março, 2026 - Visita de Rotina</div>
-                    <div class="timeline-content">
-                        <p>Visita domiciliar realizada com sucesso. Paciente relata estar tomando a medicação corretamente. Pressão aferida na UBS na semana anterior estava 120x80. Verificado o quintal, sem focos de dengue.</p>
-                        <div class="esou-tags">
-                            <span class="esou-tag">Desfecho: Realizada</span>
-                            <span class="esou-tag">Acomp. HAS</span>
-                            <span class="esou-tag">Controle Ambiental</span>
+                <!-- COLUNA DIREITA (Resumo Clínico) -->
+                <div class="right-column">
+                    <div class="summary-card">
+                        
+                        <div class="section-title">🩺 Resumo Clínico</div>
+
+                        <div class="summary-section">
+                            <div class="summary-title">Condições de Saúde</div>
+                            <ul class="summary-list">
+                                <li>Hipertensão Arterial</li>
+                                <li>Diabetes Mellitus</li>
+                            </ul>
                         </div>
+
+                        <div class="summary-section">
+                            <div class="summary-title">Últimos Registros</div>
+                            
+                            <div class="vital-record">
+                                <div class="vital-icon">🩸</div>
+                                <div class="vital-info">
+                                    <strong>PA: 150 x 95 mmHg</strong>
+                                    <span>10/05/2026</span>
+                                </div>
+                            </div>
+                            
+                            <div class="vital-record">
+                                <div class="vital-icon">💧</div>
+                                <div class="vital-info">
+                                    <strong>Glicemia: 165 mg/dL</strong>
+                                    <span>10/05/2026</span>
+                                </div>
+                            </div>
+
+                            <div class="vital-record">
+                                <div class="vital-icon">⚖️</div>
+                                <div class="vital-info normal">
+                                    <strong>Peso: 72 kg | Altura: 1,62 m</strong>
+                                    <span>10/05/2026</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="summary-section">
+                            <div class="summary-title">Acompanhamentos</div>
+                            <div style="display: flex; justify-content: space-between; align-items: center; border: 1px solid var(--border); padding: 12px; border-radius: 8px; background: white;">
+                                <div style="display: flex; gap: 8px; align-items: center;">
+                                    <span>📅</span>
+                                    <div>
+                                        <div style="font-size: 13px; font-weight: 600;">Próxima consulta</div>
+                                        <div style="font-size: 11px; color: var(--text-muted);">Não agendada</div>
+                                    </div>
+                                </div>
+                                <span style="color: var(--primary); cursor: pointer;">✏️</span>
+                            </div>
+                        </div>
+
+                        <div class="summary-section">
+                            <div class="summary-title" style="display: flex; justify-content: space-between;">
+                                Documentos e Anexos <span style="color: var(--primary); cursor: pointer; font-weight: bold;">+ Adicionar</span>
+                            </div>
+                            <div class="doc-box">
+                                Nenhum documento anexado
+                            </div>
+                        </div>
+
                     </div>
                 </div>
 
             </div>
-
         </div>
     </main>
 
     <script>
-        // Simulação do Assistente de IA (Voice to Text)
+        // Simulação da Gravação de IA
         const btnRecord = document.getElementById('btnRecord');
+        const aiArea = document.getElementById('aiArea');
         const aiTextArea = document.getElementById('aiTextArea');
-        const btnSave = document.getElementById('btnSave');
         const timelineList = document.getElementById('timelineList');
 
         function iniciarGravacao() {
-            // Muda o botão para estado de gravando
-            btnRecord.classList.add('recording');
-            btnRecord.innerHTML = '🛑 Escutando... (Clique para parar)';
+            btnRecord.innerHTML = '<span style="font-size: 20px;">🛑</span> Escutando...';
+            btnRecord.style.background = 'var(--danger)';
+            btnRecord.style.borderColor = 'var(--danger)';
+            btnRecord.style.color = 'white';
             
-            // Impede múltiplos cliques
             btnRecord.onclick = pararGravacao;
         }
 
         function pararGravacao() {
-            // Remove o estado de gravação
-            btnRecord.classList.remove('recording');
-            btnRecord.innerHTML = '✨ IA Processando o áudio...';
-            btnRecord.style.pointerEvents = 'none'; // Desabilita o botão temporariamente
+            btnRecord.innerHTML = '<span style="font-size: 20px;">✨</span> Processando IA...';
+            btnRecord.style.background = 'var(--primary)';
+            btnRecord.style.borderColor = 'var(--primary)';
+            btnRecord.style.pointerEvents = 'none';
             
-            // Simula o tempo de processamento da IA (2 segundos)
             setTimeout(() => {
-                btnRecord.style.display = 'none'; // Esconde o botão de gravar
+                aiArea.style.display = 'block';
+                aiTextArea.value = "Paciente visitada hoje. Refere melhora das dores de cabeça. Glicemia de jejum não aferida hoje. Orientada sobre a dieta e hidratação.";
                 
-                // Exibe a caixa de texto com o áudio transcrito já estruturado
-                aiTextArea.style.display = 'block';
-                aiTextArea.value = "Paciente visitada no domicílio. Informa que está sentindo tonturas e visão embaçada nos últimos dias. Glicemia capilar não aferida hoje. Orientada a procurar a UBS Guarda-Mor amanhã cedo em jejum para exames. Realizado convite para atualização do preventivo.";
-                
-                // Exibe o botão de salvar
-                btnSave.style.display = 'block';
-            }, 2000);
+                // Reseta o botão original
+                btnRecord.innerHTML = '<span style="font-size: 20px;">🎙️</span> Gravar evolução por voz';
+                btnRecord.style.pointerEvents = 'auto';
+                btnRecord.onclick = iniciarGravacao;
+            }, 1500);
         }
 
         function salvarEvolucao() {
             const textoFormatado = aiTextArea.value;
             
-            // Cria o novo bloco na Timeline HTML
             const novoItem = document.createElement('div');
             novoItem.className = 'timeline-item';
             novoItem.innerHTML = `
-                <div class="timeline-dot" style="border-color: var(--success);"></div>
-                <div class="timeline-date" style="color: var(--success);">Hoje - Visita de Rotina</div>
-                <div class="timeline-content">
-                    <p>${textoFormatado}</p>
-                    <div class="esou-tags">
-                        <span class="esou-tag">Desfecho: Realizada</span>
-                        <span class="esou-tag">Encaminhamento UBS</span>
-                        <span class="esou-tag">Sintomática</span>
-                    </div>
+                <div class="timeline-dot"></div>
+                <div class="timeline-header">
+                    <div class="timeline-date">Hoje, Agora <span class="timeline-tag tag-success">Visita Realizada</span></div>
+                    <span class="timeline-link">Ver detalhes</span>
+                </div>
+                <div class="timeline-desc">
+                    <strong>Visita registrada via assistente de voz</strong><br>
+                    ${textoFormatado}
                 </div>
             `;
 
-            // Adiciona no topo da lista
             timelineList.prepend(novoItem);
 
-            // Reseta a interface do gravador
-            aiTextArea.style.display = 'none';
+            aiArea.style.display = 'none';
             aiTextArea.value = '';
-            btnSave.style.display = 'none';
-            
-            btnRecord.style.display = 'flex';
-            btnRecord.style.pointerEvents = 'auto';
-            btnRecord.innerHTML = '🎙️ Gravar nova evolução por voz';
-            btnRecord.onclick = iniciarGravacao;
-
-            alert('Visita salva no prontuário e sincronizada com sucesso!');
+            alert('Visita salva e anexada ao prontuário do e-SUS!');
         }
     </script>
 </body>
