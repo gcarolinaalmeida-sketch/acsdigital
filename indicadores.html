@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Indicadores - ACS Digital</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="config.js"></script>
     <style>
         :root {
             --bg-color: #FAFAFA;
@@ -121,56 +123,39 @@
             <div class="section-label">🎯 INDICADORES ASSISTENCIAIS (PREVINE BRASIL)</div>
             
             <div class="metric-grid">
-                
-                <!-- Indicador 1: Gestantes -->
-                <div class="metric-card">
-                    <div class="metric-header">
-                        <div class="metric-title">Proporção de gestantes com pelo menos 6 consultas pré-natal realizadas</div>
-                        <div class="metric-icon">🤰</div>
-                    </div>
-                    <div class="metric-values">
-                        <div class="metric-current">85%</div>
-                        <div class="metric-target">Meta: 45%</div>
-                    </div>
-                    <div class="progress-track">
-                        <div class="target-marker" style="left: 45%;"></div>
-                        <div class="progress-fill good" style="width: 85%;"></div>
-                    </div>
-                    <div class="metric-feedback feedback-good">✓ Meta atingida! Excelente trabalho.</div>
-                </div>
 
-                <!-- Indicador 2: Hipertensos -->
+                <!-- Indicador 1: Hipertensos -->
                 <div class="metric-card">
                     <div class="metric-header">
                         <div class="metric-title">Proporção de hipertensos com Pressão Arterial aferida no semestre</div>
                         <div class="metric-icon">🩸</div>
                     </div>
                     <div class="metric-values">
-                        <div class="metric-current">40%</div>
+                        <div class="metric-current" id="metricHasAtual">--%</div>
                         <div class="metric-target">Meta: 50%</div>
                     </div>
                     <div class="progress-track">
                         <div class="target-marker" style="left: 50%;"></div>
-                        <div class="progress-fill warning" style="width: 40%;"></div>
+                        <div class="progress-fill" id="metricHasBarra" style="width: 0%;"></div>
                     </div>
-                    <div class="metric-feedback feedback-warning">⚠️ Faltam 4 pacientes para bater a meta.</div>
+                    <div class="metric-feedback" id="metricHasFeedback"></div>
                 </div>
 
-                <!-- Indicador 3: Diabéticos -->
+                <!-- Indicador 2: Diabéticos -->
                 <div class="metric-card">
                     <div class="metric-header">
-                        <div class="metric-title">Proporção de diabéticos com solicitação de hemoglobina glicada</div>
+                        <div class="metric-title">Proporção de diabéticos com hemoglobina glicada avaliada no semestre</div>
                         <div class="metric-icon">🍬</div>
                     </div>
                     <div class="metric-values">
-                        <div class="metric-current">32%</div>
+                        <div class="metric-current" id="metricDmAtual">--%</div>
                         <div class="metric-target">Meta: 50%</div>
                     </div>
                     <div class="progress-track">
                         <div class="target-marker" style="left: 50%;"></div>
-                        <div class="progress-fill danger" style="width: 32%;"></div>
+                        <div class="progress-fill" id="metricDmBarra" style="width: 0%;"></div>
                     </div>
-                    <div class="metric-feedback" style="color: var(--danger); font-size: 13px; font-weight: 500;">🔴 Crítico. Faltam 7 pacientes.</div>
+                    <div class="metric-feedback" id="metricDmFeedback"></div>
                 </div>
 
             </div>
@@ -179,29 +164,29 @@
             <div class="section-label">⚙️ MÉTRICAS OPERACIONAIS (TERRITÓRIO)</div>
 
             <div class="ops-grid">
-                
-                <div class="ops-card" onclick="alert('Redirecionando para a lista de Domicílios Pendentes...')">
-                    <div class="ops-number danger">18</div>
-                    <div class="ops-desc">Domicílios sem receber visita domiciliar há mais de 60 dias.</div>
-                    <div class="ops-action">Ver lista de endereços →</div>
+
+                <div class="ops-card" onclick="window.location.href='familias.html'">
+                    <div class="ops-number danger" id="opsSemVisita">--</div>
+                    <div class="ops-desc">Famílias que ainda não têm nenhuma visita registrada no app.</div>
+                    <div class="ops-action">Ver no Diretório de Famílias →</div>
                 </div>
 
-                <div class="ops-card" onclick="alert('Redirecionando para a lista de Cadastros Incompletos...')">
-                    <div class="ops-number warning">45</div>
-                    <div class="ops-desc">Cidadãos com cadastro incompleto (Sem CPF ou CNS válido).</div>
+                <div class="ops-card" onclick="window.location.href='familias.html'">
+                    <div class="ops-number warning" id="opsCadastroIncompleto">--</div>
+                    <div class="ops-desc">Cidadãos com cadastro incompleto (sem CPF ou CNS).</div>
                     <div class="ops-action">Ver lista de pendências →</div>
                 </div>
 
-                <div class="ops-card" onclick="alert('Redirecionando para a lista de Atualizações Pendentes...')">
-                    <div class="ops-number warning">12</div>
-                    <div class="ops-desc">Famílias com cadastro domiciliar desatualizado (> 2 anos).</div>
-                    <div class="ops-action">Iniciar atualização →</div>
+                <div class="ops-card" onclick="window.location.href='familias.html'">
+                    <div class="ops-number warning" id="opsSemResponsavel">--</div>
+                    <div class="ops-desc">Famílias sem um responsável familiar identificado no cadastro.</div>
+                    <div class="ops-action">Ver no Diretório de Famílias →</div>
                 </div>
 
                 <div class="ops-card">
-                    <div class="ops-number success">92%</div>
-                    <div class="ops-desc">Cobertura de visitas realizadas na micro-área neste mês.</div>
-                    <div class="ops-action" style="color: var(--success);">Bom trabalho!</div>
+                    <div class="ops-number success" id="opsCobertura">--%</div>
+                    <div class="ops-desc">Cobertura de visitas (famílias com pelo menos 1 visita registrada neste mês).</div>
+                    <div class="ops-action" style="color: var(--success);" id="opsCoberturaFeedback"></div>
                 </div>
 
             </div>
@@ -209,5 +194,68 @@
         </div>
     </main>
 
+    <script>
+        function definirIndicador(prefixo, numerador, denominador) {
+            const pct = denominador > 0 ? Math.round((numerador / denominador) * 100) : 0;
+            document.getElementById(`metric${prefixo}Atual`).textContent = pct + '%';
+            const barra = document.getElementById(`metric${prefixo}Barra`);
+            barra.style.width = pct + '%';
+            barra.className = 'progress-fill ' + (pct >= 50 ? 'good' : pct >= 30 ? 'warning' : 'danger');
+            const feedback = document.getElementById(`metric${prefixo}Feedback`);
+            if (denominador === 0) {
+                feedback.textContent = 'Sem pacientes cadastrados nesta condição.';
+            } else if (pct >= 50) {
+                feedback.innerHTML = '✓ Meta atingida! Excelente trabalho.';
+                feedback.style.color = 'var(--success)';
+            } else {
+                const faltam = Math.ceil(denominador * 0.5) - numerador;
+                feedback.innerHTML = `⚠️ Faltam ${faltam} paciente${faltam === 1 ? '' : 's'} para bater a meta.`;
+                feedback.style.color = pct >= 30 ? 'var(--warning)' : 'var(--danger)';
+            }
+        }
+
+        async function carregarIndicadores() {
+            const { data: condicoes, error: erroCondicoes } = await db.from('condicoes_saude').select('*');
+            const { data: familias, error: erroFamilias } = await db.from('familias').select('id, cidadaos(id, cpf, cns, e_responsavel_familiar)');
+            const { data: visitas, error: erroVisitas } = await db.from('visitas').select('familia_id, data_visita');
+
+            if (erroCondicoes || erroFamilias || erroVisitas) {
+                console.error(erroCondicoes, erroFamilias, erroVisitas);
+                return;
+            }
+
+            // --- Indicadores assistenciais ---
+            const hipertensos = condicoes.filter(c => c.condicao === 'Hipertensão');
+            const hipertensosComPA = hipertensos.filter(c => c.data_pressao_arterial && diasDesde(c.data_pressao_arterial) <= 180);
+            definirIndicador('Has', hipertensosComPA.length, hipertensos.length);
+
+            const diabeticos = condicoes.filter(c => c.condicao === 'Diabetes');
+            const diabeticosComHba1c = diabeticos.filter(c => c.data_hemoglobina_glicada && diasDesde(c.data_hemoglobina_glicada) <= 180);
+            definirIndicador('Dm', diabeticosComHba1c.length, diabeticos.length);
+
+            // --- Métricas operacionais ---
+            const familiasComVisita = new Set(visitas.map(v => v.familia_id));
+            document.getElementById('opsSemVisita').textContent = familias.length - familiasComVisita.size;
+
+            const todosCidadaos = familias.flatMap(f => f.cidadaos || []);
+            const incompletos = todosCidadaos.filter(c => !c.cpf || !c.cns).length;
+            document.getElementById('opsCadastroIncompleto').textContent = incompletos;
+
+            const semResponsavel = familias.filter(f => !(f.cidadaos || []).some(c => c.e_responsavel_familiar)).length;
+            document.getElementById('opsSemResponsavel').textContent = semResponsavel;
+
+            const inicioMes = new Date();
+            inicioMes.setDate(1);
+            const familiasComVisitaNoMes = new Set(
+                visitas.filter(v => new Date(v.data_visita) >= inicioMes).map(v => v.familia_id)
+            );
+            const cobertura = familias.length > 0 ? Math.round((familiasComVisitaNoMes.size / familias.length) * 100) : 0;
+            document.getElementById('opsCobertura').textContent = cobertura + '%';
+            document.getElementById('opsCoberturaFeedback').textContent =
+                familiasComVisitaNoMes.size === 0 ? 'Registre visitas para começar a acompanhar.' : 'Continue assim!';
+        }
+
+        carregarIndicadores();
+    </script>
 </body>
 </html>

@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Nova Visita - ACS Digital</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="config.js"></script>
     <style>
         :root {
             --bg-color: #FAFAFA;
@@ -156,15 +158,13 @@
     <div class="container">
         
         <aside class="sidebar-context">
-            <div class="family-info">
-                <h2>👨‍👩‍👧 Família Silva Costa</h2>
-                <div class="info-row">📍 Rua das Flores, 123 - Centro</div>
+            <div class="family-info" id="familyContext">
+                <h2>Carregando família...</h2>
             </div>
             <div class="divider"></div>
-            <div class="history-info">
+            <div class="history-info" id="historyInfo">
                 <div class="section-label">HISTÓRICO RESUMIDO</div>
-                <div class="history-text"><strong>Última Visita:</strong> 15 de Maio de 2026</div>
-                <div class="alert-text">⚠️ Criança com vacina atrasada</div>
+                <div class="history-text">Carregando...</div>
             </div>
         </aside>
 
@@ -182,6 +182,9 @@
                 <div class="chip" data-type="checkbox">🍬 Diabético</div>
                 <div class="chip" data-type="checkbox">🤰 Gestante</div>
             </div>
+
+            <div class="section-label">OBSERVAÇÕES</div>
+            <textarea id="observacoesTexto" placeholder="Descreva como foi a visita..." style="margin-bottom: 32px;"></textarea>
 
             <div class="section-label">ASSINATURA DO PACIENTE (Obrigatório)</div>
             <button class="btn-signature" id="btnAbrirAssinatura">✍️ Coletar Assinatura</button>
@@ -205,9 +208,56 @@
     </div>
 
     <script>
+        const params = new URLSearchParams(window.location.search);
+        const familiaId = params.get('familia_id');
+
         // Variáveis de controle
         let desfechoPreenchido = false;
         let assinaturaColetada = false;
+        let desfechoSelecionado = null;
+
+        async function carregarContexto() {
+            const contextEl = document.getElementById('familyContext');
+            const historyEl = document.getElementById('historyInfo');
+
+            if (!familiaId) {
+                contextEl.innerHTML = `<h2>⚠️ Nenhuma família selecionada</h2><div class="info-row">Acesse esta tela a partir do Diretório de Famílias.</div>`;
+                historyEl.innerHTML = '';
+                return;
+            }
+
+            const { data: familia, error } = await db
+                .from('familias')
+                .select('*, cidadaos(*)')
+                .eq('id', familiaId)
+                .single();
+
+            if (error || !familia) {
+                contextEl.innerHTML = `<h2>Família não encontrada</h2>`;
+                console.error(error);
+                return;
+            }
+
+            const endereco = [familia.logradouro, familia.numero, familia.complemento].filter(Boolean).join(', ');
+            contextEl.innerHTML = `
+                <h2>👨‍👩‍👧 ${endereco || 'Família'}</h2>
+                <div class="info-row">📍 ${familia.bairro || ''}</div>
+                <div class="info-row">${(familia.cidadaos || []).length} morador(es)</div>
+            `;
+
+            const { data: ultimaVisita } = await db
+                .from('visitas')
+                .select('data_visita')
+                .eq('familia_id', familiaId)
+                .order('data_visita', { ascending: false })
+                .limit(1)
+                .maybeSingle();
+
+            historyEl.innerHTML = `
+                <div class="section-label">HISTÓRICO RESUMIDO</div>
+                <div class="history-text"><strong>Última Visita:</strong> ${ultimaVisita ? formatarDataBR(ultimaVisita.data_visita) : 'Nenhuma visita registrada ainda'}</div>
+            `;
+        }
 
         // 1. Lógica dos Chips de Desfecho
         const desfechoChips = document.querySelectorAll('#desfechoGroup .chip');
@@ -216,6 +266,7 @@
                 desfechoChips.forEach(c => c.classList.remove('selected'));
                 chip.classList.add('selected');
                 desfechoPreenchido = true;
+                desfechoSelecionado = chip.textContent.trim();
                 validarFormulario();
             });
         });
@@ -297,19 +348,45 @@
         btnCancelar.addEventListener('click', () => {
             if (desfechoPreenchido || assinaturaColetada) {
                 if (confirm("Tem certeza que deseja cancelar? Os dados não salvos serão perdidos.")) {
-                    window.location.href = 'index.html';
+                    window.location.href = 'familias.html';
                 }
             } else {
-                window.location.href = 'index.html';
+                window.location.href = 'familias.html';
             }
         });
 
-        btnSalvar.addEventListener('click', () => {
-            if (btnSalvar.classList.contains('active')) {
-                alert("Visita salva com sucesso!");
-                window.location.href = 'index.html';
+        btnSalvar.addEventListener('click', async () => {
+            if (!btnSalvar.classList.contains('active')) return;
+            if (!familiaId) {
+                alert('Nenhuma família selecionada, não é possível salvar.');
+                return;
             }
+
+            const acompanhamentos = Array.from(document.querySelectorAll('#acompanhamentosGroup .chip.selected'))
+                .map(c => c.textContent.trim());
+
+            const novaVisita = {
+                familia_id: familiaId,
+                data_visita: new Date().toISOString().slice(0, 10),
+                desfecho: desfechoSelecionado,
+                acompanhamentos,
+                observacoes: document.getElementById('observacoesTexto').value.trim() || null,
+                assinatura_coletada: true,
+                profissional: 'ACS',
+            };
+
+            const { error } = await db.from('visitas').insert(novaVisita);
+            if (error) {
+                alert('Erro ao salvar a visita: ' + error.message);
+                console.error(error);
+                return;
+            }
+
+            alert("Visita salva com sucesso!");
+            window.location.href = 'familias.html';
         });
+
+        carregarContexto();
     </script>
 </body>
 </html>
