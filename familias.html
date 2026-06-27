@@ -1,412 +1,376 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Famílias - ACS Digital</title>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="config.js"></script>
-    <style>
-        :root {
-            --bg-color: #FAFAFA;
-            --surface: #FFFFFF;
-            --text-main: #111827;
-            --text-muted: #6B7280;
-            --border: #E5E7EB;
-            --primary: #0A84FF;
-            --success: #34C759;
-            --danger: #FF3B30;
-            --warning: #FF9500;
-            --radius: 12px;
-            --chip-bg: #F2F2F7;
-        }
-
-        * { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
-        body { display: flex; background-color: var(--bg-color); color: var(--text-main); height: 100vh; overflow: hidden; }
-
-        /* Sidebar e Topbar */
-        .sidebar { width: 260px; background-color: var(--bg-color); border-right: 1px solid var(--border); padding: 24px 16px; display: flex; flex-direction: column; gap: 24px; z-index: 10; }
-        .sidebar-header h2 { font-size: 14px; font-weight: 600; }
-        .sidebar-header span { font-size: 12px; color: var(--text-muted); }
-        .nav-links { list-style: none; display: flex; flex-direction: column; gap: 4px; }
-        .nav-links li a { text-decoration: none; color: var(--text-muted); font-size: 14px; padding: 8px 12px; border-radius: 8px; display: block; transition: 0.2s; }
-        .nav-links li a:hover, .nav-links li a.active { background-color: #F3F4F6; color: var(--text-main); font-weight: 500; }
-
-        .main-content { flex: 1; display: flex; flex-direction: column; overflow-y: auto; position: relative; }
-        .topbar { height: 60px; display: flex; align-items: center; justify-content: space-between; padding: 0 48px; border-bottom: 1px solid var(--border); background-color: var(--surface); position: sticky; top: 0; z-index: 5; }
-
-        /* Conteúdo Famílias */
-        .content-wrapper { padding: 40px 48px; max-width: 1200px; margin: 0 auto; width: 100%; }
-        
-        .search-container { display: flex; gap: 16px; margin-bottom: 24px; }
-        .search-bar { flex: 1; padding: 14px 16px; border: 1px solid var(--border); border-radius: var(--radius); font-size: 16px; background-color: var(--surface); outline: none; transition: 0.2s; }
-        .search-bar:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(10, 132, 255, 0.1); }
-        
-        /* Filtros horizontais */
-        .filters-scroll { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 8px; margin-bottom: 32px; scrollbar-width: none; }
-        .filters-scroll::-webkit-scrollbar { display: none; }
-        .filter-chip { padding: 8px 16px; background: var(--surface); border: 1px solid var(--border); border-radius: 20px; font-size: 14px; white-space: nowrap; cursor: pointer; }
-        .filter-chip.active { background: var(--primary); color: white; border-color: var(--primary); }
-
-        /* Grid de Famílias */
-        .family-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px; }
-        .family-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; cursor: pointer; transition: 0.2s; }
-        .family-card:hover { border-color: #D1D5DB; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); }
-        .family-title { font-size: 18px; font-weight: 600; margin-bottom: 4px; }
-        .family-info { font-size: 14px; color: var(--text-muted); margin-bottom: 16px; line-height: 1.5; }
-        
-        /* Badges e Chips */
-        .badges { display: flex; gap: 8px; flex-wrap: wrap; }
-        .badge { padding: 4px 8px; border-radius: 6px; font-size: 12px; font-weight: 500; background: var(--chip-bg); }
-        .badge.alert { background: rgba(255, 59, 48, 0.1); color: var(--danger); }
-
-        .chip-group { display: flex; flex-wrap: wrap; gap: 8px; }
-        .chip { background-color: var(--chip-bg); border: 1px solid transparent; padding: 10px 16px; border-radius: 24px; font-size: 14px; font-weight: 500; color: var(--text-main); cursor: pointer; transition: all 0.2s ease; user-select: none; }
-        .chip:hover { background-color: #E5E5EA; }
-        .chip.selected { background-color: var(--primary); color: white; }
-
-        /* SLIDE-OVER (Gavetas Laterais) */
-        .overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.4); opacity: 0; pointer-events: none; transition: 0.3s; z-index: 20; backdrop-filter: blur(2px); }
-        .overlay.active { opacity: 1; pointer-events: auto; }
-        
-        .drawer { position: fixed; top: 0; right: -100%; width: 100%; max-width: 600px; height: 100vh; background: var(--surface); z-index: 30; transition: right 0.3s ease; display: flex; flex-direction: column; box-shadow: -4px 0 15px rgba(0,0,0,0.1); }
-        .drawer.active { right: 0; }
-        
-        .drawer-header { padding: 20px 24px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; background: var(--surface); }
-        .drawer-body { padding: 24px; overflow-y: auto; flex: 1; }
-        
-        .btn-icon { background: none; border: none; font-size: 20px; cursor: pointer; color: var(--text-main); }
-        .btn-action { background: var(--chip-bg); border: none; padding: 8px 16px; border-radius: 8px; font-weight: 600; font-size: 14px; cursor: pointer; }
-        .btn-action.primary { background: var(--primary); color: white; }
-
-        /* Formulários Customizados */
-        .section-label { font-size: 12px; font-weight: 600; color: var(--text-muted); letter-spacing: 0.5px; margin-bottom: 12px; margin-top: 24px; display: block; }
-        .input-form { width: 100%; padding: 14px 16px; border: 1px solid var(--border); border-radius: 8px; font-size: 15px; background-color: var(--surface); outline: none; transition: 0.2s; margin-bottom: 12px; }
-        .input-form:focus { border-color: var(--primary); }
-        .form-row { display: flex; gap: 12px; }
-
-        /* Lista de Cidadãos */
-        .citizen-item { padding: 16px; border: 1px solid var(--border); border-radius: 8px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; transition: 0.2s; }
-        .citizen-item:hover { background: var(--bg-color); }
-        .citizen-name { font-weight: 600; font-size: 15px; }
-        .citizen-cns { font-size: 13px; color: var(--text-muted); margin-top: 4px; }
-
-        @media (max-width: 768px) {
-            body { flex-direction: column; }
-            .sidebar { width: 100%; height: auto; border-right: none; border-bottom: 1px solid var(--border); padding: 16px; }
-            .content-wrapper { padding: 24px; }
-            .drawer { max-width: 100%; }
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Famílias - ACS Digital</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
+<style>
+:root {
+--bg-color: #FAFAFA;
+--surface: #FFFFFF;
+--text-main: #111827;
+--text-muted: #6B7280;
+--border: #E5E7EB;
+--primary: #0A84FF;
+--success: #34C759;
+--danger: #FF3B30;
+--warning: #FF9500;
+--radius: 12px;
+--chip-bg: #F2F2F7;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+body { display: flex; background-color: var(--bg-color); color: var(--text-main); height: 100vh; overflow: hidden; }
+.sidebar { width: 260px; background-color: var(--bg-color); border-right: 1px solid var(--border); padding: 24px 16px; display: flex; flex-direction: column; gap: 24px; z-index: 10; }
+.sidebar-header h2 { font-size: 14px; font-weight: 600; }
+.sidebar-header span { font-size: 12px; color: var(--text-muted); }
+.nav-links { list-style: none; display: flex; flex-direction: column; gap: 4px; }
+.nav-links li a { text-decoration: none; color: var(--text-muted); font-size: 14px; padding: 8px 12px; border-radius: 8px; display: block; transition: 0.2s; }
+.nav-links li a:hover, .nav-links li a.active { background-color: #F3F4F6; color: var(--text-main); font-weight: 500; }
+.main-content { flex: 1; display: flex; flex-direction: column; overflow-y: auto; position: relative; }
+.topbar { height: 60px; display: flex; align-items: center; justify-content: space-between; padding: 0 48px; border-bottom: 1px solid var(--border); background-color: var(--surface); position: sticky; top: 0; z-index: 5; }
+.content-wrapper { padding: 40px 48px; max-width: 1200px; margin: 0 auto; width: 100%; }
+.search-container { display: flex; gap: 16px; margin-bottom: 24px; }
+.search-bar { flex: 1; padding: 14px 16px; border: 1px solid var(--border); border-radius: var(--radius); font-size: 16px; background-color: var(--surface); outline: none; transition: 0.2s; }
+.search-bar:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(10, 132, 255, 0.1); }
+.filters-scroll { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 8px; margin-bottom: 32px; scrollbar-width: none; }
+.filters-scroll::-webkit-scrollbar { display: none; }
+.filter-chip { padding: 8px 16px; background: var(--surface); border: 1px solid var(--border); border-radius: 20px; font-size: 14px; white-space: nowrap; cursor: pointer; }
+.filter-chip.active { background: var(--primary); color: white; border-color: var(--primary); }
+.family-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px; }
+.family-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; cursor: pointer; transition: 0.2s; }
+.family-card:hover { border-color: #D1D5DB; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); }
+.family-title { font-size: 18px; font-weight: 600; margin-bottom: 4px; }
+.family-info { font-size: 14px; color: var(--text-muted); margin-bottom: 16px; line-height: 1.5; }
+.badges { display: flex; gap: 8px; flex-wrap: wrap; }
+.badge { padding: 4px 8px; border-radius: 6px; font-size: 12px; font-weight: 500; background: var(--chip-bg); }
+.badge.alert { background: rgba(255, 59, 48, 0.1); color: var(--danger); }
+.chip-group { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip { background-color: var(--chip-bg); border: 1px solid transparent; padding: 10px 16px; border-radius: 24px; font-size: 14px; font-weight: 500; color: var(--text-main); cursor: pointer; transition: all 0.2s ease; user-select: none; }
+.chip:hover { background-color: #E5E5EA; }
+.chip.selected { background-color: var(--primary); color: white; }
+.overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.4); opacity: 0; pointer-events: none; transition: 0.3s; z-index: 20; backdrop-filter: blur(2px); }
+.overlay.active { opacity: 1; pointer-events: auto; }
+.drawer { position: fixed; top: 0; right: -100%; width: 100%; max-width: 600px; height: 100vh; background: var(--surface); z-index: 30; transition: right 0.3s ease; display: flex; flex-direction: column; box-shadow: -4px 0 15px rgba(0,0,0,0.1); }
+.drawer.active { right: 0; }
+.drawer-header { padding: 20px 24px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; background: var(--surface); }
+.drawer-body { padding: 24px; overflow-y: auto; flex: 1; }
+.btn-icon { background: none; border: none; font-size: 20px; cursor: pointer; color: var(--text-main); }
+.btn-action { background: var(--chip-bg); border: none; padding: 8px 16px; border-radius: 8px; font-weight: 600; font-size: 14px; cursor: pointer; }
+.btn-action.primary { background: var(--primary); color: white; }
+.section-label { font-size: 12px; font-weight: 600; color: var(--text-muted); letter-spacing: 0.5px; margin-bottom: 12px; margin-top: 24px; display: block; }
+.input-form { width: 100%; padding: 14px 16px; border: 1px solid var(--border); border-radius: 8px; font-size: 15px; background-color: var(--surface); outline: none; transition: 0.2s; margin-bottom: 12px; }
+.input-form:focus { border-color: var(--primary); }
+.form-row { display: flex; gap: 12px; }
+.citizen-item { padding: 16px; border: 1px solid var(--border); border-radius: 8px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; transition: 0.2s; }
+.citizen-item:hover { background: var(--bg-color); }
+.citizen-name { font-weight: 600; font-size: 15px; }
+.citizen-cns { font-size: 13px; color: var(--text-muted); margin-top: 4px; }
+@media (max-width: 768px) {
+body { flex-direction: column; }
+.sidebar { width: 100%; height: auto; border-right: none; border-bottom: 1px solid var(--border); padding: 16px; }
+.content-wrapper { padding: 24px; }
+.drawer { max-width: 100%; }
+}
+</style>
 </head>
 <body>
+<aside class="sidebar">
+<div class="sidebar-header">
+<h2>UBS Guarda-Mor</h2>
+<span>Micro-área 03</span>
+</div>
+<ul class="nav-links">
+<li><a href="index.html">Início</a></li>
+<li><a href="nova-visita.html">Visitas Diárias</a></li>
+<li><a href="familias.html" class="active">Famílias</a></li>
+<li><a href="mapa.html">Mapa da Micro-área</a></li>
+<li><a href="indicadores.html">Indicadores</a></li>
+</ul>
+</aside>
+<main class="main-content">
+<header class="topbar">
+<div style="font-size: 14px; color: var(--text-muted);">Famílias / Diretório</div>
+</header>
+<div class="content-wrapper">
+<h1 style="font-size: 24px; margin-bottom: 24px;">Diretório de Famílias</h1>
+<div class="search-container">
+<input type="text" class="search-bar" placeholder="Buscar por nome, rua, CNS ou telefone (Cmd+K)...">
+<button class="btn-action primary" style="padding: 0 24px;" onclick="abrirDrawer('drawerNovaFamilia')">+ Nova Família</button>
+</div>
+<div class="filters-scroll">
+<div class="filter-chip active" data-filtro="todas">🏠 Todas</div>
+<div class="filter-chip" data-filtro="hipertensos">🫀 Com Hipertensos</div>
+<div class="filter-chip" data-filtro="diabeticos">🍬 Com Diabéticos</div>
+<div class="filter-chip" data-filtro="incompleto">⚠️ Cadastro Incompleto</div>
+</div>
+<div class="family-grid" id="familyGrid">
+<p style="color: var(--text-muted); padding: 40px; text-align: center;">Carregando famílias...</p>
+</div>
+</div>
+</main>
+<!-- OVERLAY -->
+<div class="overlay" id="overlay" onclick="fecharTodosDrawers()"></div>
+<!-- DRAWER: NOVA FAMÍLIA (FORMULÁRIO) -->
+<div class="drawer" id="drawerNovaFamilia" style="z-index: 40;">
+<div class="drawer-header">
+<div style="display: flex; align-items: center; gap: 12px;">
+<button class="btn-icon" onclick="fecharDrawer('drawerNovaFamilia')">←</button>
+<h2 style="font-size: 18px;">Cadastrar Domicílio</h2>
+</div>
+<button class="btn-action primary" onclick="salvarNovaFamilia()">Salvar</button>
+</div>
+<div class="drawer-body">
+<span class="section-label" style="margin-top: 0;">ENDEREÇO</span>
+<input type="text" class="input-form" id="campoLogradouro" placeholder="Rua / Logradouro">
+<div class="form-row">
+<input type="text" class="input-form" id="campoNumero" placeholder="Número" style="width: 100px;">
+<input type="text" class="input-form" id="campoComplemento" placeholder="Complemento (ex: Casa 2)">
+</div>
+<input type="text" class="input-form" id="campoBairro" placeholder="Bairro / Comunidade">
+<input type="text" class="input-form" id="campoCep" placeholder="CEP (Opcional)">
+<span class="section-label">TIPO DE IMÓVEL</span>
+<div class="chip-group" data-grupo="tipoImovel">
+<div class="chip" onclick="this.classList.toggle('selected')">Casa / Alvenaria</div>
+<div class="chip" onclick="this.classList.toggle('selected')">Apartamento</div>
+<div class="chip" onclick="this.classList.toggle('selected')">Madeira / Taipa</div>
+<div class="chip" onclick="this.classList.toggle('selected')">Improvisada</div>
+</div>
+<span class="section-label">ABASTECIMENTO DE ÁGUA</span>
+<div class="chip-group" data-grupo="agua">
+<div class="chip" onclick="this.classList.toggle('selected')">Rede Encanada</div>
+<div class="chip" onclick="this.classList.toggle('selected')">Poço / Nascente</div>
+<div class="chip" onclick="this.classList.toggle('selected')">Caminhão Pipa</div>
+</div>
+<span class="section-label">DESTINO DO LIXO</span>
+<div class="chip-group" data-grupo="lixo">
+<div class="chip" onclick="this.classList.toggle('selected')">Coleta Pública</div>
+<div class="chip" onclick="this.classList.toggle('selected')">Queimado / Enterrado</div>
+<div class="chip" onclick="this.classList.toggle('selected')">Céu Aberto</div>
+</div>
+<span class="section-label">ANIMAIS NO DOMICÍLIO</span>
+<div class="chip-group" data-grupo="animais" style="margin-bottom: 32px;">
+<div class="chip" onclick="this.classList.toggle('selected')">🐶 Cachorro</div>
+<div class="chip" onclick="this.classList.toggle('selected')">🐱 Gato</div>
+<div class="chip" onclick="this.classList.toggle('selected')">🐦 Aves</div>
+<div class="chip" onclick="this.classList.toggle('selected')">Nenhum</div>
+</div>
+</div>
+</div>
+<!-- DRAWER: PRONTUÁRIO FAMILIAR -->
+<div class="drawer" id="drawerFamilia">
+<div class="drawer-header">
+<div style="display: flex; align-items: center; gap: 12px;">
+<button class="btn-icon" onclick="fecharDrawer('drawerFamilia')">←</button>
+<h2 style="font-size: 18px;" id="familiaDrawerTitulo">Família</h2>
+</div>
+<button class="btn-action" onclick="alert('Cadastro de novo cidadão na família ainda não está disponível nesta versão.')">+ Cidadão</button>
+</div>
+<div class="drawer-body" id="familiaDrawerBody">
+<!-- Preenchido dinamicamente via JS -->
+</div>
+</div>
+<script>
+const overlay = document.getElementById('overlay');
+let familiasComMembros = []; // cache local de tudo que foi carregado
+let filtroAtivo = 'todas';
+let termoBusca = '';
 
-    <aside class="sidebar">
-        <div class="sidebar-header">
-            <h2>UBS Guarda-Mor</h2>
-            <span>Micro-área 03</span>
-        </div>
-        <ul class="nav-links">
-            <li><a href="index.html">Início</a></li>
-            <li><a href="nova-visita.html">Visitas Diárias</a></li>
-            <li><a href="familias.html" class="active">Famílias</a></li>
-            <li><a href="mapa.html">Mapa da Micro-área</a></li>
-            <li><a href="indicadores.html">Indicadores</a></li>
-        </ul>
-    </aside>
+function abrirDrawer(id) {
+overlay.classList.add('active');
+document.getElementById(id).classList.add('active');
+}
+function fecharDrawer(id) {
+document.getElementById(id).classList.remove('active');
+const drawersAtivos = document.querySelectorAll('.drawer.active');
+if (drawersAtivos.length === 0) {
+overlay.classList.remove('active');
+}
+}
+function fecharTodosDrawers() {
+document.querySelectorAll('.drawer').forEach(d => d.classList.remove('active'));
+overlay.classList.remove('active');
+}
 
-    <main class="main-content">
-        <header class="topbar">
-            <div style="font-size: 14px; color: var(--text-muted);">Famílias / Diretório</div>
-        </header>
+// ---------- Carregamento dos dados reais ----------
+async function carregarFamilias() {
+const grid = document.getElementById('familyGrid');
+const { data, error } = await db
+.from('familias')
+.select('*, cidadaos(*, condicoes_saude(*))')
+.order('logradouro');
+if (error) {
+grid.innerHTML = `<p style="color: var(--danger); padding: 40px;">Erro ao carregar famílias: ${error.message}</p>`;
+console.error(error);
+return;
+}
+familiasComMembros = data;
+renderizarGrid();
+}
 
-        <div class="content-wrapper">
-            <h1 style="font-size: 24px; margin-bottom: 24px;">Diretório de Famílias</h1>
+function condicoesDe(cidadao) {
+return (cidadao.condicoes_saude || []).map(c => c.condicao);
+}
+function familiaTemCondicao(familia, condicao) {
+return (familia.cidadaos || []).some(c => condicoesDe(c).includes(condicao));
+}
+function familiaTemCadastroIncompleto(familia) {
+return (familia.cidadaos || []).some(c => !c.cpf || !c.cns);
+}
 
-            <div class="search-container">
-                <input type="text" class="search-bar" placeholder="Buscar por nome, rua, CNS ou telefone (Cmd+K)...">
-                <button class="btn-action primary" style="padding: 0 24px;" onclick="abrirDrawer('drawerNovaFamilia')">+ Nova Família</button>
-            </div>
+function renderizarGrid() {
+const grid = document.getElementById('familyGrid');
+let lista = familiasComMembros;
+if (filtroAtivo === 'hipertensos') lista = lista.filter(f => familiaTemCondicao(f, 'Hipertensão'));
+if (filtroAtivo === 'diabeticos') lista = lista.filter(f => familiaTemCondicao(f, 'Diabetes'));
+if (filtroAtivo === 'incompleto') lista = lista.filter(f => familiaTemCadastroIncompleto(f));
+if (termoBusca.trim() !== '') {
+const termo = termoBusca.trim().toLowerCase();
+lista = lista.filter(f => {
+const enderecoMatch = (f.logradouro || '').toLowerCase().includes(termo);
+const membroMatch = (f.cidadaos || []).some(c =>
+(c.nome || '').toLowerCase().includes(termo) ||
+(c.cns || '').includes(termo) ||
+(c.cpf || '').includes(termo)
+);
+return enderecoMatch || membroMatch;
+});
+}
+if (lista.length === 0) {
+grid.innerHTML = `<p style="color: var(--text-muted); padding: 40px; text-align: center;">Nenhuma família encontrada.</p>`;
+return;
+}
+grid.innerHTML = lista.map(f => {
+const membros = f.cidadaos || [];
+const responsavel = membros.find(c => c.e_responsavel_familiar) || membros[0];
+const qtdHipertensos = membros.filter(c => condicoesDe(c).includes('Hipertensão')).length;
+const qtdDiabeticos = membros.filter(c => condicoesDe(c).includes('Diabetes')).length;
+const incompleto = familiaTemCadastroIncompleto(f);
+const endereco = [f.logradouro, f.numero].filter(Boolean).join(', ') || 'Endereço não informado';
+return `
+<div class="family-card" onclick="abrirFamilia('${f.id}')">
+<div class="family-title">${endereco}</div>
+<div class="family-info">
+${responsavel ? `Resp: ${responsavel.nome}<br>` : ''}
+📍 ${f.bairro || 'Bairro não informado'}
+</div>
+<div class="badges">
+<span class="badge">👨‍👩‍👧‍👦 ${membros.length} moradore${membros.length === 1 ? '' : 's'}</span>
+${qtdHipertensos > 0 ? `<span class="badge">🫀 ${qtdHipertensos} Hipertenso${qtdHipertensos > 1 ? 's' : ''}</span>` : ''}
+${qtdDiabeticos > 0 ? `<span class="badge">🍬 ${qtdDiabeticos} Diabético${qtdDiabeticos > 1 ? 's' : ''}</span>` : ''}
+${incompleto ? `<span class="badge alert">⚠️ Cadastro incompleto</span>` : ''}
+</div>
+</div>
+`;
+}).join('');
+}
 
-            <div class="filters-scroll">
-                <div class="filter-chip active" data-filtro="todas">🏠 Todas</div>
-                <div class="filter-chip" data-filtro="hipertensos">🫀 Com Hipertensos</div>
-                <div class="filter-chip" data-filtro="diabeticos">🍬 Com Diabéticos</div>
-                <div class="filter-chip" data-filtro="incompleto">⚠️ Cadastro Incompleto</div>
-            </div>
+function abrirFamilia(familiaId) {
+const familia = familiasComMembros.find(f => f.id === familiaId);
+if (!familia) return;
+const endereco = [familia.logradouro, familia.numero, familia.complemento].filter(Boolean).join(', ');
+document.getElementById('familiaDrawerTitulo').textContent = endereco || 'Família';
+const membros = familia.cidadaos || [];
+const corpo = document.getElementById('familiaDrawerBody');
+corpo.innerHTML = `
+<p style="color: var(--text-muted); font-size: 14px; margin-bottom: 16px;">
+📍 ${endereco || 'Endereço não informado'} - ${familia.bairro || ''} ${familia.cep ? '| CEP ' + familia.cep : ''}
+</p>
+<button class="btn-action primary" style="margin-bottom: 24px;" onclick="window.location.href='nova-visita.html?familia_id=${familia.id}'">📋 Iniciar Visita Domiciliar</button>
+<h3 style="font-size: 14px; color: var(--text-muted); text-transform: uppercase; margin-bottom: 16px;">Membros da Família (${membros.length})</h3>
+${membros.map(c => {
+const idade = calcularIdade(c.data_nascimento);
+const condicoes = condicoesDe(c);
+const tagsCondicao = condicoes.map(cond => cond === 'Hipertensão' ? '🫀 HAS' : cond === 'Diabetes' ? '🍬 DM' : cond).join(', ');
+return `
+<div class="citizen-item" onclick="window.location.href='prontuario.html?id=${c.id}'">
+<div>
+<div class="citizen-name">${c.nome}${idade !== null ? ` (${idade}a)` : ''} ${c.e_responsavel_familiar ? '<span class="badge" style="font-size: 10px;">Responsável</span>' : ''}</div>
+<div class="citizen-cns">CNS: ${c.cns || 'não informado'}${tagsCondicao ? ' | ' + tagsCondicao : ''}</div>
+</div>
+<div style="color: var(--text-muted);">→</div>
+</div>
+`;
+}).join('')}
+`;
+abrirDrawer('drawerFamilia');
+}
 
-            <div class="family-grid" id="familyGrid">
-                <p style="color: var(--text-muted); padding: 40px; text-align: center;">Carregando famílias...</p>
-            </div>
-        </div>
-    </main>
+// ---------- Busca e Filtros ----------
+document.querySelector('.search-bar').addEventListener('input', (e) => {
+termoBusca = e.target.value;
+renderizarGrid();
+});
+document.querySelectorAll('.filter-chip').forEach(chip => {
+chip.addEventListener('click', () => {
+document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+chip.classList.add('active');
+filtroAtivo = chip.dataset.filtro;
+renderizarGrid();
+});
+});
 
-    <!-- OVERLAY -->
-    <div class="overlay" id="overlay" onclick="fecharTodosDrawers()"></div>
+// ---------- Deep-link a partir de outras telas (ex: Dashboard) ----------
+// Lê ?filtro= e ?busca= da URL para abrir o Diretório já filtrado/buscado,
+// permitindo que Alertas e Ações Rápidas do Dashboard cheguem aqui em 1 clique.
+function aplicarParametrosDeURL() {
+const params = new URLSearchParams(window.location.search);
+const filtroParam = params.get('filtro');
+const buscaParam = params.get('busca');
 
-    <!-- DRAWER: NOVA FAMÍLIA (FORMULÁRIO) -->
-    <div class="drawer" id="drawerNovaFamilia" style="z-index: 40;">
-        <div class="drawer-header">
-            <div style="display: flex; align-items: center; gap: 12px;">
-                <button class="btn-icon" onclick="fecharDrawer('drawerNovaFamilia')">←</button>
-                <h2 style="font-size: 18px;">Cadastrar Domicílio</h2>
-            </div>
-            <button class="btn-action primary" onclick="salvarNovaFamilia()">Salvar</button>
-        </div>
-        <div class="drawer-body">
-            
-            <span class="section-label" style="margin-top: 0;">ENDEREÇO</span>
-            <input type="text" class="input-form" id="campoLogradouro" placeholder="Rua / Logradouro">
-            <div class="form-row">
-                <input type="text" class="input-form" id="campoNumero" placeholder="Número" style="width: 100px;">
-                <input type="text" class="input-form" id="campoComplemento" placeholder="Complemento (ex: Casa 2)">
-            </div>
-            <input type="text" class="input-form" id="campoBairro" placeholder="Bairro / Comunidade">
-            <input type="text" class="input-form" id="campoCep" placeholder="CEP (Opcional)">
+if (filtroParam) {
+const chipCorrespondente = document.querySelector(`.filter-chip[data-filtro="${filtroParam}"]`);
+if (chipCorrespondente) {
+document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+chipCorrespondente.classList.add('active');
+filtroAtivo = filtroParam;
+}
+}
+if (buscaParam) {
+termoBusca = buscaParam;
+document.querySelector('.search-bar').value = buscaParam;
+}
+}
 
-            <span class="section-label">TIPO DE IMÓVEL</span>
-            <div class="chip-group" data-grupo="tipoImovel">
-                <div class="chip" onclick="this.classList.toggle('selected')">Casa / Alvenaria</div>
-                <div class="chip" onclick="this.classList.toggle('selected')">Apartamento</div>
-                <div class="chip" onclick="this.classList.toggle('selected')">Madeira / Taipa</div>
-                <div class="chip" onclick="this.classList.toggle('selected')">Improvisada</div>
-            </div>
+// ---------- Nova Família ----------
+function valoresSelecionados(grupo) {
+const els = document.querySelectorAll(`.chip-group[data-grupo="${grupo}"] .chip.selected`);
+return Array.from(els).map(el => el.textContent.trim());
+}
 
-            <span class="section-label">ABASTECIMENTO DE ÁGUA</span>
-            <div class="chip-group" data-grupo="agua">
-                <div class="chip" onclick="this.classList.toggle('selected')">Rede Encanada</div>
-                <div class="chip" onclick="this.classList.toggle('selected')">Poço / Nascente</div>
-                <div class="chip" onclick="this.classList.toggle('selected')">Caminhão Pipa</div>
-            </div>
+async function salvarNovaFamilia() {
+const logradouro = document.getElementById('campoLogradouro').value.trim();
+const numero = document.getElementById('campoNumero').value.trim();
+const complemento = document.getElementById('campoComplemento').value.trim();
+const bairro = document.getElementById('campoBairro').value.trim();
+const cep = document.getElementById('campoCep').value.trim();
+if (!logradouro) {
+alert('Informe pelo menos o nome da rua / logradouro.');
+return;
+}
+const novaFamilia = {
+id: crypto.randomUUID(),
+logradouro, numero, complemento, bairro, cep,
+tipo_imovel: valoresSelecionados('tipoImovel').join(', ') || null,
+abastecimento_agua: valoresSelecionados('agua').join(', ') || null,
+destino_lixo: valoresSelecionados('lixo').join(', ') || null,
+animais: valoresSelecionados('animais'),
+};
+const { error } = await db.from('familias').insert(novaFamilia);
+if (error) {
+alert('Erro ao salvar família: ' + error.message);
+console.error(error);
+return;
+}
+fecharDrawer('drawerNovaFamilia');
+document.querySelectorAll('#drawerNovaFamilia .input-form').forEach(i => i.value = '');
+document.querySelectorAll('#drawerNovaFamilia .chip.selected').forEach(c => c.classList.remove('selected'));
+await carregarFamilias();
+}
 
-            <span class="section-label">DESTINO DO LIXO</span>
-            <div class="chip-group" data-grupo="lixo">
-                <div class="chip" onclick="this.classList.toggle('selected')">Coleta Pública</div>
-                <div class="chip" onclick="this.classList.toggle('selected')">Queimado / Enterrado</div>
-                <div class="chip" onclick="this.classList.toggle('selected')">Céu Aberto</div>
-            </div>
-
-            <span class="section-label">ANIMAIS NO DOMICÍLIO</span>
-            <div class="chip-group" data-grupo="animais" style="margin-bottom: 32px;">
-                <div class="chip" onclick="this.classList.toggle('selected')">🐶 Cachorro</div>
-                <div class="chip" onclick="this.classList.toggle('selected')">🐱 Gato</div>
-                <div class="chip" onclick="this.classList.toggle('selected')">🐦 Aves</div>
-                <div class="chip" onclick="this.classList.toggle('selected')">Nenhum</div>
-            </div>
-
-        </div>
-    </div>
-
-    <!-- DRAWER: PRONTUÁRIO FAMILIAR -->
-    <div class="drawer" id="drawerFamilia">
-        <div class="drawer-header">
-            <div style="display: flex; align-items: center; gap: 12px;">
-                <button class="btn-icon" onclick="fecharDrawer('drawerFamilia')">←</button>
-                <h2 style="font-size: 18px;" id="familiaDrawerTitulo">Família</h2>
-            </div>
-            <button class="btn-action" onclick="alert('Cadastro de novo cidadão na família ainda não está disponível nesta versão.')">+ Cidadão</button>
-        </div>
-        <div class="drawer-body" id="familiaDrawerBody">
-            <!-- Preenchido dinamicamente via JS -->
-        </div>
-    </div>
-
-    <script>
-        const overlay = document.getElementById('overlay');
-        let familiasComMembros = [];   // cache local de tudo que foi carregado
-        let filtroAtivo = 'todas';
-        let termoBusca = '';
-
-        function abrirDrawer(id) {
-            overlay.classList.add('active');
-            document.getElementById(id).classList.add('active');
-        }
-
-        function fecharDrawer(id) {
-            document.getElementById(id).classList.remove('active');
-            const drawersAtivos = document.querySelectorAll('.drawer.active');
-            if (drawersAtivos.length === 0) {
-                overlay.classList.remove('active');
-            }
-        }
-
-        function fecharTodosDrawers() {
-            document.querySelectorAll('.drawer').forEach(d => d.classList.remove('active'));
-            overlay.classList.remove('active');
-        }
-
-        // ---------- Carregamento dos dados reais ----------
-        async function carregarFamilias() {
-            const grid = document.getElementById('familyGrid');
-            const { data, error } = await db
-                .from('familias')
-                .select('*, cidadaos(*, condicoes_saude(*))')
-                .order('logradouro');
-
-            if (error) {
-                grid.innerHTML = `<p style="color: var(--danger); padding: 40px;">Erro ao carregar famílias: ${error.message}</p>`;
-                console.error(error);
-                return;
-            }
-            familiasComMembros = data;
-            renderizarGrid();
-        }
-
-        function condicoesDe(cidadao) {
-            return (cidadao.condicoes_saude || []).map(c => c.condicao);
-        }
-
-        function familiaTemCondicao(familia, condicao) {
-            return (familia.cidadaos || []).some(c => condicoesDe(c).includes(condicao));
-        }
-
-        function familiaTemCadastroIncompleto(familia) {
-            return (familia.cidadaos || []).some(c => !c.cpf || !c.cns);
-        }
-
-        function renderizarGrid() {
-            const grid = document.getElementById('familyGrid');
-
-            let lista = familiasComMembros;
-
-            if (filtroAtivo === 'hipertensos') lista = lista.filter(f => familiaTemCondicao(f, 'Hipertensão'));
-            if (filtroAtivo === 'diabeticos') lista = lista.filter(f => familiaTemCondicao(f, 'Diabetes'));
-            if (filtroAtivo === 'incompleto') lista = lista.filter(f => familiaTemCadastroIncompleto(f));
-
-            if (termoBusca.trim() !== '') {
-                const termo = termoBusca.trim().toLowerCase();
-                lista = lista.filter(f => {
-                    const enderecoMatch = (f.logradouro || '').toLowerCase().includes(termo);
-                    const membroMatch = (f.cidadaos || []).some(c =>
-                        (c.nome || '').toLowerCase().includes(termo) ||
-                        (c.cns || '').includes(termo) ||
-                        (c.cpf || '').includes(termo)
-                    );
-                    return enderecoMatch || membroMatch;
-                });
-            }
-
-            if (lista.length === 0) {
-                grid.innerHTML = `<p style="color: var(--text-muted); padding: 40px; text-align: center;">Nenhuma família encontrada.</p>`;
-                return;
-            }
-
-            grid.innerHTML = lista.map(f => {
-                const membros = f.cidadaos || [];
-                const responsavel = membros.find(c => c.e_responsavel_familiar) || membros[0];
-                const qtdHipertensos = membros.filter(c => condicoesDe(c).includes('Hipertensão')).length;
-                const qtdDiabeticos = membros.filter(c => condicoesDe(c).includes('Diabetes')).length;
-                const incompleto = familiaTemCadastroIncompleto(f);
-
-                const endereco = [f.logradouro, f.numero].filter(Boolean).join(', ') || 'Endereço não informado';
-
-                return `
-                    <div class="family-card" onclick="abrirFamilia('${f.id}')">
-                        <div class="family-title">${endereco}</div>
-                        <div class="family-info">
-                            ${responsavel ? `Resp: ${responsavel.nome}<br>` : ''}
-                            📍 ${f.bairro || 'Bairro não informado'}
-                        </div>
-                        <div class="badges">
-                            <span class="badge">👨‍👩‍👧‍👦 ${membros.length} moradore${membros.length === 1 ? '' : 's'}</span>
-                            ${qtdHipertensos > 0 ? `<span class="badge">🫀 ${qtdHipertensos} Hipertenso${qtdHipertensos > 1 ? 's' : ''}</span>` : ''}
-                            ${qtdDiabeticos > 0 ? `<span class="badge">🍬 ${qtdDiabeticos} Diabético${qtdDiabeticos > 1 ? 's' : ''}</span>` : ''}
-                            ${incompleto ? `<span class="badge alert">⚠️ Cadastro incompleto</span>` : ''}
-                        </div>
-                    </div>
-                `;
-            }).join('');
-        }
-
-        function abrirFamilia(familiaId) {
-            const familia = familiasComMembros.find(f => f.id === familiaId);
-            if (!familia) return;
-
-            const endereco = [familia.logradouro, familia.numero, familia.complemento].filter(Boolean).join(', ');
-            document.getElementById('familiaDrawerTitulo').textContent = endereco || 'Família';
-
-            const membros = familia.cidadaos || [];
-            const corpo = document.getElementById('familiaDrawerBody');
-            corpo.innerHTML = `
-                <p style="color: var(--text-muted); font-size: 14px; margin-bottom: 16px;">
-                    📍 ${endereco || 'Endereço não informado'} - ${familia.bairro || ''} ${familia.cep ? '| CEP ' + familia.cep : ''}
-                </p>
-                <button class="btn-action primary" style="margin-bottom: 24px;" onclick="window.location.href='nova-visita.html?familia_id=${familia.id}'">📋 Iniciar Visita Domiciliar</button>
-                <h3 style="font-size: 14px; color: var(--text-muted); text-transform: uppercase; margin-bottom: 16px;">Membros da Família (${membros.length})</h3>
-                ${membros.map(c => {
-                    const idade = calcularIdade(c.data_nascimento);
-                    const condicoes = condicoesDe(c);
-                    const tagsCondicao = condicoes.map(cond => cond === 'Hipertensão' ? '🫀 HAS' : cond === 'Diabetes' ? '🍬 DM' : cond).join(', ');
-                    return `
-                        <div class="citizen-item" onclick="window.location.href='prontuario.html?id=${c.id}'">
-                            <div>
-                                <div class="citizen-name">${c.nome}${idade !== null ? ` (${idade}a)` : ''} ${c.e_responsavel_familiar ? '<span class="badge" style="font-size: 10px;">Responsável</span>' : ''}</div>
-                                <div class="citizen-cns">CNS: ${c.cns || 'não informado'}${tagsCondicao ? ' | ' + tagsCondicao : ''}</div>
-                            </div>
-                            <div style="color: var(--text-muted);">→</div>
-                        </div>
-                    `;
-                }).join('')}
-            `;
-            abrirDrawer('drawerFamilia');
-        }
-
-        // ---------- Busca e Filtros ----------
-        document.querySelector('.search-bar').addEventListener('input', (e) => {
-            termoBusca = e.target.value;
-            renderizarGrid();
-        });
-
-        document.querySelectorAll('.filter-chip').forEach(chip => {
-            chip.addEventListener('click', () => {
-                document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
-                chip.classList.add('active');
-                filtroAtivo = chip.dataset.filtro;
-                renderizarGrid();
-            });
-        });
-
-        // ---------- Nova Família ----------
-        function valoresSelecionados(grupo) {
-            const els = document.querySelectorAll(`.chip-group[data-grupo="${grupo}"] .chip.selected`);
-            return Array.from(els).map(el => el.textContent.trim());
-        }
-
-        async function salvarNovaFamilia() {
-            const logradouro = document.getElementById('campoLogradouro').value.trim();
-            const numero = document.getElementById('campoNumero').value.trim();
-            const complemento = document.getElementById('campoComplemento').value.trim();
-            const bairro = document.getElementById('campoBairro').value.trim();
-            const cep = document.getElementById('campoCep').value.trim();
-
-            if (!logradouro) {
-                alert('Informe pelo menos o nome da rua / logradouro.');
-                return;
-            }
-
-            const novaFamilia = {
-                id: crypto.randomUUID(),
-                logradouro, numero, complemento, bairro, cep,
-                tipo_imovel: valoresSelecionados('tipoImovel').join(', ') || null,
-                abastecimento_agua: valoresSelecionados('agua').join(', ') || null,
-                destino_lixo: valoresSelecionados('lixo').join(', ') || null,
-                animais: valoresSelecionados('animais'),
-            };
-
-            const { error } = await db.from('familias').insert(novaFamilia);
-            if (error) {
-                alert('Erro ao salvar família: ' + error.message);
-                console.error(error);
-                return;
-            }
-
-            fecharDrawer('drawerNovaFamilia');
-            document.querySelectorAll('#drawerNovaFamilia .input-form').forEach(i => i.value = '');
-            document.querySelectorAll('#drawerNovaFamilia .chip.selected').forEach(c => c.classList.remove('selected'));
-            await carregarFamilias();
-        }
-
-        carregarFamilias();
-    </script>
+aplicarParametrosDeURL();
+carregarFamilias();
+</script>
 </body>
 </html>
