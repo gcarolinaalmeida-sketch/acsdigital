@@ -1,340 +1,325 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Prontuário - ACS Digital</title>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="config.js"></script>
-    <style>
-        :root {
-            --bg-color: #FAFAFA;
-            --surface: #FFFFFF;
-            --text-main: #111827;
-            --text-muted: #6B7280;
-            --border: #E5E7EB;
-            --primary: #0A84FF;
-            --success: #34C759;
-            --danger: #FF3B30;
-            --warning: #FF9500;
-            --radius: 12px;
-            --chip-bg: #F2F2F7;
-        }
-
-        * { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
-        body { display: flex; background-color: var(--bg-color); color: var(--text-main); height: 100vh; overflow: hidden; }
-
-        /* Sidebar e Topbar */
-        .sidebar { width: 260px; background-color: var(--bg-color); border-right: 1px solid var(--border); padding: 24px 16px; display: flex; flex-direction: column; gap: 24px; z-index: 10; }
-        .sidebar-header h2 { font-size: 14px; font-weight: 600; }
-        .sidebar-header span { font-size: 12px; color: var(--text-muted); }
-        .nav-links { list-style: none; display: flex; flex-direction: column; gap: 4px; }
-        .nav-links li a { text-decoration: none; color: var(--text-muted); font-size: 14px; padding: 8px 12px; border-radius: 8px; display: block; transition: 0.2s; }
-        .nav-links li a:hover, .nav-links li a.active { background-color: #F3F4F6; color: var(--text-main); font-weight: 500; }
-
-        .main-content { flex: 1; display: flex; flex-direction: column; overflow-y: auto; }
-        .topbar { height: 60px; display: flex; align-items: center; justify-content: space-between; padding: 0 48px; border-bottom: 1px solid var(--border); background-color: var(--surface); position: sticky; top: 0; z-index: 5; }
-        .content-wrapper { padding: 40px 48px; max-width: 900px; margin: 0 auto; width: 100%; }
-
-        /* Cabeçalho do Prontuário */
-        .header-actions { display: flex; align-items: center; gap: 16px; margin-bottom: 24px; }
-        .btn-back { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 8px 12px; font-weight: 600; cursor: pointer; color: var(--text-main); text-decoration: none; }
-        
-        .patient-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; margin-bottom: 24px; display: flex; justify-content: space-between; align-items: flex-start; }
-        .patient-name { font-size: 24px; font-weight: 700; margin-bottom: 4px; }
-        .patient-info { font-size: 14px; color: var(--text-muted); }
-        .badges { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
-        .badge { padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: 600; background: var(--chip-bg); }
-        .badge.alert { background: rgba(255, 59, 48, 0.1); color: var(--danger); }
-
-        /* Alertas Inteligentes */
-        .smart-alerts { background: rgba(255, 149, 0, 0.1); border: 1px solid var(--warning); border-radius: var(--radius); padding: 16px; margin-bottom: 32px; }
-        .alert-title { font-size: 13px; font-weight: 700; color: var(--warning); text-transform: uppercase; margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
-        .alert-item { font-size: 14px; margin-bottom: 4px; color: var(--text-main); }
-
-        /* Ação Rápida: Nova Evolução */
-        .action-box { background: var(--surface); border: 1px solid var(--primary); border-radius: var(--radius); padding: 20px; margin-bottom: 40px; box-shadow: 0 4px 12px rgba(10, 132, 255, 0.05); }
-        .btn-voice { width: 100%; background: var(--primary); color: white; border: none; padding: 14px; border-radius: 8px; font-size: 16px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; transition: 0.2s; }
-        .btn-voice:hover { background: #0070E0; }
-        .btn-voice.recording { background: var(--danger); animation: pulse 1.5s infinite; }
-
-        @keyframes pulse {
-            0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 59, 48, 0.4); }
-            70% { transform: scale(1.02); box-shadow: 0 0 0 10px rgba(255, 59, 48, 0); }
-            100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 59, 48, 0); }
-        }
-
-        .text-area-ai { width: 100%; height: 100px; border: 1px solid var(--border); border-radius: 8px; padding: 12px; font-size: 15px; margin-top: 16px; display: none; resize: none; outline: none; background: #F8FBFF; }
-        .text-area-ai:focus { border-color: var(--primary); }
-        
-        .btn-save-ev { background: var(--success); color: white; border: none; padding: 10px 20px; border-radius: 8px; font-weight: 600; margin-top: 12px; cursor: pointer; display: none; float: right; }
-
-        /* Timeline Clínica (Histórico) */
-        .section-title { font-size: 18px; font-weight: 600; margin-bottom: 24px; border-bottom: 1px solid var(--border); padding-bottom: 8px; }
-        
-        .timeline { border-left: 2px solid var(--border); margin-left: 12px; padding-left: 24px; position: relative; }
-        .timeline-item { margin-bottom: 32px; position: relative; }
-        .timeline-dot { position: absolute; left: -31px; top: 0; width: 16px; height: 16px; border-radius: 50%; background: var(--surface); border: 3px solid var(--primary); }
-        .timeline-date { font-size: 13px; font-weight: 600; color: var(--primary); margin-bottom: 4px; }
-        .timeline-content { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 16px; margin-top: 8px; }
-        .timeline-content p { font-size: 14px; color: var(--text-main); line-height: 1.5; margin-bottom: 12px; }
-        
-        .esou-tags { display: flex; gap: 6px; }
-        .esou-tag { background: #E5E7EB; font-size: 11px; padding: 4px 8px; border-radius: 4px; font-weight: 600; color: #4B5563; }
-
-        @media (max-width: 768px) {
-            body { flex-direction: column; }
-            .sidebar { width: 100%; height: auto; border-right: none; border-bottom: 1px solid var(--border); padding: 16px; }
-            .content-wrapper { padding: 24px; }
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Prontuário - ACS Digital</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
+<style>
+:root {
+--bg-color: #FAFAFA;
+--surface: #FFFFFF;
+--text-main: #111827;
+--text-muted: #6B7280;
+--border: #E5E7EB;
+--primary: #0A84FF;
+--success: #34C759;
+--danger: #FF3B30;
+--warning: #FF9500;
+--radius: 12px;
+--chip-bg: #F2F2F7;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+body { display: flex; background-color: var(--bg-color); color: var(--text-main); height: 100vh; overflow: hidden; }
+/* Sidebar e Topbar */
+.sidebar { width: 260px; background-color: var(--bg-color); border-right: 1px solid var(--border); padding: 24px 16px; display: flex; flex-direction: column; gap: 24px; z-index: 10; }
+.sidebar-header h2 { font-size: 14px; font-weight: 600; }
+.sidebar-header span { font-size: 12px; color: var(--text-muted); }
+.nav-links { list-style: none; display: flex; flex-direction: column; gap: 2px; }
+.nav-links li a { text-decoration: none; color: var(--text-muted); font-size: 14px; padding: 9px 12px; border-radius: 10px; display: flex; align-items: center; gap: 10px; transition: 0.2s; }
+.nav-links li a .nav-icon { font-size: 15px; width: 18px; text-align: center; flex-shrink: 0; }
+.nav-links li a:hover, .nav-links li a.active { background-color: #F3F4F6; color: var(--text-main); font-weight: 500; }
+.nav-links li.nav-divider { height: 1px; background: var(--border); margin: 8px 4px; list-style: none; }
+.main-content { flex: 1; display: flex; flex-direction: column; overflow-y: auto; }
+.topbar { height: 60px; display: flex; align-items: center; justify-content: space-between; padding: 0 48px; border-bottom: 1px solid var(--border); background-color: var(--surface); position: sticky; top: 0; z-index: 5; }
+.content-wrapper { padding: 40px 48px; max-width: 900px; margin: 0 auto; width: 100%; }
+/* Cabeçalho do Prontuário */
+.header-actions { display: flex; align-items: center; gap: 16px; margin-bottom: 24px; }
+.btn-back { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 8px 12px; font-weight: 600; cursor: pointer; color: var(--text-main); text-decoration: none; }
+.patient-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; margin-bottom: 24px; display: flex; justify-content: space-between; align-items: flex-start; }
+.patient-name { font-size: 24px; font-weight: 700; margin-bottom: 4px; }
+.patient-info { font-size: 14px; color: var(--text-muted); }
+.badges { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+.badge { padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: 600; background: var(--chip-bg); }
+.badge.alert { background: rgba(255, 59, 48, 0.1); color: var(--danger); }
+/* Alertas Inteligentes */
+.smart-alerts { background: rgba(255, 149, 0, 0.1); border: 1px solid var(--warning); border-radius: var(--radius); padding: 16px; margin-bottom: 32px; }
+.alert-title { font-size: 13px; font-weight: 700; color: var(--warning); text-transform: uppercase; margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
+.alert-item { font-size: 14px; margin-bottom: 4px; color: var(--text-main); }
+/* Ação Rápida: Nova Evolução */
+.action-box { background: var(--surface); border: 1px solid var(--primary); border-radius: var(--radius); padding: 20px; margin-bottom: 40px; box-shadow: 0 4px 12px rgba(10, 132, 255, 0.05); }
+.btn-voice { width: 100%; background: var(--primary); color: white; border: none; padding: 14px; border-radius: 8px; font-size: 16px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; transition: 0.2s; }
+.btn-voice:hover { background: #0070E0; }
+.btn-voice.recording { background: var(--danger); animation: pulse 1.5s infinite; }
+@keyframes pulse {
+0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 59, 48, 0.4); }
+70% { transform: scale(1.02); box-shadow: 0 0 0 10px rgba(255, 59, 48, 0); }
+100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 59, 48, 0); }
+}
+.text-area-ai { width: 100%; height: 100px; border: 1px solid var(--border); border-radius: 8px; padding: 12px; font-size: 15px; margin-top: 16px; display: none; resize: none; outline: none; background: #F8FBFF; }
+.text-area-ai:focus { border-color: var(--primary); }
+.btn-save-ev { background: var(--success); color: white; border: none; padding: 10px 20px; border-radius: 8px; font-weight: 600; margin-top: 12px; cursor: pointer; display: none; float: right; }
+/* Timeline Clínica (Histórico) */
+.section-title { font-size: 18px; font-weight: 600; margin-bottom: 24px; border-bottom: 1px solid var(--border); padding-bottom: 8px; }
+.timeline { border-left: 2px solid var(--border); margin-left: 12px; padding-left: 24px; position: relative; }
+.timeline-item { margin-bottom: 32px; position: relative; }
+.timeline-dot { position: absolute; left: -31px; top: 0; width: 16px; height: 16px; border-radius: 50%; background: var(--surface); border: 3px solid var(--primary); }
+.timeline-date { font-size: 13px; font-weight: 600; color: var(--primary); margin-bottom: 4px; }
+.timeline-content { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 16px; margin-top: 8px; }
+.timeline-content p { font-size: 14px; color: var(--text-main); line-height: 1.5; margin-bottom: 12px; }
+.esou-tags { display: flex; gap: 6px; }
+.esou-tag { background: #E5E7EB; font-size: 11px; padding: 4px 8px; border-radius: 4px; font-weight: 600; color: #4B5563; }
+@media (max-width: 768px) {
+body { flex-direction: column; }
+.sidebar { width: 100%; height: auto; border-right: none; border-bottom: 1px solid var(--border); padding: 16px; }
+.content-wrapper { padding: 24px; }
+}
+</style>
 </head>
 <body>
+<aside class="sidebar">
+<div class="sidebar-header">
+<h2>UBS Guarda-Mor</h2>
+<span>Micro-área 03</span>
+</div>
+<ul class="nav-links">
+<li><a href="index.html"><span class="nav-icon">🏠</span> Dashboard</a></li>
+<li><a href="nova-visita.html"><span class="nav-icon">▶️</span> Meu Roteiro</a></li>
+<li><a href="#"><span class="nav-icon">🗓️</span> Agenda</a></li>
+<li><a href="nova-visita.html"><span class="nav-icon">📋</span> Visitas</a></li>
+<li><a href="familias.html" class="active"><span class="nav-icon">👨‍👩‍👧</span> Famílias</a></li>
+<li><a href="mapa.html"><span class="nav-icon">🗺️</span> Mapa</a></li>
+<li><a href="indicadores.html"><span class="nav-icon">📊</span> Indicadores</a></li>
+<li class="nav-divider"></li>
+<li><a href="#"><span class="nav-icon">🔍</span> Busca</a></li>
+<li><a href="#"><span class="nav-icon">⚙️</span> Configurações</a></li>
+</ul>
+</aside>
+<main class="main-content">
+<header class="topbar">
+<div style="font-size: 14px; color: var(--text-muted);">Famílias / Diretório / Prontuário Individual</div>
+<div style="font-size: 13px; font-weight: 500; color: var(--text-muted);">☁️ Sincronizado</div>
+</header>
+<div class="content-wrapper">
+<div class="header-actions">
+<a href="familias.html" class="btn-back">← Voltar para Família</a>
+</div>
+<div class="patient-card" id="patientCard">
+<div>
+<div class="patient-name">Carregando...</div>
+</div>
+</div>
+<div class="smart-alerts" id="smartAlerts" style="display: none;">
+<div class="alert-title">🚨 Alertas do Sistema</div>
+<div id="smartAlertsList"></div>
+</div>
+<div class="action-box">
+<h3 style="font-size: 16px; margin-bottom: 12px;">Registrar Visita de Hoje</h3>
+<button class="btn-voice" id="btnRecord" onclick="iniciarGravacao()">
+🎙️ Gravar evolução por voz
+</button>
+<textarea class="text-area-ai" id="aiTextArea" placeholder="A IA transcreverá o seu áudio aqui..."></textarea>
+<button class="btn-save-ev" id="btnSave" onclick="salvarEvolucao()">Salvar no e-SUS</button>
+<div style="clear: both;"></div>
+</div>
+<div class="section-title">Histórico Clínico e Territorial</div>
+<div class="timeline" id="timelineList">
+<p style="color: var(--text-muted);">Carregando histórico...</p>
+</div>
+</div>
+</main>
+<script>
+const params = new URLSearchParams(window.location.search);
+const cidadaoId = params.get('id');
+const btnRecord = document.getElementById('btnRecord');
+const aiTextArea = document.getElementById('aiTextArea');
+const btnSave = document.getElementById('btnSave');
+const timelineList = document.getElementById('timelineList');
+let cidadaoAtual = null;
 
-    <aside class="sidebar">
-        <div class="sidebar-header">
-            <h2>UBS Guarda-Mor</h2>
-            <span>Micro-área 03</span>
-        </div>
-        <ul class="nav-links">
-            <li><a href="index.html">Início</a></li>
-            <li><a href="nova-visita.html">Visitas Diárias</a></li>
-            <li><a href="familias.html" class="active">Famílias</a></li>
-            <li><a href="mapa.html">Mapa da Micro-área</a></li>
-            <li><a href="indicadores.html">Indicadores</a></li>
-        </ul>
-    </aside>
+async function carregarProntuario() {
+if (!cidadaoId) {
+document.getElementById('patientCard').innerHTML = `
+<div><div class="patient-name">Nenhum cidadão selecionado</div>
+<div class="patient-info">Acesse o prontuário a partir do Diretório de Famílias.</div></div>`;
+timelineList.innerHTML = '';
+return;
+}
 
-    <main class="main-content">
-        <header class="topbar">
-            <div style="font-size: 14px; color: var(--text-muted);">Famílias / Diretório / Prontuário Individual</div>
-            <div style="font-size: 13px; font-weight: 500; color: var(--text-muted);">☁️ Sincronizado</div>
-        </header>
+const { data: cidadao, error } = await db
+.from('cidadaos')
+.select('*, condicoes_saude(*), familias(*)')
+.eq('id', cidadaoId)
+.single();
 
-        <div class="content-wrapper">
-            
-            <div class="header-actions">
-                <a href="familias.html" class="btn-back">← Voltar para Família</a>
-            </div>
+if (error || !cidadao) {
+document.getElementById('patientCard').innerHTML = `
+<div><div class="patient-name">Cidadão não encontrado</div></div>`;
+console.error(error);
+return;
+}
 
-            <div class="patient-card" id="patientCard">
-                <div>
-                    <div class="patient-name">Carregando...</div>
-                </div>
-            </div>
+cidadaoAtual = cidadao;
+renderizarPatientCard(cidadao);
+renderizarAlertas(cidadao);
+await renderizarTimeline(cidadao.id);
+}
 
-            <div class="smart-alerts" id="smartAlerts" style="display: none;">
-                <div class="alert-title">🚨 Alertas do Sistema</div>
-                <div id="smartAlertsList"></div>
-            </div>
+function renderizarPatientCard(c) {
+const idade = calcularIdade(c.data_nascimento);
+const condicoes = c.condicoes_saude || [];
+const badgesHtml = condicoes.map(cond => {
+const rotulo = cond.condicao === 'Hipertensão' ? '🫀 Hipertensa(o)' :
+cond.condicao === 'Diabetes' ? '🍬 Diabética(o)' : cond.condicao;
+return `<span class="badge" style="background: rgba(10, 132, 255, 0.1); color: var(--primary);">${rotulo}</span>`;
+}).join('');
 
-            <div class="action-box">
-                <h3 style="font-size: 16px; margin-bottom: 12px;">Registrar Visita de Hoje</h3>
-                <button class="btn-voice" id="btnRecord" onclick="iniciarGravacao()">
-                    🎙️ Gravar evolução por voz
-                </button>
-                <textarea class="text-area-ai" id="aiTextArea" placeholder="A IA transcreverá o seu áudio aqui..."></textarea>
-                <button class="btn-save-ev" id="btnSave" onclick="salvarEvolucao()">Salvar no e-SUS</button>
-                <div style="clear: both;"></div>
-            </div>
+document.getElementById('patientCard').innerHTML = `
+<div>
+<div class="patient-name">${c.nome}</div>
+<div class="patient-info">
+${idade !== null ? idade + ' anos' : 'idade não informada'}
+${c.data_nascimento ? '(Nasc: ' + formatarDataBR(c.data_nascimento) + ')' : ''}
+| CNS: ${c.cns || 'não informado'}
+${c.familias ? ' | 📍 ' + [c.familias.logradouro, c.familias.numero].filter(Boolean).join(', ') : ''}
+</div>
+<div class="badges">${badgesHtml}</div>
+</div>
+`;
+}
 
-            <div class="section-title">Histórico Clínico e Territorial</div>
+function renderizarAlertas(c) {
+const alertas = [];
+const idade = calcularIdade(c.data_nascimento);
 
-            <div class="timeline" id="timelineList">
-                <p style="color: var(--text-muted);">Carregando histórico...</p>
-            </div>
+if (c.sexo === 'FEMININO' && idade !== null && idade >= 40) {
+alertas.push('Lembrete: <strong>rastreio de mamografia</strong> recomendado para mulheres a partir de 40 anos.');
+}
 
-        </div>
-    </main>
+(c.condicoes_saude || []).forEach(cond => {
+const dias = diasDesde(cond.data_pressao_arterial);
+if (cond.condicao === 'Hipertensão' && (dias === null || dias > 180)) {
+alertas.push('Última aferição de Pressão Arterial foi há mais de 6 meses (ou nunca registrada).');
+}
 
-    <script>
-        const params = new URLSearchParams(window.location.search);
-        const cidadaoId = params.get('id');
+const diasHba1c = diasDesde(cond.data_hemoglobina_glicada);
+if (cond.condicao === 'Diabetes' && (diasHba1c === null || diasHba1c > 180)) {
+alertas.push('Hemoglobina glicada não avaliada nos últimos 6 meses.');
+}
+});
 
-        const btnRecord = document.getElementById('btnRecord');
-        const aiTextArea = document.getElementById('aiTextArea');
-        const btnSave = document.getElementById('btnSave');
-        const timelineList = document.getElementById('timelineList');
+const box = document.getElementById('smartAlerts');
+const lista = document.getElementById('smartAlertsList');
 
-        let cidadaoAtual = null;
+if (alertas.length === 0) {
+box.style.display = 'none';
+return;
+}
 
-        async function carregarProntuario() {
-            if (!cidadaoId) {
-                document.getElementById('patientCard').innerHTML = `
-                    <div><div class="patient-name">Nenhum cidadão selecionado</div>
-                    <div class="patient-info">Acesse o prontuário a partir do Diretório de Famílias.</div></div>`;
-                timelineList.innerHTML = '';
-                return;
-            }
+box.style.display = 'block';
+lista.innerHTML = alertas.map(a => `<div class="alert-item">• ${a}</div>`).join('');
+}
 
-            const { data: cidadao, error } = await db
-                .from('cidadaos')
-                .select('*, condicoes_saude(*), familias(*)')
-                .eq('id', cidadaoId)
-                .single();
+async function renderizarTimeline(cidadaoId) {
+const { data: visitas, error } = await db
+.from('visitas')
+.select('*')
+.eq('cidadao_id', cidadaoId)
+.order('data_visita', { ascending: false });
 
-            if (error || !cidadao) {
-                document.getElementById('patientCard').innerHTML = `
-                    <div><div class="patient-name">Cidadão não encontrado</div></div>`;
-                console.error(error);
-                return;
-            }
+if (error) {
+timelineList.innerHTML = `<p style="color: var(--danger);">Erro ao carregar histórico: ${error.message}</p>`;
+return;
+}
 
-            cidadaoAtual = cidadao;
-            renderizarPatientCard(cidadao);
-            renderizarAlertas(cidadao);
-            await renderizarTimeline(cidadao.id);
-        }
+if (!visitas || visitas.length === 0) {
+timelineList.innerHTML = `<p style="color: var(--text-muted);">Nenhuma visita registrada ainda para este cidadão.</p>`;
+return;
+}
 
-        function renderizarPatientCard(c) {
-            const idade = calcularIdade(c.data_nascimento);
-            const condicoes = c.condicoes_saude || [];
-            const badgesHtml = condicoes.map(cond => {
-                const rotulo = cond.condicao === 'Hipertensão' ? '🫀 Hipertensa(o)' :
-                               cond.condicao === 'Diabetes' ? '🍬 Diabética(o)' : cond.condicao;
-                return `<span class="badge" style="background: rgba(10, 132, 255, 0.1); color: var(--primary);">${rotulo}</span>`;
-            }).join('');
+timelineList.innerHTML = visitas.map(v => `
+<div class="timeline-item">
+<div class="timeline-dot" style="border-color: ${v.desfecho === 'Ausente' ? 'var(--warning)' : 'var(--success)'};"></div>
+<div class="timeline-date" style="color: ${v.desfecho === 'Ausente' ? 'var(--warning)' : 'var(--success)'};">
+${formatarDataBR(v.data_visita)} - ${v.desfecho || 'Visita'}
+</div>
+<div class="timeline-content">
+<p>${v.observacoes || '(sem observações)'}</p>
+<div class="esou-tags">
+<span class="esou-tag">Desfecho: ${v.desfecho || 'Não informado'}</span>
+${(v.acompanhamentos || []).map(a => `<span class="esou-tag">${a}</span>`).join('')}
+</div>
+</div>
+</div>
+`).join('');
+}
 
-            document.getElementById('patientCard').innerHTML = `
-                <div>
-                    <div class="patient-name">${c.nome}</div>
-                    <div class="patient-info">
-                        ${idade !== null ? idade + ' anos' : 'idade não informada'}
-                        ${c.data_nascimento ? '(Nasc: ' + formatarDataBR(c.data_nascimento) + ')' : ''}
-                        | CNS: ${c.cns || 'não informado'}
-                        ${c.familias ? ' | 📍 ' + [c.familias.logradouro, c.familias.numero].filter(Boolean).join(', ') : ''}
-                    </div>
-                    <div class="badges">${badgesHtml}</div>
-                </div>
-            `;
-        }
+// ---------- Simulação do Assistente de IA (Voice to Text) ----------
+// Esta parte continua simulada (não há transcrição de voz real implementada ainda).
+function iniciarGravacao() {
+btnRecord.classList.add('recording');
+btnRecord.innerHTML = '🛑 Escutando... (Clique para parar)';
+btnRecord.onclick = pararGravacao;
+}
 
-        function renderizarAlertas(c) {
-            const alertas = [];
-            const idade = calcularIdade(c.data_nascimento);
+function pararGravacao() {
+btnRecord.classList.remove('recording');
+btnRecord.innerHTML = '✨ IA Processando o áudio...';
+btnRecord.style.pointerEvents = 'none';
 
-            if (c.sexo === 'FEMININO' && idade !== null && idade >= 40) {
-                alertas.push('Lembrete: <strong>rastreio de mamografia</strong> recomendado para mulheres a partir de 40 anos.');
-            }
+setTimeout(() => {
+btnRecord.style.display = 'none';
+aiTextArea.style.display = 'block';
+aiTextArea.value = '';
+aiTextArea.focus();
+btnSave.style.display = 'block';
+}, 1000);
+}
 
-            (c.condicoes_saude || []).forEach(cond => {
-                const dias = diasDesde(cond.data_pressao_arterial);
-                if (cond.condicao === 'Hipertensão' && (dias === null || dias > 180)) {
-                    alertas.push('Última aferição de Pressão Arterial foi há mais de 6 meses (ou nunca registrada).');
-                }
-                const diasHba1c = diasDesde(cond.data_hemoglobina_glicada);
-                if (cond.condicao === 'Diabetes' && (diasHba1c === null || diasHba1c > 180)) {
-                    alertas.push('Hemoglobina glicada não avaliada nos últimos 6 meses.');
-                }
-            });
+// ---------- Salvar visita real no Supabase ----------
+async function salvarEvolucao() {
+if (!cidadaoAtual) {
+alert('Nenhum cidadão carregado.');
+return;
+}
 
-            const box = document.getElementById('smartAlerts');
-            const lista = document.getElementById('smartAlertsList');
-            if (alertas.length === 0) {
-                box.style.display = 'none';
-                return;
-            }
-            box.style.display = 'block';
-            lista.innerHTML = alertas.map(a => `<div class="alert-item">• ${a}</div>`).join('');
-        }
+const texto = aiTextArea.value.trim();
+if (!texto) {
+alert('Escreva ou grave a evolução antes de salvar.');
+return;
+}
 
-        async function renderizarTimeline(cidadaoId) {
-            const { data: visitas, error } = await db
-                .from('visitas')
-                .select('*')
-                .eq('cidadao_id', cidadaoId)
-                .order('data_visita', { ascending: false });
+const novaVisita = {
+cidadao_id: cidadaoAtual.id,
+familia_id: cidadaoAtual.familia_id,
+data_visita: new Date().toISOString().slice(0, 10),
+desfecho: 'Realizada',
+observacoes: texto,
+profissional: 'ACS',
+};
 
-            if (error) {
-                timelineList.innerHTML = `<p style="color: var(--danger);">Erro ao carregar histórico: ${error.message}</p>`;
-                return;
-            }
+const { error } = await db.from('visitas').insert(novaVisita);
 
-            if (!visitas || visitas.length === 0) {
-                timelineList.innerHTML = `<p style="color: var(--text-muted);">Nenhuma visita registrada ainda para este cidadão.</p>`;
-                return;
-            }
+if (error) {
+alert('Erro ao salvar a visita: ' + error.message);
+console.error(error);
+return;
+}
 
-            timelineList.innerHTML = visitas.map(v => `
-                <div class="timeline-item">
-                    <div class="timeline-dot" style="border-color: ${v.desfecho === 'Ausente' ? 'var(--warning)' : 'var(--success)'};"></div>
-                    <div class="timeline-date" style="color: ${v.desfecho === 'Ausente' ? 'var(--warning)' : 'var(--success)'};">
-                        ${formatarDataBR(v.data_visita)} - ${v.desfecho || 'Visita'}
-                    </div>
-                    <div class="timeline-content">
-                        <p>${v.observacoes || '(sem observações)'}</p>
-                        <div class="esou-tags">
-                            <span class="esou-tag">Desfecho: ${v.desfecho || 'Não informado'}</span>
-                            ${(v.acompanhamentos || []).map(a => `<span class="esou-tag">${a}</span>`).join('')}
-                        </div>
-                    </div>
-                </div>
-            `).join('');
-        }
+aiTextArea.style.display = 'none';
+aiTextArea.value = '';
+btnSave.style.display = 'none';
+btnRecord.style.display = 'flex';
+btnRecord.style.pointerEvents = 'auto';
+btnRecord.innerHTML = '🎙️ Gravar nova evolução por voz';
+btnRecord.onclick = iniciarGravacao;
 
-        // ---------- Simulação do Assistente de IA (Voice to Text) ----------
-        // Esta parte continua simulada (não há transcrição de voz real implementada ainda).
-        function iniciarGravacao() {
-            btnRecord.classList.add('recording');
-            btnRecord.innerHTML = '🛑 Escutando... (Clique para parar)';
-            btnRecord.onclick = pararGravacao;
-        }
+await renderizarTimeline(cidadaoAtual.id);
+alert('Visita salva no prontuário com sucesso!');
+}
 
-        function pararGravacao() {
-            btnRecord.classList.remove('recording');
-            btnRecord.innerHTML = '✨ IA Processando o áudio...';
-            btnRecord.style.pointerEvents = 'none';
-
-            setTimeout(() => {
-                btnRecord.style.display = 'none';
-                aiTextArea.style.display = 'block';
-                aiTextArea.value = '';
-                aiTextArea.focus();
-                btnSave.style.display = 'block';
-            }, 1000);
-        }
-
-        // ---------- Salvar visita real no Supabase ----------
-        async function salvarEvolucao() {
-            if (!cidadaoAtual) {
-                alert('Nenhum cidadão carregado.');
-                return;
-            }
-            const texto = aiTextArea.value.trim();
-            if (!texto) {
-                alert('Escreva ou grave a evolução antes de salvar.');
-                return;
-            }
-
-            const novaVisita = {
-                cidadao_id: cidadaoAtual.id,
-                familia_id: cidadaoAtual.familia_id,
-                data_visita: new Date().toISOString().slice(0, 10),
-                desfecho: 'Realizada',
-                observacoes: texto,
-                profissional: 'ACS',
-            };
-
-            const { error } = await db.from('visitas').insert(novaVisita);
-            if (error) {
-                alert('Erro ao salvar a visita: ' + error.message);
-                console.error(error);
-                return;
-            }
-
-            aiTextArea.style.display = 'none';
-            aiTextArea.value = '';
-            btnSave.style.display = 'none';
-            btnRecord.style.display = 'flex';
-            btnRecord.style.pointerEvents = 'auto';
-            btnRecord.innerHTML = '🎙️ Gravar nova evolução por voz';
-            btnRecord.onclick = iniciarGravacao;
-
-            await renderizarTimeline(cidadaoAtual.id);
-            alert('Visita salva no prontuário com sucesso!');
-        }
-
-        carregarProntuario();
-    </script>
+carregarProntuario();
+</script>
 </body>
 </html>
