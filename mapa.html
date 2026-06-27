@@ -1,220 +1,377 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Mapa da Micro-área - ACS Digital</title>
-    <style>
-        :root {
-            --bg-color: #FAFAFA;
-            --surface: #FFFFFF;
-            --text-main: #111827;
-            --text-muted: #6B7280;
-            --border: #E5E7EB;
-            --primary: #0A84FF;
-            --success: #34C759;
-            --danger: #FF3B30;
-            --warning: #FF9500;
-            --radius: 12px;
-        }
-
-        * { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
-        body { display: flex; height: 100vh; overflow: hidden; background-color: var(--bg-color); }
-
-        /* Sidebar Base */
-        .sidebar { width: 260px; background-color: var(--surface); border-right: 1px solid var(--border); padding: 24px 16px; display: flex; flex-direction: column; gap: 24px; z-index: 20; }
-        .sidebar-header h2 { font-size: 14px; font-weight: 600; }
-        .sidebar-header span { font-size: 12px; color: var(--text-muted); }
-        .nav-links { list-style: none; display: flex; flex-direction: column; gap: 4px; }
-        .nav-links li a { text-decoration: none; color: var(--text-muted); font-size: 14px; padding: 8px 12px; border-radius: 8px; display: block; transition: 0.2s; }
-        .nav-links li a:hover, .nav-links li a.active { background-color: #F3F4F6; color: var(--text-main); font-weight: 500; }
-
-        /* Área do Mapa */
-        .map-container { flex: 1; position: relative; background-color: #E5E5EA; /* Simula a cor de fundo de um mapa */ overflow: hidden; }
-        
-        /* Simulação visual de ruas de mapa */
-        .map-bg { position: absolute; inset: 0; background-image: linear-gradient(#D1D5DB 2px, transparent 2px), linear-gradient(90deg, #D1D5DB 2px, transparent 2px); background-size: 100px 100px; background-position: center; opacity: 0.5; }
-
-        /* Controles flutuantes sobre o mapa */
-        .floating-header { position: absolute; top: 24px; left: 24px; right: 24px; display: flex; gap: 12px; z-index: 10; pointer-events: none; }
-        .search-box { pointer-events: auto; flex: 1; max-width: 400px; background: var(--surface); padding: 12px 16px; border-radius: 24px; border: 1px solid var(--border); box-shadow: 0 4px 12px rgba(0,0,0,0.1); font-size: 15px; outline: none; }
-        .btn-filter { pointer-events: auto; background: var(--surface); border: 1px solid var(--border); padding: 12px 20px; border-radius: 24px; font-weight: 600; font-size: 14px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); cursor: pointer; }
-
-        /* Marcadores do Mapa (Pins) */
-        .pin { position: absolute; width: 36px; height: 36px; background: var(--surface); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 16px; box-shadow: 0 4px 8px rgba(0,0,0,0.2); cursor: pointer; border: 2px solid white; transition: 0.2s; transform: translate(-50%, -50%); }
-        .pin:hover { transform: translate(-50%, -50%) scale(1.2); z-index: 15; }
-        .pin.danger { background: var(--danger); color: white; }
-        .pin.warning { background: var(--warning); color: white; }
-        .pin.info { background: var(--primary); color: white; }
-        .pin.done { background: var(--success); color: white; opacity: 0.6; }
-
-        /* Popover (Card de Resumo) */
-        .popover { position: absolute; width: 320px; background: var(--surface); border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.15); padding: 20px; z-index: 20; opacity: 0; pointer-events: none; transition: 0.2s; transform: translate(-50%, 20px); }
-        .popover.active { opacity: 1; pointer-events: auto; }
-        .popover-close { position: absolute; top: 12px; right: 12px; background: none; border: none; font-size: 18px; cursor: pointer; color: var(--text-muted); }
-        .popover-title { font-size: 18px; font-weight: 600; margin-bottom: 4px; }
-        .popover-address { font-size: 13px; color: var(--text-muted); margin-bottom: 12px; }
-        .popover-tags { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 16px; }
-        .tag { padding: 4px 8px; border-radius: 6px; font-size: 11px; font-weight: 600; }
-        .tag-danger { background: rgba(255, 59, 48, 0.1); color: var(--danger); }
-        .tag-warning { background: rgba(255, 149, 0, 0.1); color: var(--warning); }
-        .popover-actions { display: flex; gap: 8px; margin-top: 16px; border-top: 1px solid var(--border); padding-top: 16px; }
-        .btn-popover { flex: 1; padding: 10px; border-radius: 8px; font-weight: 600; font-size: 13px; cursor: pointer; border: none; text-align: center; text-decoration: none; }
-        .btn-visit { background: var(--primary); color: white; }
-        .btn-record { background: #F2F2F7; color: var(--text-main); }
-
-        /* Painel Roteirizador Lateral */
-        .route-panel { position: absolute; right: 24px; top: 80px; bottom: 24px; width: 300px; background: var(--surface); border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); display: flex; flex-direction: column; overflow: hidden; pointer-events: auto; }
-        .route-header { padding: 20px; border-bottom: 1px solid var(--border); }
-        .route-header h3 { font-size: 16px; margin-bottom: 12px; }
-        .btn-optimize { width: 100%; padding: 10px; background: rgba(10, 132, 255, 0.1); color: var(--primary); border: 1px dashed var(--primary); border-radius: 8px; font-weight: 600; font-size: 13px; cursor: pointer; }
-        
-        .route-list { flex: 1; overflow-y: auto; padding: 20px; }
-        .route-section { font-size: 12px; font-weight: 600; color: var(--text-muted); margin-bottom: 12px; margin-top: 16px; }
-        .route-item { display: flex; align-items: center; gap: 12px; padding: 12px; border: 1px solid var(--border); border-radius: 8px; margin-bottom: 8px; cursor: pointer; transition: 0.2s; }
-        .route-item:hover { background: var(--bg-color); }
-        .route-item.completed { opacity: 0.5; background: var(--bg-color); border-color: transparent; }
-        .route-checkbox { width: 18px; height: 18px; border-radius: 4px; border: 2px solid var(--border); display: flex; align-items: center; justify-content: center; }
-        .route-item.completed .route-checkbox { background: var(--success); border-color: var(--success); }
-        .route-item.completed .route-checkbox::after { content: "✓"; color: white; font-size: 12px; font-weight: bold; }
-        .route-info strong { display: block; font-size: 14px; margin-bottom: 2px; }
-        .route-info span { font-size: 12px; color: var(--text-muted); }
-
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Mapa da Micro-área - ACS Digital</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
+<style>
+:root {
+--bg-color: #FAFAFA;
+--surface: #FFFFFF;
+--text-main: #111827;
+--text-muted: #6B7280;
+--border: #E5E7EB;
+--primary: #0A84FF;
+--success: #34C759;
+--danger: #FF3B30;
+--warning: #FF9500;
+--radius: 12px;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+body { display: flex; height: 100vh; overflow: hidden; background-color: var(--bg-color); }
+/* Sidebar Base */
+.sidebar { width: 260px; background-color: var(--bg-color); border-right: 1px solid var(--border); padding: 24px 16px; display: flex; flex-direction: column; gap: 24px; z-index: 20; }
+.sidebar-header h2 { font-size: 14px; font-weight: 600; }
+.sidebar-header span { font-size: 12px; color: var(--text-muted); }
+.nav-links { list-style: none; display: flex; flex-direction: column; gap: 2px; }
+.nav-links li a { text-decoration: none; color: var(--text-muted); font-size: 14px; padding: 9px 12px; border-radius: 10px; display: flex; align-items: center; gap: 10px; transition: 0.2s; }
+.nav-links li a .nav-icon { font-size: 15px; width: 18px; text-align: center; flex-shrink: 0; }
+.nav-links li a:hover, .nav-links li a.active { background-color: #F3F4F6; color: var(--text-main); font-weight: 500; }
+.nav-links li.nav-divider { height: 1px; background: var(--border); margin: 8px 4px; list-style: none; }
+/* Área do Mapa */
+.map-container { flex: 1; position: relative; background-color: #E5E5EA; /* Simula a cor de fundo de um mapa */ overflow: hidden; }
+/* Simulação visual de ruas de mapa */
+.map-bg { position: absolute; inset: 0; background-image: linear-gradient(#D1D5DB 2px, transparent 2px), linear-gradient(90deg, #D1D5DB 2px, transparent 2px); background-size: 100px 100px; background-position: center; opacity: 0.5; }
+/* Controles flutuantes sobre o mapa */
+.floating-header { position: absolute; top: 24px; left: 24px; right: 24px; display: flex; gap: 12px; z-index: 10; pointer-events: none; }
+.search-box { pointer-events: auto; flex: 1; max-width: 400px; background: var(--surface); padding: 12px 16px; border-radius: 24px; border: 1px solid var(--border); box-shadow: 0 4px 12px rgba(0,0,0,0.1); font-size: 15px; outline: none; }
+.btn-filter { pointer-events: auto; background: var(--surface); border: 1px solid var(--border); padding: 12px 20px; border-radius: 24px; font-weight: 600; font-size: 14px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); cursor: pointer; }
+/* Marcadores do Mapa (Pins) */
+.pin { position: absolute; width: 36px; height: 36px; background: var(--surface); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 16px; box-shadow: 0 4px 8px rgba(0,0,0,0.2); cursor: pointer; border: 2px solid white; transition: 0.2s; transform: translate(-50%, -50%); }
+.pin:hover { transform: translate(-50%, -50%) scale(1.2); z-index: 15; }
+.pin.danger { background: var(--danger); color: white; }
+.pin.warning { background: var(--warning); color: white; }
+.pin.info { background: var(--primary); color: white; }
+.pin.done { background: var(--success); color: white; opacity: 0.6; }
+/* Popover (Card de Resumo) */
+.popover { position: absolute; width: 320px; background: var(--surface); border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.15); padding: 20px; z-index: 20; opacity: 0; pointer-events: none; transition: 0.2s; transform: translate(-50%, 20px); }
+.popover.active { opacity: 1; pointer-events: auto; }
+.popover-close { position: absolute; top: 12px; right: 12px; background: none; border: none; font-size: 18px; cursor: pointer; color: var(--text-muted); }
+.popover-title { font-size: 18px; font-weight: 600; margin-bottom: 4px; }
+.popover-address { font-size: 13px; color: var(--text-muted); margin-bottom: 12px; }
+.popover-tags { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 16px; }
+.tag { padding: 4px 8px; border-radius: 6px; font-size: 11px; font-weight: 600; }
+.tag-danger { background: rgba(255, 59, 48, 0.1); color: var(--danger); }
+.tag-warning { background: rgba(255, 149, 0, 0.1); color: var(--warning); }
+.tag-info { background: rgba(10, 132, 255, 0.1); color: var(--primary); }
+.popover-meta { font-size: 13px; color: var(--text-muted); }
+.popover-actions { display: flex; gap: 8px; margin-top: 16px; border-top: 1px solid var(--border); padding-top: 16px; }
+.btn-popover { flex: 1; padding: 10px; border-radius: 8px; font-weight: 600; font-size: 13px; cursor: pointer; border: none; text-align: center; text-decoration: none; }
+.btn-visit { background: var(--primary); color: white; }
+.btn-record { background: #F2F2F7; color: var(--text-main); }
+/* Painel Roteirizador Lateral */
+.route-panel { position: absolute; right: 24px; top: 80px; bottom: 24px; width: 300px; background: var(--surface); border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); display: flex; flex-direction: column; overflow: hidden; pointer-events: auto; }
+.route-header { padding: 20px; border-bottom: 1px solid var(--border); }
+.route-header h3 { font-size: 16px; margin-bottom: 12px; }
+.btn-optimize { width: 100%; padding: 10px; background: rgba(10, 132, 255, 0.1); color: var(--primary); border: 1px dashed var(--primary); border-radius: 8px; font-weight: 600; font-size: 13px; cursor: pointer; }
+.route-list { flex: 1; overflow-y: auto; padding: 20px; }
+.route-section { font-size: 12px; font-weight: 600; color: var(--text-muted); margin-bottom: 12px; margin-top: 16px; }
+.route-item { display: flex; align-items: center; gap: 12px; padding: 12px; border: 1px solid var(--border); border-radius: 8px; margin-bottom: 8px; cursor: pointer; transition: 0.2s; text-decoration: none; }
+.route-item:hover { background: var(--bg-color); }
+.route-item.completed { opacity: 0.5; background: var(--bg-color); border-color: transparent; }
+.route-checkbox { width: 18px; height: 18px; border-radius: 4px; border: 2px solid var(--border); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.route-item.completed .route-checkbox { background: var(--success); border-color: var(--success); }
+.route-item.completed .route-checkbox::after { content: "✓"; color: white; font-size: 12px; font-weight: bold; }
+.route-info strong { display: block; font-size: 14px; margin-bottom: 2px; color: var(--text-main); }
+.route-info span { font-size: 12px; color: var(--text-muted); }
+.estado-vazio-mapa { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: var(--text-muted); font-size: 14px; text-align: center; padding: 40px; }
+</style>
 </head>
 <body>
+<!-- Sidebar Principal -->
+<aside class="sidebar">
+<div class="sidebar-header">
+<h2>UBS Guarda-Mor</h2>
+<span>Micro-área 03</span>
+</div>
+<ul class="nav-links">
+<li><a href="index.html"><span class="nav-icon">🏠</span> Dashboard</a></li>
+<li><a href="nova-visita.html"><span class="nav-icon">▶️</span> Meu Roteiro</a></li>
+<li><a href="#"><span class="nav-icon">🗓️</span> Agenda</a></li>
+<li><a href="nova-visita.html"><span class="nav-icon">📋</span> Visitas</a></li>
+<li><a href="familias.html"><span class="nav-icon">👨‍👩‍👧</span> Famílias</a></li>
+<li><a href="mapa.html" class="active"><span class="nav-icon">🗺️</span> Mapa</a></li>
+<li><a href="indicadores.html"><span class="nav-icon">📊</span> Indicadores</a></li>
+<li class="nav-divider"></li>
+<li><a href="#"><span class="nav-icon">🔍</span> Busca</a></li>
+<li><a href="#"><span class="nav-icon">⚙️</span> Configurações</a></li>
+</ul>
+</aside>
+<!-- Área do Mapa -->
+<main class="map-container">
+<div class="map-bg"></div>
 
-    <!-- Sidebar Principal -->
-    <aside class="sidebar">
-        <div class="sidebar-header">
-            <h2>UBS Guarda-Mor</h2>
-            <span>Micro-área 03</span>
-        </div>
-        <ul class="nav-links">
-            <li><a href="index.html">Início</a></li>
-            <li><a href="nova-visita.html">Visitas Diárias</a></li>
-            <li><a href="familias.html">Famílias</a></li>
-            <li><a href="mapa.html" class="active">Mapa da Micro-área</a></li>
-            <li><a href="indicadores.html">Indicadores</a></li>
-        </ul>
-    </aside>
+<!-- Cabeçalho de Busca -->
+<div class="floating-header">
+<input type="text" class="search-box" id="mapaBusca" placeholder="Buscar endereço ou família...">
+<button class="btn-filter">⚙️ Filtros</button>
+</div>
 
-    <!-- Área do Mapa -->
-    <main class="map-container">
-        <div class="map-bg"></div>
+<!-- Pins reais são inseridos aqui via JS -->
+<div id="pinsContainer"></div>
 
-        <!-- Cabeçalho de Busca -->
-        <div class="floating-header">
-            <input type="text" class="search-box" placeholder="Buscar endereço ou família...">
-            <button class="btn-filter">⚙️ Filtros</button>
-        </div>
+<!-- POPOVER DE INFORMAÇÕES DO MARCADOR -->
+<div class="popover" id="mapPopover">
+<button class="popover-close" onclick="fecharPopover()">×</button>
+<div class="popover-title" id="popTitle">Família</div>
+<div class="popover-address" id="popAddress">Endereço</div>
+<div class="popover-tags" id="popTags"></div>
+<div class="popover-meta" id="popMeta"></div>
+<div class="popover-actions" id="popActions"></div>
+</div>
 
-        <!-- MARCADORES (PINS) SIMULADOS -->
-        
-        <!-- Família Silva (Alto Risco) -->
-        <div class="pin danger" style="top: 40%; left: 30%;" onclick="abrirPopover(this, 'Família Silva', 'Rua das Flores, 123', '🔴 Alto Risco', '⚠️ Busca Ativa')">📍</div>
-        
-        <!-- Família Costa (Gestante) -->
-        <div class="pin warning" style="top: 25%; left: 55%;" onclick="abrirPopover(this, 'Família Costa', 'Beco 2, S/N', '🤰 Gestante', '👶 Recém-nascido')">📍</div>
-        
-        <!-- Família Oliveira (Concluída) -->
-        <div class="pin done" style="top: 60%; left: 40%;" onclick="abrirPopover(this, 'Família Oliveira', 'Rua Nova, 45', '🟢 Visita Realizada', '')">✓</div>
+<!-- PAINEL ROTEIRIZADOR (DIREITA) -->
+<div class="route-panel">
+<div class="route-header">
+<h3>📍 Meu Roteiro de Hoje</h3>
+<button class="btn-optimize" onclick="alert('A otimização por proximidade depende de geolocalização real, que ainda não existe no cadastro. Em breve!')">🪄 Ordenar por Proximidade</button>
+</div>
+<div class="route-list" id="routeList">
+<p class="estado-vazio-mapa" style="position: static; padding: 20px 0;">Carregando roteiro...</p>
+</div>
+</div>
+</main>
+<script>
+/* ============================================================================
+   Mapa da Micro-área - dados reais via Supabase
+   ----------------------------------------------------------------------------
+   Esta página ainda NÃO possui latitude/longitude reais das famílias (não há
+   essa coluna no schema atual). Por isso os pinos usam POSIÇÕES ILUSTRATIVAS
+   (calculadas deterministicamente a partir do id da família), só para
+   visualizar prioridade/status. Quando o cadastro de domicílio passar a
+   capturar lat/long (ex: ao salvar endereço com geocodificação), substitua
+   `posicaoIlustrativa()` por coordenadas reais convertidas para % da tela
+   (ou troque a implementação por uma biblioteca de mapa real, como Leaflet).
 
-        <!-- POPOVER DE INFORMAÇÕES DO MARCADOR -->
-        <div class="popover" id="mapPopover">
-            <button class="popover-close" onclick="fecharPopover()">×</button>
-            <div class="popover-title" id="popTitle">Família</div>
-            <div class="popover-address" id="popAddress">Endereço</div>
-            <div class="popover-tags" id="popTags">
-                <!-- Tags inseridas via JS -->
-            </div>
-            <div style="font-size: 13px; color: var(--text-muted);">👨‍👩‍👧‍👦 4 moradores | ⏱️ Últ. visita: 45 dias</div>
-            <div class="popover-actions">
-                <a href="nova-visita.html" class="btn-popover btn-visit">Iniciar Visita</a>
-                <button class="btn-popover btn-record" onclick="alert('Abrindo prontuário no módulo de famílias...')">Prontuário</button>
-            </div>
-        </div>
+   A heurística de prioridade abaixo é a mesma usada no Dashboard
+   (index.html / dashboard.js), reaplicada aqui para manter os dois roteiros
+   coerentes. Se essa lógica crescer mais, vale extrair para um arquivo
+   compartilhado (ex: roteiro.js) incluído nas duas páginas.
+============================================================================ */
 
-        <!-- PAINEL ROTEIRIZADOR (DIREITA) -->
-        <div class="route-panel">
-            <div class="route-header">
-                <h3>📍 Meu Roteiro de Hoje</h3>
-                <button class="btn-optimize" onclick="alert('Otimizando rota com base na menor distância...')">🪄 Ordenar por Proximidade</button>
-            </div>
-            <div class="route-list">
-                
-                <div class="route-section">PENDENTES (2)</div>
-                
-                <div class="route-item" onclick="alert('Destacando no mapa...')">
-                    <div class="route-checkbox"></div>
-                    <div class="route-info">
-                        <strong>1. Família Silva</strong>
-                        <span>Rua das Flores, 123</span>
-                    </div>
-                </div>
+function diasDesdeSeguro(dataStr) {
+  if (!dataStr) return Infinity;
+  try { return diasDesde(dataStr); }
+  catch (e) {
+    const d = new Date(dataStr);
+    if (isNaN(d)) return Infinity;
+    return Math.floor((Date.now() - d.getTime()) / 86400000);
+  }
+}
 
-                <div class="route-item" onclick="alert('Destacando no mapa...')">
-                    <div class="route-checkbox"></div>
-                    <div class="route-info">
-                        <strong>2. Família Costa</strong>
-                        <span>Beco 2, S/N</span>
-                    </div>
-                </div>
+function condicoesDe(cidadao) {
+  return (cidadao.condicoes_saude || []).map(c => c.condicao);
+}
 
-                <div class="route-section">CONCLUÍDAS (1)</div>
-                
-                <div class="route-item completed">
-                    <div class="route-checkbox"></div>
-                    <div class="route-info">
-                        <strong>Família Oliveira</strong>
-                        <span>Rua Nova, 45</span>
-                    </div>
-                </div>
+function calcularIdadeSegura(dataNascimento) {
+  if (!dataNascimento) return null;
+  try { return calcularIdade(dataNascimento); }
+  catch (e) {
+    const nasc = new Date(dataNascimento);
+    if (isNaN(nasc)) return null;
+    const hoje = new Date();
+    let idade = hoje.getFullYear() - nasc.getFullYear();
+    if (hoje.getMonth() < nasc.getMonth() || (hoje.getMonth() === nasc.getMonth() && hoje.getDate() < nasc.getDate())) idade--;
+    return idade;
+  }
+}
 
-            </div>
-        </div>
+function escapeHtml(str) {
+  return String(str ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
 
-    </main>
+function calcularPrioridade(f) {
+  const dias = f.diasDesdeUltimaVisita;
+  let tipoPrincipal = null;
+  let nivel = 'rotina';
+  let peso = 0;
+  if (f.temGestante) { tipoPrincipal = { emoji: '🤰', label: 'Gestante' }; peso = 4; nivel = (dias === Infinity || dias > 20) ? 'urgente' : 'atencao'; }
+  else if (f.temAcamado) { tipoPrincipal = { emoji: '🛏️', label: 'Acamado' }; peso = 3.5; nivel = (dias === Infinity || dias > 20) ? 'urgente' : 'atencao'; }
+  else if (f.temCriancaMenor2) { tipoPrincipal = { emoji: '👶', label: 'Criança < 2 anos' }; peso = 3; nivel = (dias === Infinity || dias > 30) ? 'urgente' : 'atencao'; }
+  else if (f.temHas || f.temDm) { tipoPrincipal = f.temHas ? { emoji: '🫀', label: 'HAS' } : { emoji: '🍬', label: 'DM' }; peso = 2; nivel = (dias === Infinity || dias > 60) ? 'urgente' : (dias > 30 ? 'atencao' : 'rotina'); }
+  else { tipoPrincipal = { emoji: '🏠', label: 'Acompanhamento' }; peso = 1; nivel = (dias === Infinity || dias > 120) ? 'atencao' : 'rotina'; }
+  if (dias !== Infinity && dias > 90) nivel = 'urgente';
+  return { nivel, peso, tipoPrincipal, dias };
+}
 
-    <script>
-        // Lógica para abrir o card de detalhes ao clicar no pino
-        const popover = document.getElementById('mapPopover');
-        const popTitle = document.getElementById('popTitle');
-        const popAddress = document.getElementById('popAddress');
-        const popTags = document.getElementById('popTags');
+function calcularRoteiroDoDia(familias, capacidade) {
+  const comPrioridade = familias.map(f => ({ f, prio: calcularPrioridade(f) }));
+  comPrioridade.sort((a, b) => {
+    if (b.prio.peso !== a.prio.peso) return b.prio.peso - a.prio.peso;
+    const da = a.prio.dias === Infinity ? 99999 : a.prio.dias;
+    const db_ = b.prio.dias === Infinity ? 99999 : b.prio.dias;
+    return db_ - da;
+  });
+  return comPrioridade.slice(0, capacidade).map(({ f, prio }) => ({ ...f, prio }));
+}
 
-        function abrirPopover(elementoPin, titulo, endereco, tag1, tag2) {
-            // Pega a posição do pino clicado
-            const rect = elementoPin.getBoundingClientRect();
-            
-            // Preenche os dados
-            popTitle.innerText = titulo;
-            popAddress.innerText = endereco;
-            
-            // Define cor da tag baseada no texto
-            let tag1Class = tag1.includes('Risco') ? 'tag-danger' : tag1.includes('Gestante') ? 'tag-warning' : 'tag';
-            let tagHtml = `<span class="tag ${tag1Class}">${tag1}</span>`;
-            if(tag2) tagHtml += `<span class="tag tag-danger">${tag2}</span>`;
-            
-            popTags.innerHTML = tagHtml;
+function enderecoDe(f) {
+  return [f.logradouro, f.numero].filter(Boolean).join(', ') || 'Endereço não informado';
+}
+function nomePrincipalDe(f) {
+  const resp = f.membros.find(c => c.e_responsavel_familiar) || f.membros[0];
+  return resp ? resp.nome : enderecoDe(f);
+}
 
-            // Posiciona o popover acima do pino
-            popover.style.left = (rect.left + (rect.width / 2)) + 'px';
-            popover.style.top = (rect.top - 20) + 'px'; // 20px acima do pino
-            
-            popover.classList.add('active');
-        }
+// Posição ilustrativa determinística (mesma família = mesma posição sempre).
+function posicaoIlustrativa(id, indice) {
+  let hash = 0;
+  const str = String(id);
+  for (let i = 0; i < str.length; i++) hash = (hash * 31 + str.charCodeAt(i)) % 10000;
+  const top = 18 + ((hash + indice * 17) % 64);
+  const left = 12 + ((hash * 7 + indice * 23) % 76);
+  return { top, left };
+}
 
-        function fecharPopover() {
-            popover.classList.remove('active');
-        }
+let roteiroGlobal = [];
 
-        // Fecha o popover se clicar fora dele e dos pinos
-        document.querySelector('.map-container').addEventListener('click', function(e) {
-            if (!e.target.closest('.pin') && !e.target.closest('.popover')) {
-                fecharPopover();
-            }
-        });
-    </script>
+async function carregarMapa() {
+  const hoje = new Date().toISOString().slice(0, 10);
+
+  const [{ data: familias, error: erroFamilias }, { data: visitas, error: erroVisitas }] = await Promise.all([
+    db.from('familias').select('*, cidadaos(*, condicoes_saude(*))').order('logradouro'),
+    db.from('visitas').select('familia_id, data_visita'),
+  ]);
+
+  if (erroFamilias || erroVisitas) {
+    console.error(erroFamilias, erroVisitas);
+    document.getElementById('pinsContainer').innerHTML = `<div class="estado-vazio-mapa">Não foi possível carregar os dados do mapa agora.</div>`;
+    return;
+  }
+
+  const visitasPorFamilia = new Map();
+  (visitas || []).forEach(v => {
+    if (!visitasPorFamilia.has(v.familia_id)) visitasPorFamilia.set(v.familia_id, []);
+    visitasPorFamilia.get(v.familia_id).push(v);
+  });
+
+  const familiasEnriquecidas = (familias || []).map(f => {
+    const membros = f.cidadaos || [];
+    const historico = (visitasPorFamilia.get(f.id) || []).sort((a, b) => (b.data_visita || '').localeCompare(a.data_visita || ''));
+    const ultimaVisita = historico[0]?.data_visita || null;
+    return {
+      ...f,
+      membros,
+      diasDesdeUltimaVisita: diasDesdeSeguro(ultimaVisita),
+      totalVisitas: historico.length,
+      visitouHoje: historico.some(v => v.data_visita === hoje),
+      temGestante: membros.some(c => condicoesDe(c).includes('Gestante')),
+      temAcamado: membros.some(c => condicoesDe(c).includes('Acamado')),
+      temHas: membros.some(c => condicoesDe(c).includes('Hipertensão')),
+      temDm: membros.some(c => condicoesDe(c).includes('Diabetes')),
+      temCriancaMenor2: membros.some(c => {
+        const idade = calcularIdadeSegura(c.data_nascimento);
+        return idade !== null && idade < 2;
+      }),
+    };
+  });
+
+  roteiroGlobal = calcularRoteiroDoDia(familiasEnriquecidas, 20);
+  renderizarPins(roteiroGlobal);
+  renderizarRoteiro(roteiroGlobal);
+}
+
+function renderizarPins(roteiro) {
+  const container = document.getElementById('pinsContainer');
+  if (roteiro.length === 0) {
+    container.innerHTML = `<div class="estado-vazio-mapa">Nenhuma família cadastrada ainda. Cadastre domicílios em "Famílias".</div>`;
+    return;
+  }
+  container.innerHTML = roteiro.map((f, i) => {
+    const pos = posicaoIlustrativa(f.id, i);
+    const classe = f.visitouHoje ? 'done' : (f.prio.nivel === 'urgente' ? 'danger' : f.prio.nivel === 'atencao' ? 'warning' : 'info');
+    const icone = f.visitouHoje ? '✓' : '📍';
+    return `<div class="pin ${classe}" style="top:${pos.top}%; left:${pos.left}%;" data-familia-id="${f.id}" onclick="abrirPopoverFamilia('${f.id}', this)">${icone}</div>`;
+  }).join('');
+}
+
+function abrirPopoverFamilia(familiaId, elementoPin) {
+  const f = roteiroGlobal.find(x => x.id === familiaId);
+  if (!f) return;
+
+  const popover = document.getElementById('mapPopover');
+  const rect = elementoPin.getBoundingClientRect();
+
+  document.getElementById('popTitle').innerText = nomePrincipalDe(f);
+  document.getElementById('popAddress').innerText = enderecoDe(f) + (f.bairro ? ' - ' + f.bairro : '');
+
+  const tagClasse = f.prio.nivel === 'urgente' ? 'tag-danger' : f.prio.nivel === 'atencao' ? 'tag-warning' : 'tag-info';
+  document.getElementById('popTags').innerHTML = `
+    <span class="tag ${tagClasse}">${f.prio.tipoPrincipal.emoji} ${escapeHtml(f.prio.tipoPrincipal.label)}</span>
+    ${f.visitouHoje ? '<span class="tag" style="background: rgba(52,199,89,0.12); color: var(--success);">✓ Visitada hoje</span>' : ''}
+  `;
+
+  const ultimaVisitaTxt = f.totalVisitas > 0
+    ? `há ${f.diasDesdeUltimaVisita} dia${f.diasDesdeUltimaVisita === 1 ? '' : 's'}`
+    : 'nunca visitada';
+  document.getElementById('popMeta').innerText = `👨‍👩‍👧‍👦 ${f.membros.length} morador${f.membros.length === 1 ? '' : 'es'} | ⏱️ Últ. visita: ${ultimaVisitaTxt}`;
+
+  document.getElementById('popActions').innerHTML = `
+    <a href="nova-visita.html?familia_id=${f.id}" class="btn-popover btn-visit">Iniciar Visita</a>
+    <a href="familias.html" class="btn-popover btn-record">Ver no Diretório</a>
+  `;
+
+  popover.style.left = (rect.left + (rect.width / 2)) + 'px';
+  popover.style.top = (rect.top - 20) + 'px';
+  popover.classList.add('active');
+}
+
+function fecharPopover() {
+  document.getElementById('mapPopover').classList.remove('active');
+}
+
+document.querySelector('.map-container').addEventListener('click', function (e) {
+  if (!e.target.closest('.pin') && !e.target.closest('.popover')) fecharPopover();
+});
+
+function renderizarRoteiro(roteiro) {
+  const lista = document.getElementById('routeList');
+  const pendentes = roteiro.filter(f => !f.visitouHoje);
+  const concluidas = roteiro.filter(f => f.visitouHoje);
+
+  if (roteiro.length === 0) {
+    lista.innerHTML = `<p style="color: var(--text-muted); font-size: 13px;">Nenhuma família no roteiro ainda.</p>`;
+    return;
+  }
+
+  let html = `<div class="route-section">PENDENTES (${pendentes.length})</div>`;
+  html += pendentes.map((f, i) => `
+    <a class="route-item" href="nova-visita.html?familia_id=${f.id}">
+      <div class="route-checkbox"></div>
+      <div class="route-info">
+        <strong>${i + 1}. ${escapeHtml(nomePrincipalDe(f))}</strong>
+        <span>${escapeHtml(enderecoDe(f))}</span>
+      </div>
+    </a>
+  `).join('') || `<p style="color: var(--text-muted); font-size: 13px; margin-bottom: 16px;">Tudo concluído por aqui. 🎉</p>`;
+
+  html += `<div class="route-section">CONCLUÍDAS (${concluidas.length})</div>`;
+  html += concluidas.map(f => `
+    <div class="route-item completed">
+      <div class="route-checkbox"></div>
+      <div class="route-info">
+        <strong>${escapeHtml(nomePrincipalDe(f))}</strong>
+        <span>${escapeHtml(enderecoDe(f))}</span>
+      </div>
+    </div>
+  `).join('') || `<p style="color: var(--text-muted); font-size: 13px;">Nenhuma visita concluída hoje ainda.</p>`;
+
+  lista.innerHTML = html;
+}
+
+// Busca simples por nome de família ou endereço, filtrando os pinos exibidos.
+document.getElementById('mapaBusca').addEventListener('input', (e) => {
+  const termo = e.target.value.trim().toLowerCase();
+  if (termo === '') { renderizarPins(roteiroGlobal); return; }
+  const filtrado = roteiroGlobal.filter(f =>
+    nomePrincipalDe(f).toLowerCase().includes(termo) || enderecoDe(f).toLowerCase().includes(termo)
+  );
+  renderizarPins(filtrado);
+});
+
+carregarMapa();
+</script>
 </body>
 </html>

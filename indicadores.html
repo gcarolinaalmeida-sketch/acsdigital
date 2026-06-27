@@ -1,261 +1,226 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Indicadores - ACS Digital</title>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="config.js"></script>
-    <style>
-        :root {
-            --bg-color: #FAFAFA;
-            --surface: #FFFFFF;
-            --text-main: #111827;
-            --text-muted: #6B7280;
-            --border: #E5E7EB;
-            --primary: #0A84FF;
-            --success: #34C759;
-            --danger: #FF3B30;
-            --warning: #FF9500;
-            --radius: 12px;
-            --chip-bg: #F2F2F7;
-        }
-
-        * { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
-        body { display: flex; background-color: var(--bg-color); color: var(--text-main); height: 100vh; overflow: hidden; }
-
-        /* Sidebar Base */
-        .sidebar { width: 260px; background-color: var(--bg-color); border-right: 1px solid var(--border); padding: 24px 16px; display: flex; flex-direction: column; gap: 24px; z-index: 10; }
-        .sidebar-header h2 { font-size: 14px; font-weight: 600; }
-        .sidebar-header span { font-size: 12px; color: var(--text-muted); }
-        .nav-links { list-style: none; display: flex; flex-direction: column; gap: 4px; }
-        .nav-links li a { text-decoration: none; color: var(--text-muted); font-size: 14px; padding: 8px 12px; border-radius: 8px; display: block; transition: 0.2s; }
-        .nav-links li a:hover, .nav-links li a.active { background-color: #F3F4F6; color: var(--text-main); font-weight: 500; }
-
-        /* Conteúdo Principal */
-        .main-content { flex: 1; display: flex; flex-direction: column; overflow-y: auto; position: relative; }
-        .topbar { height: 60px; display: flex; align-items: center; justify-content: space-between; padding: 0 48px; border-bottom: 1px solid var(--border); background-color: var(--surface); position: sticky; top: 0; z-index: 5; }
-        .content-wrapper { padding: 40px 48px; max-width: 1200px; margin: 0 auto; width: 100%; }
-
-        .page-header { margin-bottom: 40px; }
-        .page-header h1 { font-size: 24px; font-weight: 600; margin-bottom: 8px; }
-        .page-header p { font-size: 14px; color: var(--text-muted); }
-
-        .section-label { font-size: 12px; font-weight: 700; color: var(--text-muted); letter-spacing: 0.5px; margin-bottom: 16px; margin-top: 40px; border-bottom: 1px solid var(--border); padding-bottom: 8px; display: flex; align-items: center; gap: 8px; }
-
-        /* Grid de Indicadores Previne Brasil */
-        .metric-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 20px; }
-        
-        .metric-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; display: flex; flex-direction: column; transition: 0.2s; }
-        .metric-card:hover { border-color: #D1D5DB; box-shadow: 0 4px 12px rgba(0,0,0,0.03); }
-        
-        .metric-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px; }
-        .metric-title { font-size: 15px; font-weight: 600; line-height: 1.4; color: var(--text-main); }
-        .metric-icon { font-size: 20px; background: var(--chip-bg); width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; border-radius: 8px; flex-shrink: 0; margin-left: 12px; }
-
-        .metric-values { display: flex; align-items:baseline; gap: 8px; margin-bottom: 12px; }
-        .metric-current { font-size: 28px; font-weight: 700; letter-spacing: -0.5px; }
-        .metric-target { font-size: 13px; color: var(--text-muted); font-weight: 500; }
-
-        /* Barras de Progresso Slim */
-        .progress-track { width: 100%; height: 6px; background-color: var(--chip-bg); border-radius: 3px; overflow: hidden; margin-bottom: 8px; position: relative; }
-        .progress-fill { height: 100%; border-radius: 3px; transition: width 0.5s ease-out; }
-        .progress-fill.good { background-color: var(--success); }
-        .progress-fill.warning { background-color: var(--warning); }
-        .progress-fill.danger { background-color: var(--danger); }
-        
-        /* Marcador da Meta na barra */
-        .target-marker { position: absolute; top: 0; bottom: 0; width: 2px; background-color: var(--text-main); z-index: 2; }
-
-        .metric-feedback { font-size: 13px; font-weight: 500; }
-        .feedback-good { color: var(--success); }
-        .feedback-warning { color: var(--warning); }
-
-        /* Grid Operacional (Ação) */
-        .ops-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 20px; }
-        .ops-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; cursor: pointer; transition: 0.2s; display: flex; flex-direction: column; }
-        .ops-card:hover { border-color: var(--primary); background: #F8FBFF; }
-        
-        .ops-number { font-size: 32px; font-weight: 700; margin-bottom: 8px; }
-        .ops-number.danger { color: var(--danger); }
-        .ops-number.warning { color: var(--warning); }
-        .ops-number.success { color: var(--success); }
-        
-        .ops-desc { font-size: 14px; color: var(--text-muted); line-height: 1.4; margin-bottom: 16px; flex: 1; }
-        .ops-action { font-size: 13px; font-weight: 600; color: var(--primary); display: flex; align-items: center; gap: 4px; }
-
-        @media (max-width: 768px) {
-            body { flex-direction: column; }
-            .sidebar { width: 100%; height: auto; border-right: none; border-bottom: 1px solid var(--border); padding: 16px; }
-            .content-wrapper { padding: 24px; }
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Indicadores - ACS Digital</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
+<style>
+:root {
+--bg-color: #FAFAFA;
+--surface: #FFFFFF;
+--text-main: #111827;
+--text-muted: #6B7280;
+--border: #E5E7EB;
+--primary: #0A84FF;
+--success: #34C759;
+--danger: #FF3B30;
+--warning: #FF9500;
+--radius: 12px;
+--chip-bg: #F2F2F7;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+body { display: flex; background-color: var(--bg-color); color: var(--text-main); height: 100vh; overflow: hidden; }
+/* Sidebar Base */
+.sidebar { width: 260px; background-color: var(--bg-color); border-right: 1px solid var(--border); padding: 24px 16px; display: flex; flex-direction: column; gap: 24px; z-index: 10; }
+.sidebar-header h2 { font-size: 14px; font-weight: 600; }
+.sidebar-header span { font-size: 12px; color: var(--text-muted); }
+.nav-links { list-style: none; display: flex; flex-direction: column; gap: 2px; }
+.nav-links li a { text-decoration: none; color: var(--text-muted); font-size: 14px; padding: 9px 12px; border-radius: 10px; display: flex; align-items: center; gap: 10px; transition: 0.2s; }
+.nav-links li a .nav-icon { font-size: 15px; width: 18px; text-align: center; flex-shrink: 0; }
+.nav-links li a:hover, .nav-links li a.active { background-color: #F3F4F6; color: var(--text-main); font-weight: 500; }
+.nav-links li.nav-divider { height: 1px; background: var(--border); margin: 8px 4px; list-style: none; }
+/* Conteúdo Principal */
+.main-content { flex: 1; display: flex; flex-direction: column; overflow-y: auto; position: relative; }
+.topbar { height: 60px; display: flex; align-items: center; justify-content: space-between; padding: 0 48px; border-bottom: 1px solid var(--border); background-color: var(--surface); position: sticky; top: 0; z-index: 5; }
+.content-wrapper { padding: 40px 48px; max-width: 1200px; margin: 0 auto; width: 100%; }
+.page-header { margin-bottom: 40px; }
+.page-header h1 { font-size: 24px; font-weight: 600; margin-bottom: 8px; }
+.page-header p { font-size: 14px; color: var(--text-muted); }
+.section-label { font-size: 12px; font-weight: 700; color: var(--text-muted); letter-spacing: 0.5px; margin-bottom: 16px; margin-top: 40px; border-bottom: 1px solid var(--border); padding-bottom: 8px; display: flex; align-items: center; gap: 8px; }
+/* Grid de Indicadores Previne Brasil */
+.metric-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 20px; }
+.metric-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; display: flex; flex-direction: column; transition: 0.2s; }
+.metric-card:hover { border-color: #D1D5DB; box-shadow: 0 4px 12px rgba(0,0,0,0.03); }
+.metric-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px; }
+.metric-title { font-size: 15px; font-weight: 600; line-height: 1.4; color: var(--text-main); }
+.metric-icon { font-size: 20px; background: var(--chip-bg); width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; border-radius: 8px; flex-shrink: 0; margin-left: 12px; }
+.metric-values { display: flex; align-items:baseline; gap: 8px; margin-bottom: 12px; }
+.metric-current { font-size: 28px; font-weight: 700; letter-spacing: -0.5px; }
+.metric-target { font-size: 13px; color: var(--text-muted); font-weight: 500; }
+/* Barras de Progresso Slim */
+.progress-track { width: 100%; height: 6px; background-color: var(--chip-bg); border-radius: 3px; overflow: hidden; margin-bottom: 8px; position: relative; }
+.progress-fill { height: 100%; border-radius: 3px; transition: width 0.5s ease-out; }
+.progress-fill.good { background-color: var(--success); }
+.progress-fill.warning { background-color: var(--warning); }
+.progress-fill.danger { background-color: var(--danger); }
+/* Marcador da Meta na barra */
+.target-marker { position: absolute; top: 0; bottom: 0; width: 2px; background-color: var(--text-main); z-index: 2; }
+.metric-feedback { font-size: 13px; font-weight: 500; }
+.feedback-good { color: var(--success); }
+.feedback-warning { color: var(--warning); }
+/* Grid Operacional (Ação) */
+.ops-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 20px; }
+.ops-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; cursor: pointer; transition: 0.2s; display: flex; flex-direction: column; }
+.ops-card:hover { border-color: var(--primary); background: #F8FBFF; }
+.ops-number { font-size: 32px; font-weight: 700; margin-bottom: 8px; }
+.ops-number.danger { color: var(--danger); }
+.ops-number.warning { color: var(--warning); }
+.ops-number.success { color: var(--success); }
+.ops-desc { font-size: 14px; color: var(--text-muted); line-height: 1.4; margin-bottom: 16px; flex: 1; }
+.ops-action { font-size: 13px; font-weight: 600; color: var(--primary); display: flex; align-items: center; gap: 4px; }
+@media (max-width: 768px) {
+body { flex-direction: column; }
+.sidebar { width: 100%; height: auto; border-right: none; border-bottom: 1px solid var(--border); padding: 16px; }
+.content-wrapper { padding: 24px; }
+}
+</style>
 </head>
 <body>
-
-    <!-- Sidebar -->
-    <aside class="sidebar">
-        <div class="sidebar-header">
-            <h2>UBS Guarda-Mor</h2>
-            <span>Micro-área 03</span>
-        </div>
-        <ul class="nav-links">
-            <li><a href="index.html">Início</a></li>
-            <li><a href="nova-visita.html">Visitas Diárias</a></li>
-            <li><a href="familias.html">Famílias</a></li>
-            <li><a href="mapa.html">Mapa da Micro-área</a></li>
-            <li><a href="indicadores.html" class="active">Indicadores</a></li>
-        </ul>
-    </aside>
-
-    <main class="main-content">
-        <header class="topbar">
-            <div style="font-size: 14px; color: var(--text-muted);">Indicadores / Visão Geral</div>
-        </header>
-
-        <div class="content-wrapper">
-            <div class="page-header">
-                <h1>Painel de Indicadores</h1>
-                <p>Acompanhamento de metas assistenciais e operacionais da Micro-área 03.</p>
-            </div>
-
-            <!-- SEÇÃO 1: PREVINE BRASIL -->
-            <div class="section-label">🎯 INDICADORES ASSISTENCIAIS (PREVINE BRASIL)</div>
-            
-            <div class="metric-grid">
-
-                <!-- Indicador 1: Hipertensos -->
-                <div class="metric-card">
-                    <div class="metric-header">
-                        <div class="metric-title">Proporção de hipertensos com Pressão Arterial aferida no semestre</div>
-                        <div class="metric-icon">🩸</div>
-                    </div>
-                    <div class="metric-values">
-                        <div class="metric-current" id="metricHasAtual">--%</div>
-                        <div class="metric-target">Meta: 50%</div>
-                    </div>
-                    <div class="progress-track">
-                        <div class="target-marker" style="left: 50%;"></div>
-                        <div class="progress-fill" id="metricHasBarra" style="width: 0%;"></div>
-                    </div>
-                    <div class="metric-feedback" id="metricHasFeedback"></div>
-                </div>
-
-                <!-- Indicador 2: Diabéticos -->
-                <div class="metric-card">
-                    <div class="metric-header">
-                        <div class="metric-title">Proporção de diabéticos com hemoglobina glicada avaliada no semestre</div>
-                        <div class="metric-icon">🍬</div>
-                    </div>
-                    <div class="metric-values">
-                        <div class="metric-current" id="metricDmAtual">--%</div>
-                        <div class="metric-target">Meta: 50%</div>
-                    </div>
-                    <div class="progress-track">
-                        <div class="target-marker" style="left: 50%;"></div>
-                        <div class="progress-fill" id="metricDmBarra" style="width: 0%;"></div>
-                    </div>
-                    <div class="metric-feedback" id="metricDmFeedback"></div>
-                </div>
-
-            </div>
-
-            <!-- SEÇÃO 2: OPERACIONAL -->
-            <div class="section-label">⚙️ MÉTRICAS OPERACIONAIS (TERRITÓRIO)</div>
-
-            <div class="ops-grid">
-
-                <div class="ops-card" onclick="window.location.href='familias.html'">
-                    <div class="ops-number danger" id="opsSemVisita">--</div>
-                    <div class="ops-desc">Famílias que ainda não têm nenhuma visita registrada no app.</div>
-                    <div class="ops-action">Ver no Diretório de Famílias →</div>
-                </div>
-
-                <div class="ops-card" onclick="window.location.href='familias.html'">
-                    <div class="ops-number warning" id="opsCadastroIncompleto">--</div>
-                    <div class="ops-desc">Cidadãos com cadastro incompleto (sem CPF ou CNS).</div>
-                    <div class="ops-action">Ver lista de pendências →</div>
-                </div>
-
-                <div class="ops-card" onclick="window.location.href='familias.html'">
-                    <div class="ops-number warning" id="opsSemResponsavel">--</div>
-                    <div class="ops-desc">Famílias sem um responsável familiar identificado no cadastro.</div>
-                    <div class="ops-action">Ver no Diretório de Famílias →</div>
-                </div>
-
-                <div class="ops-card">
-                    <div class="ops-number success" id="opsCobertura">--%</div>
-                    <div class="ops-desc">Cobertura de visitas (famílias com pelo menos 1 visita registrada neste mês).</div>
-                    <div class="ops-action" style="color: var(--success);" id="opsCoberturaFeedback"></div>
-                </div>
-
-            </div>
-
-        </div>
-    </main>
-
-    <script>
-        function definirIndicador(prefixo, numerador, denominador) {
-            const pct = denominador > 0 ? Math.round((numerador / denominador) * 100) : 0;
-            document.getElementById(`metric${prefixo}Atual`).textContent = pct + '%';
-            const barra = document.getElementById(`metric${prefixo}Barra`);
-            barra.style.width = pct + '%';
-            barra.className = 'progress-fill ' + (pct >= 50 ? 'good' : pct >= 30 ? 'warning' : 'danger');
-            const feedback = document.getElementById(`metric${prefixo}Feedback`);
-            if (denominador === 0) {
-                feedback.textContent = 'Sem pacientes cadastrados nesta condição.';
-            } else if (pct >= 50) {
-                feedback.innerHTML = '✓ Meta atingida! Excelente trabalho.';
-                feedback.style.color = 'var(--success)';
-            } else {
-                const faltam = Math.ceil(denominador * 0.5) - numerador;
-                feedback.innerHTML = `⚠️ Faltam ${faltam} paciente${faltam === 1 ? '' : 's'} para bater a meta.`;
-                feedback.style.color = pct >= 30 ? 'var(--warning)' : 'var(--danger)';
-            }
-        }
-
-        async function carregarIndicadores() {
-            const { data: condicoes, error: erroCondicoes } = await db.from('condicoes_saude').select('*');
-            const { data: familias, error: erroFamilias } = await db.from('familias').select('id, cidadaos(id, cpf, cns, e_responsavel_familiar)');
-            const { data: visitas, error: erroVisitas } = await db.from('visitas').select('familia_id, data_visita');
-
-            if (erroCondicoes || erroFamilias || erroVisitas) {
-                console.error(erroCondicoes, erroFamilias, erroVisitas);
-                return;
-            }
-
-            // --- Indicadores assistenciais ---
-            const hipertensos = condicoes.filter(c => c.condicao === 'Hipertensão');
-            const hipertensosComPA = hipertensos.filter(c => c.data_pressao_arterial && diasDesde(c.data_pressao_arterial) <= 180);
-            definirIndicador('Has', hipertensosComPA.length, hipertensos.length);
-
-            const diabeticos = condicoes.filter(c => c.condicao === 'Diabetes');
-            const diabeticosComHba1c = diabeticos.filter(c => c.data_hemoglobina_glicada && diasDesde(c.data_hemoglobina_glicada) <= 180);
-            definirIndicador('Dm', diabeticosComHba1c.length, diabeticos.length);
-
-            // --- Métricas operacionais ---
-            const familiasComVisita = new Set(visitas.map(v => v.familia_id));
-            document.getElementById('opsSemVisita').textContent = familias.length - familiasComVisita.size;
-
-            const todosCidadaos = familias.flatMap(f => f.cidadaos || []);
-            const incompletos = todosCidadaos.filter(c => !c.cpf || !c.cns).length;
-            document.getElementById('opsCadastroIncompleto').textContent = incompletos;
-
-            const semResponsavel = familias.filter(f => !(f.cidadaos || []).some(c => c.e_responsavel_familiar)).length;
-            document.getElementById('opsSemResponsavel').textContent = semResponsavel;
-
-            const inicioMes = new Date();
-            inicioMes.setDate(1);
-            const familiasComVisitaNoMes = new Set(
-                visitas.filter(v => new Date(v.data_visita) >= inicioMes).map(v => v.familia_id)
-            );
-            const cobertura = familias.length > 0 ? Math.round((familiasComVisitaNoMes.size / familias.length) * 100) : 0;
-            document.getElementById('opsCobertura').textContent = cobertura + '%';
-            document.getElementById('opsCoberturaFeedback').textContent =
-                familiasComVisitaNoMes.size === 0 ? 'Registre visitas para começar a acompanhar.' : 'Continue assim!';
-        }
-
-        carregarIndicadores();
-    </script>
+<!-- Sidebar -->
+<aside class="sidebar">
+<div class="sidebar-header">
+<h2>UBS Guarda-Mor</h2>
+<span>Micro-área 03</span>
+</div>
+<ul class="nav-links">
+<li><a href="index.html"><span class="nav-icon">🏠</span> Dashboard</a></li>
+<li><a href="nova-visita.html"><span class="nav-icon">▶️</span> Meu Roteiro</a></li>
+<li><a href="#"><span class="nav-icon">🗓️</span> Agenda</a></li>
+<li><a href="nova-visita.html"><span class="nav-icon">📋</span> Visitas</a></li>
+<li><a href="familias.html"><span class="nav-icon">👨‍👩‍👧</span> Famílias</a></li>
+<li><a href="mapa.html"><span class="nav-icon">🗺️</span> Mapa</a></li>
+<li><a href="indicadores.html" class="active"><span class="nav-icon">📊</span> Indicadores</a></li>
+<li class="nav-divider"></li>
+<li><a href="#"><span class="nav-icon">🔍</span> Busca</a></li>
+<li><a href="#"><span class="nav-icon">⚙️</span> Configurações</a></li>
+</ul>
+</aside>
+<main class="main-content">
+<header class="topbar">
+<div style="font-size: 14px; color: var(--text-muted);">Indicadores / Visão Geral</div>
+</header>
+<div class="content-wrapper">
+<div class="page-header">
+<h1>Painel de Indicadores</h1>
+<p>Acompanhamento de metas assistenciais e operacionais da Micro-área 03.</p>
+</div>
+<!-- SEÇÃO 1: PREVINE BRASIL -->
+<div class="section-label">🎯 INDICADORES ASSISTENCIAIS (PREVINE BRASIL)</div>
+<div class="metric-grid">
+<!-- Indicador 1: Hipertensos -->
+<div class="metric-card">
+<div class="metric-header">
+<div class="metric-title">Proporção de hipertensos com Pressão Arterial aferida no semestre</div>
+<div class="metric-icon">🩸</div>
+</div>
+<div class="metric-values">
+<div class="metric-current" id="metricHasAtual">--%</div>
+<div class="metric-target">Meta: 50%</div>
+</div>
+<div class="progress-track">
+<div class="target-marker" style="left: 50%;"></div>
+<div class="progress-fill" id="metricHasBarra" style="width: 0%;"></div>
+</div>
+<div class="metric-feedback" id="metricHasFeedback"></div>
+</div>
+<!-- Indicador 2: Diabéticos -->
+<div class="metric-card">
+<div class="metric-header">
+<div class="metric-title">Proporção de diabéticos com hemoglobina glicada avaliada no semestre</div>
+<div class="metric-icon">🍬</div>
+</div>
+<div class="metric-values">
+<div class="metric-current" id="metricDmAtual">--%</div>
+<div class="metric-target">Meta: 50%</div>
+</div>
+<div class="progress-track">
+<div class="target-marker" style="left: 50%;"></div>
+<div class="progress-fill" id="metricDmBarra" style="width: 0%;"></div>
+</div>
+<div class="metric-feedback" id="metricDmFeedback"></div>
+</div>
+</div>
+<!-- SEÇÃO 2: OPERACIONAL -->
+<div class="section-label">⚙️ MÉTRICAS OPERACIONAIS (TERRITÓRIO)</div>
+<div class="ops-grid">
+<div class="ops-card" onclick="window.location.href='familias.html'">
+<div class="ops-number danger" id="opsSemVisita">--</div>
+<div class="ops-desc">Famílias que ainda não têm nenhuma visita registrada no app.</div>
+<div class="ops-action">Ver no Diretório de Famílias →</div>
+</div>
+<div class="ops-card" onclick="window.location.href='familias.html'">
+<div class="ops-number warning" id="opsCadastroIncompleto">--</div>
+<div class="ops-desc">Cidadãos com cadastro incompleto (sem CPF ou CNS).</div>
+<div class="ops-action">Ver lista de pendências →</div>
+</div>
+<div class="ops-card" onclick="window.location.href='familias.html'">
+<div class="ops-number warning" id="opsSemResponsavel">--</div>
+<div class="ops-desc">Famílias sem um responsável familiar identificado no cadastro.</div>
+<div class="ops-action">Ver no Diretório de Famílias →</div>
+</div>
+<div class="ops-card">
+<div class="ops-number success" id="opsCobertura">--%</div>
+<div class="ops-desc">Cobertura de visitas (famílias com pelo menos 1 visita registrada neste mês).</div>
+<div class="ops-action" style="color: var(--success);" id="opsCoberturaFeedback"></div>
+</div>
+</div>
+</div>
+</main>
+<script>
+function definirIndicador(prefixo, numerador, denominador) {
+const pct = denominador > 0 ? Math.round((numerador / denominador) * 100) : 0;
+document.getElementById(`metric${prefixo}Atual`).textContent = pct + '%';
+const barra = document.getElementById(`metric${prefixo}Barra`);
+barra.style.width = pct + '%';
+barra.className = 'progress-fill ' + (pct >= 50 ? 'good' : pct >= 30 ? 'warning' : 'danger');
+const feedback = document.getElementById(`metric${prefixo}Feedback`);
+if (denominador === 0) {
+feedback.textContent = 'Sem pacientes cadastrados nesta condição.';
+} else if (pct >= 50) {
+feedback.innerHTML = '✓ Meta atingida! Excelente trabalho.';
+feedback.style.color = 'var(--success)';
+} else {
+const faltam = Math.ceil(denominador * 0.5) - numerador;
+feedback.innerHTML = `⚠️ Faltam ${faltam} paciente${faltam === 1 ? '' : 's'} para bater a meta.`;
+feedback.style.color = pct >= 30 ? 'var(--warning)' : 'var(--danger)';
+}
+}
+async function carregarIndicadores() {
+const { data: condicoes, error: erroCondicoes } = await db.from('condicoes_saude').select('*');
+const { data: familias, error: erroFamilias } = await db.from('familias').select('id, cidadaos(id, cpf, cns, e_responsavel_familiar)');
+const { data: visitas, error: erroVisitas } = await db.from('visitas').select('familia_id, data_visita');
+if (erroCondicoes || erroFamilias || erroVisitas) {
+console.error(erroCondicoes, erroFamilias, erroVisitas);
+return;
+}
+// --- Indicadores assistenciais ---
+const hipertensos = condicoes.filter(c => c.condicao === 'Hipertensão');
+const hipertensosComPA = hipertensos.filter(c => c.data_pressao_arterial && diasDesde(c.data_pressao_arterial) <= 180);
+definirIndicador('Has', hipertensosComPA.length, hipertensos.length);
+const diabeticos = condicoes.filter(c => c.condicao === 'Diabetes');
+const diabeticosComHba1c = diabeticos.filter(c => c.data_hemoglobina_glicada && diasDesde(c.data_hemoglobina_glicada) <= 180);
+definirIndicador('Dm', diabeticosComHba1c.length, diabeticos.length);
+// --- Métricas operacionais ---
+const familiasComVisita = new Set(visitas.map(v => v.familia_id));
+document.getElementById('opsSemVisita').textContent = familias.length - familiasComVisita.size;
+const todosCidadaos = familias.flatMap(f => f.cidadaos || []);
+const incompletos = todosCidadaos.filter(c => !c.cpf || !c.cns).length;
+document.getElementById('opsCadastroIncompleto').textContent = incompletos;
+const semResponsavel = familias.filter(f => !(f.cidadaos || []).some(c => c.e_responsavel_familiar)).length;
+document.getElementById('opsSemResponsavel').textContent = semResponsavel;
+const inicioMes = new Date();
+inicioMes.setDate(1);
+const familiasComVisitaNoMes = new Set(
+visitas.filter(v => new Date(v.data_visita) >= inicioMes).map(v => v.familia_id)
+);
+const cobertura = familias.length > 0 ? Math.round((familiasComVisitaNoMes.size / familias.length) * 100) : 0;
+document.getElementById('opsCobertura').textContent = cobertura + '%';
+document.getElementById('opsCoberturaFeedback').textContent =
+familiasComVisitaNoMes.size === 0 ? 'Registre visitas para começar a acompanhar.' : 'Continue assim!';
+}
+carregarIndicadores();
+</script>
 </body>
 </html>

@@ -311,7 +311,7 @@ function renderizarAlertas(familias) {
   const itens = [
     {
       sev: 'sev-alta', icon: '🤰', titulo: 'Gestante sem visita há mais de 30 dias',
-      sub: 'Acompanhamento pré-natal pode estar em risco', count: gestantesAtrasadas.length, href: 'familias.html',
+      sub: 'Acompanhamento pré-natal pode estar em risco', count: gestantesAtrasadas.length, href: 'familias.html?filtro=gestantes',
     },
     {
       sev: 'sev-alta', icon: '🫀', titulo: 'Hipertenso ou diabético com retorno atrasado',
@@ -323,7 +323,7 @@ function renderizarAlertas(familias) {
     },
     {
       sev: 'sev-media', icon: '👶', titulo: 'Criança sem acompanhamento',
-      sub: 'Crianças menores de 2 anos sem visita há mais de 60 dias', count: criancasSemAcompanhamento.length, href: 'familias.html',
+      sub: 'Crianças menores de 2 anos sem visita há mais de 60 dias', count: criancasSemAcompanhamento.length, href: 'familias.html?filtro=criancas',
     },
     {
       sev: 'sev-baixa', icon: '🏠', titulo: 'Famílias nunca visitadas',
