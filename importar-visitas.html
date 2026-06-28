@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Importar Visitas (planilha) - ACS Digital</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
+<style>
+:root {
+  --bg-color: #FAFAFA; --surface: #FFFFFF; --text-main: #111827; --text-muted: #6B7280;
+  --border: #E5E7EB; --primary: #0A84FF; --success: #34C759; --danger: #FF3B30; --warning: #FF9500;
+  --radius: 12px; --chip-bg: #F2F2F7;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+body { background: var(--bg-color); color: var(--text-main); padding: 32px 24px 80px; }
+.wrap { max-width: 980px; margin: 0 auto; }
+h1 { font-size: 22px; margin-bottom: 6px; }
+.subtitle { font-size: 14px; color: var(--text-muted); margin-bottom: 24px; }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; margin-bottom: 20px; }
+.card h2 { font-size: 15px; margin-bottom: 10px; }
+.aviso { background: #FFF4E5; border: 1px solid var(--warning); border-radius: var(--radius); padding: 14px 16px; font-size: 13px; margin-bottom: 20px; }
+input[type="file"] { font-size: 14px; }
+.btn { background: var(--primary); color: white; border: none; padding: 10px 18px; border-radius: 8px; font-weight: 600; font-size: 14px; cursor: pointer; }
+.btn:disabled { background: var(--chip-bg); color: var(--text-muted); cursor: not-allowed; }
+.btn.secondary { background: var(--chip-bg); color: var(--text-main); }
+.btn.danger { background: var(--danger); }
+.resumo-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin: 16px 0; }
+.resumo-tile { background: var(--bg-color); border-radius: 10px; padding: 12px 14px; text-align: center; }
+.resumo-tile .num { font-size: 22px; font-weight: 700; }
+.resumo-tile .lbl { font-size: 11px; color: var(--text-muted); text-transform: uppercase; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th { text-align: left; padding: 8px; border-bottom: 2px solid var(--border); font-size: 11px; text-transform: uppercase; color: var(--text-muted); }
+td { padding: 8px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+tr.status-ok td { }
+tr.status-pulado { opacity: 0.5; }
+tr.status-ambiguo { background: #FFF8E5; }
+tr.status-naoencontrado { background: #FFF0EF; }
+.badge { font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 999px; }
+.badge.ok { background: rgba(52,199,89,0.15); color: var(--success); }
+.badge.pulado { background: var(--chip-bg); color: var(--text-muted); }
+.badge.ambiguo { background: rgba(255,149,0,0.15); color: var(--warning); }
+.badge.naoencontrado { background: rgba(255,59,48,0.12); color: var(--danger); }
+select { font-size: 12px; padding: 4px; border-radius: 6px; border: 1px solid var(--border); }
+.table-wrap { max-height: 520px; overflow-y: auto; border: 1px solid var(--border); border-radius: 8px; }
+.actions-bar { display: flex; gap: 10px; align-items: center; margin-top: 16px; flex-wrap: wrap; }
+.log { font-size: 13px; color: var(--text-muted); margin-top: 12px; white-space: pre-wrap; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>📥 Importar planilha de "tempo sem visita"</h1>
+  <p class="subtitle">Ferramenta avulsa — não faz parte do menu do app. Pode rodar sempre que tiver uma planilha nova do e-SUS.</p>
+
+  <div class="aviso">
+    ⚠️ Esta planilha não traz a data real da visita, só "dias sem visita". A ferramenta calcula uma <strong>data estimada</strong> (hoje − dias) e grava isso como a visita mais recente de cada cidadão. Não é o histórico completo — é só uma forma de não perder essa informação de "última visita" que já existia no e-SUS antes do app começar a registrar.<br><br>
+    Nada é gravado no banco até você revisar a prévia e clicar em "Confirmar importação".
+  </div>
+
+  <div class="card">
+    <h2>1. Selecione o arquivo CSV (Paciente;Dias Sem Visita)</h2>
+    <input type="file" id="arquivoInput" accept=".csv">
+    <div id="statusArquivo" class="log"></div>
+  </div>
+
+  <div class="card" id="cardPreview" style="display:none;">
+    <h2>2. Prévia do casamento com o cadastro</h2>
+    <div class="resumo-grid" id="resumoGrid"></div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th></th><th>Nome na planilha</th><th>Dias</th><th>Data estimada</th><th>Cidadão no sistema</th><th>Status</th></tr>
+        </thead>
+        <tbody id="tabelaBody"></tbody>
+      </table>
+    </div>
+    <div class="actions-bar">
+      <button class="btn" id="btnImportar">Confirmar importação dos selecionados</button>
+      <button class="btn secondary" id="btnExportarNaoEncontrados">Baixar não encontrados (.csv)</button>
+      <span class="log" id="logImportacao"></span>
+    </div>
+  </div>
+</div>
+
+<script>
+function normaliza(s) {
+  return (s || '')
+    .trim()
+    .toUpperCase()
+    .normalize('NFKD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/\s+/g, ' ');
+}
+
+function hojeISO() { return new Date().toISOString().slice(0, 10); }
+
+function dataEstimada(dias) {
+  const d = new Date();
+  d.setDate(d.getDate() - parseInt(dias, 10));
+  return d.toISOString().slice(0, 10);
+}
+
+function parseCsv(texto) {
+  // Remove BOM se existir, divide em linhas, separa por ; (padrão de export BR)
+  const limpo = texto.replace(/^\uFEFF/, '').trim();
+  const linhas = limpo.split(/\r?\n/).filter(l => l.trim() !== '');
+  linhas.shift(); // remove cabeçalho
+  return linhas.map(l => {
+    const partes = l.split(';');
+    return { nome: (partes[0] || '').trim(), dias: (partes[1] || '').trim() };
+  }).filter(r => r.nome && /^\d+$/.test(r.dias));
+}
+
+let cidadaosGlobais = [];
+let visitasExistentesPorCidadao = new Map();
+let linhasProcessadas = [];
+
+async function carregarCidadaosEVisitas() {
+  const [{ data: cidadaos, error: e1 }, { data: visitas, error: e2 }] = await Promise.all([
+    db.from('cidadaos').select('id, nome, familia_id'),
+    db.from('visitas').select('cidadao_id, data_visita'),
+  ]);
+  if (e1 || e2) throw (e1 || e2);
+  cidadaosGlobais = cidadaos || [];
+  visitasExistentesPorCidadao = new Map();
+  (visitas || []).forEach(v => {
+    if (!v.cidadao_id) return;
+    const atual = visitasExistentesPorCidadao.get(v.cidadao_id);
+    if (!atual || v.data_visita > atual) visitasExistentesPorCidadao.set(v.cidadao_id, v.data_visita);
+  });
+}
+
+function indexarCidadaosPorNomeNormalizado() {
+  const mapa = new Map();
+  cidadaosGlobais.forEach(c => {
+    const key = normaliza(c.nome);
+    if (!mapa.has(key)) mapa.set(key, []);
+    mapa.get(key).push(c);
+  });
+  return mapa;
+}
+
+function processarLinhas(linhasCsv, mapaNomes) {
+  return linhasCsv.map(linha => {
+    const key = normaliza(linha.nome);
+    const candidatos = mapaNomes.get(key) || [];
+    const estimativa = dataEstimada(linha.dias);
+    let status, cidadaoEscolhido = null;
+
+    if (candidatos.length === 0) {
+      status = 'naoencontrado';
+    } else if (candidatos.length > 1) {
+      status = 'ambiguo';
+      cidadaoEscolhido = candidatos[0];
+    } else {
+      cidadaoEscolhido = candidatos[0];
+      const ultimaConhecida = visitasExistentesPorCidadao.get(cidadaoEscolhido.id);
+      status = (ultimaConhecida && ultimaConhecida >= estimativa) ? 'pulado' : 'ok';
+    }
+
+    return { ...linha, estimativa, candidatos, cidadaoEscolhido, status, selecionado: status === 'ok' };
+  });
+}
+
+function escapeHtml(str) {
+  return String(str ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+function renderizarTabela() {
+  const contagem = { ok: 0, pulado: 0, ambiguo: 0, naoencontrado: 0 };
+  linhasProcessadas.forEach(l => contagem[l.status]++);
+
+  document.getElementById('resumoGrid').innerHTML = `
+    <div class="resumo-tile"><div class="num" style="color:var(--success)">${contagem.ok}</div><div class="lbl">Prontas p/ importar</div></div>
+    <div class="resumo-tile"><div class="num">${contagem.pulado}</div><div class="lbl">Já atualizadas</div></div>
+    <div class="resumo-tile"><div class="num" style="color:var(--warning)">${contagem.ambiguo}</div><div class="lbl">Nome ambíguo</div></div>
+    <div class="resumo-tile"><div class="num" style="color:var(--danger)">${contagem.naoencontrado}</div><div class="lbl">Não encontradas</div></div>
+  `;
+
+  const rotuloStatus = { ok: 'Pronta', pulado: 'Já atualizada', ambiguo: 'Ambíguo', naoencontrado: 'Não encontrado' };
+
+  document.getElementById('tabelaBody').innerHTML = linhasProcessadas.map((l, i) => {
+    let colCidadao = '—';
+    if (l.status === 'ambiguo') {
+      colCidadao = `<select data-idx="${i}" class="seletorAmbiguo">
+        ${l.candidatos.map(c => `<option value="${c.id}">${escapeHtml(c.nome)} (fam. ${c.familia_id.slice(0,8)}…)</option>`).join('')}
+      </select>`;
+    } else if (l.cidadaoEscolhido) {
+      colCidadao = escapeHtml(l.cidadaoEscolhido.nome);
+    }
+
+    const podeSelecionar = l.status === 'ok' || l.status === 'ambiguo';
+    return `
+      <tr class="status-${l.status}" data-idx="${i}">
+        <td>${podeSelecionar ? `<input type="checkbox" class="chkLinha" data-idx="${i}" ${l.selecionado ? 'checked' : ''}>` : ''}</td>
+        <td>${escapeHtml(l.nome)}</td>
+        <td>${l.dias}</td>
+        <td>${l.estimativa}</td>
+        <td>${colCidadao}</td>
+        <td><span class="badge ${l.status}">${rotuloStatus[l.status]}</span></td>
+      </tr>
+    `;
+  }).join('');
+
+  document.querySelectorAll('.chkLinha').forEach(chk => {
+    chk.addEventListener('change', (e) => {
+      linhasProcessadas[parseInt(e.target.dataset.idx, 10)].selecionado = e.target.checked;
+    });
+  });
+  document.querySelectorAll('.seletorAmbiguo').forEach(sel => {
+    sel.addEventListener('change', (e) => {
+      const idx = parseInt(e.target.dataset.idx, 10);
+      const escolhido = linhasProcessadas[idx].candidatos.find(c => c.id === e.target.value);
+      linhasProcessadas[idx].cidadaoEscolhido = escolhido;
+    });
+  });
+}
+
+document.getElementById('arquivoInput').addEventListener('change', async (e) => {
+  const arquivo = e.target.files[0];
+  if (!arquivo) return;
+  const statusEl = document.getElementById('statusArquivo');
+  statusEl.textContent = 'Lendo arquivo e consultando o Supabase...';
+
+  try {
+    const texto = await arquivo.text();
+    const linhasCsv = parseCsv(texto);
+    await carregarCidadaosEVisitas();
+    const mapaNomes = indexarCidadaosPorNomeNormalizado();
+    linhasProcessadas = processarLinhas(linhasCsv, mapaNomes);
+
+    statusEl.textContent = `${linhasCsv.length} linhas lidas da planilha.`;
+    document.getElementById('cardPreview').style.display = 'block';
+    renderizarTabela();
+  } catch (erro) {
+    console.error(erro);
+    statusEl.textContent = 'Erro ao processar: ' + (erro.message || erro);
+  }
+});
+
+document.getElementById('btnImportar').addEventListener('click', async () => {
+  const selecionadas = linhasProcessadas.filter(l => l.selecionado && l.cidadaoEscolhido);
+  if (selecionadas.length === 0) {
+    alert('Nenhuma linha selecionada para importar.');
+    return;
+  }
+  if (!confirm(`Confirma a importação de ${selecionadas.length} visita(s) estimada(s) no banco real?`)) return;
+
+  const btn = document.getElementById('btnImportar');
+  btn.disabled = true;
+  const logEl = document.getElementById('logImportacao');
+  let sucesso = 0, falha = 0;
+
+  for (const l of selecionadas) {
+    const novaVisita = {
+      cidadao_id: l.cidadaoEscolhido.id,
+      familia_id: l.cidadaoEscolhido.familia_id,
+      data_visita: l.estimativa,
+      desfecho: 'Importado (e-SUS)',
+      observacoes: `Visita estimada a partir de planilha de "tempo sem visita" (${l.dias} dias), importada em ${hojeISO()}. Não representa o histórico completo, apenas a última visita conhecida antes do uso deste sistema.`,
+    };
+    const { error } = await db.from('visitas').insert(novaVisita);
+    if (error) { falha++; console.error(l.nome, error); } else { sucesso++; }
+    logEl.textContent = `Importando... ${sucesso + falha}/${selecionadas.length} (✓${sucesso} ✗${falha})`;
+  }
+
+  logEl.textContent = `Concluído: ${sucesso} importada(s), ${falha} com erro. Recarregue o Dashboard para ver os dados atualizados.`;
+  btn.disabled = false;
+});
+
+document.getElementById('btnExportarNaoEncontrados').addEventListener('click', () => {
+  const naoEncontrados = linhasProcessadas.filter(l => l.status === 'naoencontrado');
+  if (naoEncontrados.length === 0) { alert('Nenhuma linha "não encontrada" para exportar.'); return; }
+  const csv = 'Paciente;Dias Sem Visita\n' + naoEncontrados.map(l => `${l.nome};${l.dias}`).join('\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'nao_encontrados.csv';
+  a.click();
+  URL.revokeObjectURL(url);
+});
+</script>
+</body>
+</html>
