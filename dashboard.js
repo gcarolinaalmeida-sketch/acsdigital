@@ -1,78 +1,15 @@
 /* ============================================================================
    Dashboard - ACS Digital
    ----------------------------------------------------------------------------
-   Este arquivo assume que `config.js` (carregado antes deste script) expõe:
-     - db                -> cliente Supabase já configurado
-     - formatarDataBR()  -> formata uma data ISO para dd/mm/aaaa
-     - calcularIdade()   -> calcula idade em anos a partir da data de nasc.
-     - diasDesde()       -> calcula quantos dias se passaram desde uma data
-
-   Se algum desses helpers tiver outro nome em config.js, ajuste as chamadas
-   correspondentes abaixo (estão concentradas nas funções utilitárias no topo).
-
-   IMPORTANTE: ainda não existe uma tabela de agendamento (ex.: "visitas_agendadas").
-   Por isso, o "roteiro do dia" é CALCULADO por heurística clínica (não é um
-   dado real de agenda). O cálculo está isolado em calcularRoteiroDoDia() para
-   ser facilmente substituído por uma query real quando essa tabela existir.
+   Depende de config.js (db, calcularIdade, formatarDataBR, diasDesde) e de
+   roteiro.js (lógica compartilhada de prioridade/roteiro do dia), que devem
+   ser carregados ANTES deste arquivo no <head> de index.html.
 ============================================================================ */
 
 // ----------------------------- Configuração ---------------------------------
 const CAPACIDADE_DIARIA = 12;       // quantas visitas cabem no roteiro de um dia
 const TEMPO_MEDIO_VISITA_MIN = 20;  // minutos médios por visita, para estimar tempo restante
 const META_MENSAL_VISITAS = 150;    // meta de visitas/mês (ideal: vir de uma tabela de metas no futuro)
-
-// ----------------------------- Utilitários -----------------------------------
-function diasDesdeSeguro(dataStr) {
-  if (!dataStr) return Infinity;
-  try { return diasDesde(dataStr); }
-  catch (e) {
-    const d = new Date(dataStr);
-    if (isNaN(d)) return Infinity;
-    return Math.floor((Date.now() - d.getTime()) / 86400000);
-  }
-}
-
-function calcularIdadeSegura(dataNascimento) {
-  if (!dataNascimento) return null;
-  try { return calcularIdade(dataNascimento); }
-  catch (e) {
-    const nasc = new Date(dataNascimento);
-    if (isNaN(nasc)) return null;
-    const hoje = new Date();
-    let idade = hoje.getFullYear() - nasc.getFullYear();
-    if (hoje.getMonth() < nasc.getMonth() || (hoje.getMonth() === nasc.getMonth() && hoje.getDate() < nasc.getDate())) idade--;
-    return idade;
-  }
-}
-
-function formatarDataSegura(dataStr) {
-  if (!dataStr) return '—';
-  try { return formatarDataBR(dataStr); }
-  catch (e) {
-    const d = new Date(dataStr);
-    if (isNaN(d)) return '—';
-    return d.toLocaleDateString('pt-BR');
-  }
-}
-
-function inicioDoMesISO() {
-  const d = new Date();
-  d.setDate(1);
-  d.setHours(0, 0, 0, 0);
-  return d.toISOString();
-}
-
-function hojeISO() {
-  return new Date().toISOString().slice(0, 10);
-}
-
-function condicoesDe(cidadao) {
-  return (cidadao.condicoes_saude || []).map(c => c.condicao);
-}
-
-function escapeHtml(str) {
-  return String(str ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-}
 
 // ----------------------------- Saudação e data -------------------------------
 function aplicarSaudacaoEData() {
@@ -89,52 +26,19 @@ function aplicarSaudacaoEData() {
 async function carregarDashboard() {
   aplicarSaudacaoEData();
 
-  const [{ data: familias, error: erroFamilias },
-         { data: visitas, error: erroVisitas }] = await Promise.all([
-    db.from('familias').select('*, cidadaos(*, condicoes_saude(*))').order('logradouro'),
-    db.from('visitas').select('familia_id, data_visita, desfecho').order('data_visita', { ascending: false }),
-  ]);
-
-  if (erroFamilias || erroVisitas) {
-    console.error(erroFamilias, erroVisitas);
+  let familiasEnriquecidas, visitas;
+  try {
+    const resultado = await carregarFamiliasEnriquecidas(); // roteiro.js
+    familiasEnriquecidas = resultado.familiasEnriquecidas;
+    visitas = resultado.visitas;
+  } catch (erro) {
+    console.error(erro);
     mostrarErroGeral();
     return;
   }
 
-  // ---- Enriquecer cada família com dados derivados (última visita, condições, etc.) ----
-  const visitasPorFamilia = new Map();
-  visitas.forEach(v => {
-    if (!visitasPorFamilia.has(v.familia_id)) visitasPorFamilia.set(v.familia_id, []);
-    visitasPorFamilia.get(v.familia_id).push(v);
-  });
-
-  const hoje = hojeISO();
-  const familiasEnriquecidas = familias.map(f => {
-    const membros = f.cidadaos || [];
-    const historico = visitasPorFamilia.get(f.id) || [];
-    const ultimaVisita = historico[0]?.data_visita || null; // já ordenado desc
-    const idades = membros.map(c => calcularIdadeSegura(c.data_nascimento)).filter(i => i !== null);
-
-    const temGestante = membros.some(c => condicoesDe(c).includes('Gestante'));
-    const temAcamado = membros.some(c => condicoesDe(c).includes('Acamado'));
-    const temHas = membros.some(c => condicoesDe(c).includes('Hipertensão'));
-    const temDm = membros.some(c => condicoesDe(c).includes('Diabetes'));
-    const temCriancaMenor2 = idades.some(i => i < 2);
-    const temIdoso = idades.some(i => i >= 60);
-
-    return {
-      ...f,
-      membros,
-      diasDesdeUltimaVisita: diasDesdeSeguro(ultimaVisita),
-      ultimaVisita,
-      totalVisitas: historico.length,
-      visitouHoje: historico.some(v => v.data_visita === hoje),
-      temGestante, temAcamado, temHas, temDm, temCriancaMenor2, temIdoso,
-      cadastroIncompleto: membros.some(c => !c.cpf || !c.cns),
-    };
-  });
-
-  const roteiro = calcularRoteiroDoDia(familiasEnriquecidas);
+  const hoje = hojeISO(); // roteiro.js
+  const roteiro = calcularRoteiroDoDia(familiasEnriquecidas, CAPACIDADE_DIARIA); // roteiro.js
 
   renderizarHeroEResumo(familiasEnriquecidas, roteiro, hoje);
   renderizarVisitasPrioritarias(roteiro);
@@ -154,67 +58,9 @@ function mostrarErroGeral() {
   });
 }
 
-// ----------------------------- Heurística do roteiro --------------------------
-// Calcula um nível de prioridade clínica + tipo principal para exibir no card.
-// Critério documentado: gestante/acamado > criança < 2 anos > HAS/DM > rotina,
-// escalando para "urgente" quando o atraso desde a última visita é alto.
-function calcularPrioridade(f) {
-  const dias = f.diasDesdeUltimaVisita;
-  let tipoPrincipal = null;
-  let nivel = 'rotina';
-  let peso = 0;
-
-  if (f.temGestante) {
-    tipoPrincipal = { emoji: '🤰', label: 'Gestante' };
-    peso = 4;
-    nivel = (dias === Infinity || dias > 20) ? 'urgente' : 'atencao';
-  } else if (f.temAcamado) {
-    tipoPrincipal = { emoji: '🛏️', label: 'Acamado' };
-    peso = 3.5;
-    nivel = (dias === Infinity || dias > 20) ? 'urgente' : 'atencao';
-  } else if (f.temCriancaMenor2) {
-    tipoPrincipal = { emoji: '👶', label: 'Criança < 2 anos' };
-    peso = 3;
-    nivel = (dias === Infinity || dias > 30) ? 'urgente' : 'atencao';
-  } else if (f.temHas || f.temDm) {
-    tipoPrincipal = f.temHas ? { emoji: '🫀', label: 'HAS' } : { emoji: '🍬', label: 'DM' };
-    peso = 2;
-    nivel = (dias === Infinity || dias > 60) ? 'urgente' : (dias > 30 ? 'atencao' : 'rotina');
-  } else if (f.temIdoso) {
-    tipoPrincipal = { emoji: '👴', label: 'Idoso' };
-    peso = 1.5;
-    nivel = (dias === Infinity || dias > 90) ? 'atencao' : 'rotina';
-  } else {
-    tipoPrincipal = { emoji: '🏠', label: 'Acompanhamento' };
-    peso = 1;
-    nivel = (dias === Infinity || dias > 120) ? 'atencao' : 'rotina';
-  }
-
-  // Atraso extremo escala qualquer tipo para urgente.
-  if (dias !== Infinity && dias > 90) nivel = 'urgente';
-
-  return { nivel, peso, tipoPrincipal, dias };
-}
-
-function calcularRoteiroDoDia(familias) {
-  const comPrioridade = familias.map(f => ({ f, prio: calcularPrioridade(f) }));
-  comPrioridade.sort((a, b) => {
-    if (b.prio.peso !== a.prio.peso) return b.prio.peso - a.prio.peso;
-    const da = a.prio.dias === Infinity ? 99999 : a.prio.dias;
-    const db_ = b.prio.dias === Infinity ? 99999 : b.prio.dias;
-    return db_ - da;
-  });
-  return comPrioridade.slice(0, CAPACIDADE_DIARIA).map(({ f, prio }) => ({ ...f, prio }));
-}
-
-function enderecoDe(f) {
-  return [f.logradouro, f.numero].filter(Boolean).join(', ') || 'Endereço não informado';
-}
-
-function nomePrincipalDe(f) {
-  const resp = f.membros.find(c => c.e_responsavel_familiar) || f.membros[0];
-  return resp ? resp.nome : enderecoDe(f);
-}
+// As funções calcularPrioridade(), calcularRoteiroDoDia(), enderecoDe(),
+// nomePrincipalDe(), diasDesdeSeguro(), calcularIdadeSegura(), condicoesDe(),
+// escapeHtml(), hojeISO() e inicioDoMesISO() agora vêm de roteiro.js.
 
 // ----------------------------- 1+2: Hero e resumo do dia ----------------------
 function renderizarHeroEResumo(familias, roteiro, hoje) {
