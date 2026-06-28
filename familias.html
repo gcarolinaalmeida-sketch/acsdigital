@@ -6,6 +6,7 @@
 <title>Famílias - ACS Digital</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="config.js"></script>
+<script src="branding.js"></script>
 <style>
 :root {
 --bg-color: #FAFAFA;
@@ -92,8 +93,8 @@ body { flex-direction: column; }
 <li><a href="mapa.html"><span class="nav-icon">🗺️</span> Mapa</a></li>
 <li><a href="indicadores.html"><span class="nav-icon">📊</span> Indicadores</a></li>
 <li class="nav-divider"></li>
-<li><a href="#"><span class="nav-icon">🔍</span> Busca</a></li>
-<li><a href="#"><span class="nav-icon">⚙️</span> Configurações</a></li>
+<li><a href="busca.html"><span class="nav-icon">🔍</span> Busca</a></li>
+<li><a href="configuracoes.html"><span class="nav-icon">⚙️</span> Configurações</a></li>
 </ul>
 </aside>
 <main class="main-content">
@@ -217,6 +218,7 @@ return;
 }
 familiasComMembros = data;
 renderizarGrid();
+abrirFamiliaPorParametroDeURL();
 }
 
 function condicoesDe(cidadao) {
@@ -358,6 +360,16 @@ filtroAtivo = filtroParam;
 if (buscaParam) {
 termoBusca = buscaParam;
 document.querySelector('.search-bar').value = buscaParam;
+}
+}
+
+// Abre diretamente o prontuário familiar quando se chega via ?abrir=<id>
+// (usado pela tela de Busca e por outros atalhos do sistema).
+function abrirFamiliaPorParametroDeURL() {
+const params = new URLSearchParams(window.location.search);
+const abrirId = params.get('abrir');
+if (abrirId && familiasComMembros.some(f => f.id === abrirId)) {
+abrirFamilia(abrirId);
 }
 }
 

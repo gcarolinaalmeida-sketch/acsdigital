@@ -1,15 +1,19 @@
 /* ============================================================================
    Dashboard - ACS Digital
    ----------------------------------------------------------------------------
-   Depende de config.js (db, calcularIdade, formatarDataBR, diasDesde) e de
-   roteiro.js (lógica compartilhada de prioridade/roteiro do dia), que devem
-   ser carregados ANTES deste arquivo no <head> de index.html.
+   Depende de config.js (db, calcularIdade, formatarDataBR, diasDesde), de
+   branding.js (obterConfiguracaoLocal) e de roteiro.js (lógica compartilhada
+   de prioridade/roteiro do dia), que devem ser carregados ANTES deste
+   arquivo no <head> de index.html.
 ============================================================================ */
 
 // ----------------------------- Configuração ---------------------------------
-const CAPACIDADE_DIARIA = 12;       // quantas visitas cabem no roteiro de um dia
-const TEMPO_MEDIO_VISITA_MIN = 20;  // minutos médios por visita, para estimar tempo restante
-const META_MENSAL_VISITAS = 150;    // meta de visitas/mês (ideal: vir de uma tabela de metas no futuro)
+// Valores ajustáveis pelo usuário na tela "Configurações" (salvos no
+// navegador via branding.js); caem nos padrões se nunca configurados.
+const _cfgLocal = obterConfiguracaoLocal();
+const CAPACIDADE_DIARIA = _cfgLocal.capacidadeDiaria;       // quantas visitas cabem no roteiro de um dia
+const TEMPO_MEDIO_VISITA_MIN = _cfgLocal.tempoMedioVisita;  // minutos médios por visita, para estimar tempo restante
+const META_MENSAL_VISITAS = _cfgLocal.metaMensalVisitas;    // meta de visitas/mês
 
 // ----------------------------- Saudação e data -------------------------------
 function aplicarSaudacaoEData() {

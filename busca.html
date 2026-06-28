@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Busca - ACS Digital</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
+<script src="branding.js"></script>
+<style>
+:root {
+  --bg-color: #FAFAFA;
+  --surface: #FFFFFF;
+  --text-main: #111827;
+  --text-muted: #6B7280;
+  --border: #E5E7EB;
+  --primary: #0A84FF;
+  --success: #34C759;
+  --danger: #FF3B30;
+  --warning: #FF9500;
+  --radius: 12px;
+  --chip-bg: #F2F2F7;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+body { display: flex; background-color: var(--bg-color); color: var(--text-main); height: 100vh; overflow: hidden; }
+
+.sidebar { width: 260px; background-color: var(--bg-color); border-right: 1px solid var(--border); padding: 24px 16px; display: flex; flex-direction: column; gap: 24px; z-index: 10; }
+.sidebar-header h2 { font-size: 14px; font-weight: 600; }
+.sidebar-header span { font-size: 12px; color: var(--text-muted); }
+.nav-links { list-style: none; display: flex; flex-direction: column; gap: 2px; }
+.nav-links li a { text-decoration: none; color: var(--text-muted); font-size: 14px; padding: 9px 12px; border-radius: 10px; display: flex; align-items: center; gap: 10px; transition: 0.2s; }
+.nav-links li a .nav-icon { font-size: 15px; width: 18px; text-align: center; flex-shrink: 0; }
+.nav-links li a:hover, .nav-links li a.active { background-color: #F3F4F6; color: var(--text-main); font-weight: 500; }
+.nav-links li.nav-divider { height: 1px; background: var(--border); margin: 8px 4px; list-style: none; }
+
+.main-content { flex: 1; display: flex; flex-direction: column; overflow-y: auto; }
+.topbar { height: 60px; display: flex; align-items: center; padding: 0 48px; border-bottom: 1px solid var(--border); background-color: var(--surface); position: sticky; top: 0; z-index: 5; }
+.content-wrapper { padding: 40px 48px; max-width: 760px; margin: 0 auto; width: 100%; }
+
+.search-hero { margin-bottom: 28px; }
+.search-hero h1 { font-size: 24px; font-weight: 600; margin-bottom: 16px; }
+.search-input-wrap { position: relative; }
+.search-bar {
+  width: 100%; padding: 16px 16px 16px 46px; border: 1px solid var(--border);
+  border-radius: var(--radius); font-size: 16px; background-color: var(--surface); outline: none;
+}
+.search-bar:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(10,132,255,0.1); }
+.search-icon { position: absolute; left: 16px; top: 50%; transform: translateY(-50%); font-size: 16px; color: var(--text-muted); }
+.search-hint { font-size: 13px; color: var(--text-muted); margin-top: 8px; }
+
+.filter-row { display: flex; gap: 8px; margin-bottom: 24px; }
+.filter-chip-busca { padding: 7px 14px; background: var(--surface); border: 1px solid var(--border); border-radius: 20px; font-size: 13px; cursor: pointer; }
+.filter-chip-busca.active { background: var(--primary); color: white; border-color: var(--primary); }
+
+.results-count { font-size: 12px; color: var(--text-muted); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.04em; font-weight: 600; }
+.result-item {
+  display: flex; align-items: center; gap: 14px; background: var(--surface);
+  border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px;
+  text-decoration: none; color: var(--text-main); margin-bottom: 8px; transition: 0.15s;
+}
+.result-item:hover { border-color: #D1D5DB; }
+.result-icon { width: 36px; height: 36px; border-radius: 10px; background: var(--chip-bg); display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; }
+.result-icon.familia { background: var(--primary); color: white; }
+.result-body { flex: 1; min-width: 0; }
+.result-title { font-size: 14px; font-weight: 600; }
+.result-sub { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+.result-type { font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; flex-shrink: 0; }
+.result-tags { display: flex; gap: 4px; margin-top: 4px; }
+.mini-tag { font-size: 10px; background: var(--chip-bg); padding: 2px 6px; border-radius: 4px; font-weight: 600; }
+
+.estado-vazio { color: var(--text-muted); padding: 40px 0; text-align: center; font-size: 14px; }
+.estado-inicial { color: var(--text-muted); padding: 24px 0; text-align: center; font-size: 14px; }
+
+@media (max-width: 768px) {
+  body { flex-direction: column; height: auto; overflow: visible; }
+  .sidebar { display: none; }
+  .topbar, .content-wrapper { padding: 0 20px; }
+  .content-wrapper { padding: 24px 20px 32px; }
+}
+</style>
+</head>
+<body>
+<aside class="sidebar">
+<div class="sidebar-header">
+<h2>UBS Guarda-Mor</h2>
+<span>Micro-área 03</span>
+</div>
+<ul class="nav-links">
+<li><a href="index.html"><span class="nav-icon">🏠</span> Dashboard</a></li>
+<li><a href="nova-visita.html"><span class="nav-icon">▶️</span> Meu Roteiro</a></li>
+<li><a href="agenda.html"><span class="nav-icon">🗓️</span> Agenda</a></li>
+<li><a href="nova-visita.html"><span class="nav-icon">📋</span> Visitas</a></li>
+<li><a href="familias.html"><span class="nav-icon">👨‍👩‍👧</span> Famílias</a></li>
+<li><a href="mapa.html"><span class="nav-icon">🗺️</span> Mapa</a></li>
+<li><a href="indicadores.html"><span class="nav-icon">📊</span> Indicadores</a></li>
+<li class="nav-divider"></li>
+<li><a href="busca.html" class="active"><span class="nav-icon">🔍</span> Busca</a></li>
+<li><a href="configuracoes.html"><span class="nav-icon">⚙️</span> Configurações</a></li>
+</ul>
+</aside>
+
+<main class="main-content">
+<header class="topbar">
+<div style="font-size: 14px; color: var(--text-muted);">Busca</div>
+</header>
+<div class="content-wrapper">
+
+  <div class="search-hero">
+    <h1>Buscar pessoa, família ou endereço</h1>
+    <div class="search-input-wrap">
+      <span class="search-icon">🔍</span>
+      <input type="text" class="search-bar" id="campoBusca" placeholder="Nome, endereço, CNS ou CPF..." autofocus>
+    </div>
+    <div class="search-hint">Busca em todos os cadastros da Micro-área 03 em tempo real.</div>
+  </div>
+
+  <div class="filter-row">
+    <div class="filter-chip-busca active" data-tipo="todos">Todos</div>
+    <div class="filter-chip-busca" data-tipo="cidadaos">👤 Pessoas</div>
+    <div class="filter-chip-busca" data-tipo="familias">🏠 Famílias</div>
+  </div>
+
+  <div id="resultados">
+    <p class="estado-inicial">Digite ao menos 2 letras para começar a buscar.</p>
+  </div>
+
+</div>
+</main>
+
+<script>
+let familiasGlobais = [];
+let filtroTipo = 'todos';
+
+function condicoesDe(cidadao) {
+  return (cidadao.condicoes_saude || []).map(c => c.condicao);
+}
+
+function escapeHtml(str) {
+  return String(str ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+async function carregarDados() {
+  const { data, error } = await db.from('familias').select('*, cidadaos(*, condicoes_saude(*))').order('logradouro');
+  if (error) {
+    document.getElementById('resultados').innerHTML = `<p class="estado-vazio">Não foi possível carregar os dados para busca agora.</p>`;
+    console.error(error);
+    return;
+  }
+  familiasGlobais = data || [];
+}
+
+function tagsCidadao(c) {
+  const tags = [];
+  if (condicoesDe(c).includes('Hipertensão')) tags.push('🫀 HAS');
+  if (condicoesDe(c).includes('Diabetes')) tags.push('🍬 DM');
+  if (condicoesDe(c).includes('Gestante')) tags.push('🤰 Gestante');
+  if (condicoesDe(c).includes('Acamado')) tags.push('🛏️ Acamado');
+  return tags;
+}
+
+function buscar(termo) {
+  const resultadosEl = document.getElementById('resultados');
+  const termoNorm = termo.trim().toLowerCase();
+
+  if (termoNorm.length < 2) {
+    resultadosEl.innerHTML = `<p class="estado-inicial">Digite ao menos 2 letras para começar a buscar.</p>`;
+    return;
+  }
+
+  const matchFamilias = [];
+  const matchCidadaos = [];
+
+  familiasGlobais.forEach(f => {
+    const endereco = [f.logradouro, f.numero].filter(Boolean).join(', ');
+    const enderecoMatch = (f.logradouro || '').toLowerCase().includes(termoNorm) || (f.bairro || '').toLowerCase().includes(termoNorm);
+    if (enderecoMatch) matchFamilias.push(f);
+
+    (f.cidadaos || []).forEach(c => {
+      const cMatch =
+        (c.nome || '').toLowerCase().includes(termoNorm) ||
+        (c.cns || '').includes(termoNorm) ||
+        (c.cpf || '').includes(termoNorm);
+      if (cMatch) matchCidadaos.push({ cidadao: c, familia: f });
+    });
+  });
+
+  const mostrarFamilias = filtroTipo === 'todos' || filtroTipo === 'familias';
+  const mostrarCidadaos = filtroTipo === 'todos' || filtroTipo === 'cidadaos';
+
+  const totalResultados = (mostrarFamilias ? matchFamilias.length : 0) + (mostrarCidadaos ? matchCidadaos.length : 0);
+
+  if (totalResultados === 0) {
+    resultadosEl.innerHTML = `<p class="estado-vazio">Nenhum resultado para "${escapeHtml(termo)}".</p>`;
+    return;
+  }
+
+  let html = `<div class="results-count">${totalResultados} resultado${totalResultados === 1 ? '' : 's'}</div>`;
+
+  if (mostrarCidadaos && matchCidadaos.length > 0) {
+    html += matchCidadaos.map(({ cidadao: c, familia: f }) => {
+      const endereco = [f.logradouro, f.numero].filter(Boolean).join(', ');
+      const tags = tagsCidadao(c);
+      return `
+        <a class="result-item" href="prontuario.html?id=${c.id}">
+          <span class="result-icon">👤</span>
+          <span class="result-body">
+            <span class="result-title">${escapeHtml(c.nome)}</span>
+            <span class="result-sub">📍 ${escapeHtml(endereco || 'Endereço não informado')}${f.bairro ? ' - ' + escapeHtml(f.bairro) : ''}</span>
+            ${tags.length > 0 ? `<span class="result-tags">${tags.map(t => `<span class="mini-tag">${t}</span>`).join('')}</span>` : ''}
+          </span>
+          <span class="result-type">Pessoa</span>
+        </a>
+      `;
+    }).join('');
+  }
+
+  if (mostrarFamilias && matchFamilias.length > 0) {
+    html += matchFamilias.map(f => {
+      const endereco = [f.logradouro, f.numero].filter(Boolean).join(', ');
+      const qtdMembros = (f.cidadaos || []).length;
+      return `
+        <a class="result-item" href="familias.html?abrir=${f.id}">
+          <span class="result-icon familia">🏠</span>
+          <span class="result-body">
+            <span class="result-title">${escapeHtml(endereco || 'Endereço não informado')}</span>
+            <span class="result-sub">${f.bairro ? '📍 ' + escapeHtml(f.bairro) + ' · ' : ''}${qtdMembros} morador${qtdMembros === 1 ? '' : 'es'}</span>
+          </span>
+          <span class="result-type">Família</span>
+        </a>
+      `;
+    }).join('');
+  }
+
+  resultadosEl.innerHTML = html;
+}
+
+document.querySelectorAll('.filter-chip-busca').forEach(chip => {
+  chip.addEventListener('click', () => {
+    document.querySelectorAll('.filter-chip-busca').forEach(c => c.classList.remove('active'));
+    chip.classList.add('active');
+    filtroTipo = chip.dataset.tipo;
+    buscar(document.getElementById('campoBusca').value);
+  });
+});
+
+document.getElementById('campoBusca').addEventListener('input', (e) => buscar(e.target.value));
+
+carregarDados();
+</script>
+</body>
+</html>

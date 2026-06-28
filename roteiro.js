@@ -10,6 +10,10 @@
    formatarDataBR() e diasDesde(). Se eles não existirem, as funções
    "seguras" abaixo (com sufixo *Seguro/*Segura) fazem fallback automático.
 
+   Depende também de branding.js (obterConfiguracaoLocal) para os valores
+   configuráveis na tela "Configurações" - certifique-se de que branding.js
+   é carregado ANTES deste arquivo.
+
    IMPORTANTE: ainda não existe uma tabela de agendamento real
    (ex.: "visitas_agendadas"). Por isso, calcularRoteiroDoDia() é uma
    HEURÍSTICA clínica, não uma agenda de verdade. Documentado também em
@@ -17,7 +21,7 @@
    carregarFamiliasEnriquecidas()/calcularRoteiroDoDia() por uma query real.
 ============================================================================ */
 
-const CAPACIDADE_DIARIA_PADRAO = 12;
+const CAPACIDADE_DIARIA_PADRAO = obterConfiguracaoLocal().capacidadeDiaria;
 
 // ----------------------------- Utilitários seguros ---------------------------
 function diasDesdeSeguro(dataStr) {
