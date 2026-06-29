@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Diagnóstico de Segurança - ACS Digital</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
+<style>
+:root {
+  --bg-color: #FAFAFA; --surface: #FFFFFF; --text-main: #111827; --text-muted: #6B7280;
+  --border: #E5E7EB; --primary: #0A84FF; --success: #34C759; --danger: #FF3B30; --warning: #FF9500;
+  --radius: 12px;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+body { background: var(--bg-color); color: var(--text-main); padding: 32px 24px 80px; }
+.wrap { max-width: 800px; margin: 0 auto; }
+h1 { font-size: 22px; margin-bottom: 6px; }
+.subtitle { font-size: 14px; color: var(--text-muted); margin-bottom: 24px; }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; margin-bottom: 20px; }
+.card h2 { font-size: 15px; margin-bottom: 10px; }
+.aviso { background: #FFF4E5; border: 1px solid var(--warning); border-radius: var(--radius); padding: 14px 16px; font-size: 13px; margin-bottom: 20px; }
+.aviso.grave { background: #FFEDEC; border-color: var(--danger); }
+.btn { background: var(--primary); color: white; border: none; padding: 10px 18px; border-radius: 8px; font-weight: 600; font-size: 14px; cursor: pointer; }
+.btn.danger { background: var(--danger); }
+.btn:disabled { background: var(--chip-bg, #F2F2F7); color: var(--text-muted); cursor: not-allowed; }
+.resultado-item { display: flex; gap: 10px; align-items: flex-start; padding: 10px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
+.resultado-item:last-child { border-bottom: none; }
+.resultado-icon { font-size: 15px; flex-shrink: 0; }
+.resultado-texto strong { display: block; margin-bottom: 2px; }
+.resultado-texto span { color: var(--text-muted); }
+.veredito { margin-top: 16px; padding: 14px 16px; border-radius: var(--radius); font-size: 14px; font-weight: 600; }
+.veredito.ok { background: rgba(52,199,89,0.12); color: var(--success); }
+.veredito.exposto { background: rgba(255,59,48,0.10); color: var(--danger); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>🔒 Diagnóstico de Segurança do Supabase</h1>
+  <p class="subtitle">Ferramenta avulsa, não faz parte do menu do app. Testa de verdade o que a chave pública do seu sistema consegue fazer no banco.</p>
+
+  <div class="card">
+    <h2>1. Teste de leitura (baixo risco)</h2>
+    <p style="font-size:13px; color:var(--text-muted); margin-bottom:14px;">Confirma se qualquer pessoa com a URL do app consegue LER os cadastros (nome, endereço, CPF, CNS, condições de saúde).</p>
+    <button class="btn" id="btnTesteLeitura">Rodar teste de leitura</button>
+    <div id="resultadosLeitura" style="margin-top:14px;"></div>
+  </div>
+
+  <div class="card">
+    <h2>2. Teste de escrita (cria e remove um registro de teste)</h2>
+    <div class="aviso">
+      ⚠️ Este teste vai tentar <strong>inserir uma família de teste</strong> (claramente marcada como "__TESTE_SEGURANCA__") e, se conseguir, <strong>apagar ela imediatamente</strong>. Só clique se entender o que está fazendo. Se a remoção falhar por algum motivo, eu aviso aqui na tela exatamente o que ficou pra você remover manualmente no painel do Supabase.
+    </div>
+    <button class="btn danger" id="btnTesteEscrita">Rodar teste de escrita (avançado)</button>
+    <div id="resultadosEscrita" style="margin-top:14px;"></div>
+  </div>
+
+  <div class="card" id="cardVeredito" style="display:none;">
+    <h2>Conclusão</h2>
+    <div id="veredito"></div>
+  </div>
+</div>
+
+<script>
+function item(container, status, titulo, detalhe) {
+  const icones = { ok: '✅', alerta: '⚠️', erro: '❌' };
+  const div = document.createElement('div');
+  div.className = 'resultado-item';
+  div.innerHTML = `<span class="resultado-icon">${icones[status]}</span>
+    <span class="resultado-texto"><strong>${titulo}</strong><span>${detalhe}</span></span>`;
+  container.appendChild(div);
+}
+
+let podeLer = null, podeEscrever = null;
+
+function atualizarVeredito() {
+  if (podeLer === null) return;
+  const cardVeredito = document.getElementById('cardVeredito');
+  const veredito = document.getElementById('veredito');
+  cardVeredito.style.display = 'block';
+
+  if (podeEscrever === null) {
+    veredito.innerHTML = `<div class="veredito ok">Leitura pública confirmada (esperado, é assim que o app funciona). Rode o teste de escrita pra saber o quadro completo antes de decidir o que fazer.</div>`;
+    return;
+  }
+
+  if (podeEscrever) {
+    veredito.innerHTML = `<div class="veredito exposto">
+      Confirmado: hoje, qualquer pessoa que descobrir a URL do seu app consegue LER e ESCREVER (criar, alterar, apagar) os dados de saúde de pacientes reais, sem login.<br><br>
+      Isso não é um bug específico pra corrigir com uma linha de código — é uma consequência de o sistema não ter autenticação ainda. A correção real é: implementar um login (mesmo que simples, uma senha única da equipe) e restringir escrita a usuários autenticados.<br><br>
+      Não dá pra simplesmente "bloquear escrita anônima" agora, porque o app inteiro (Nova Família, Nova Visita, etc.) usa essa mesma chave sem login — bloquear quebraria o sistema até existir uma tela de login.
+    </div>`;
+  } else {
+    veredito.innerHTML = `<div class="veredito ok">Boa notícia: a escrita anônima parece estar bloqueada. Isso é mais seguro do que eu esperava dado o desenho atual do banco — vale confirmar com o time/documentação do Supabase se isso foi configurado de propósito, pra não ser revertido por engano.</div>`;
+  }
+}
+
+document.getElementById('btnTesteLeitura').addEventListener('click', async () => {
+  const container = document.getElementById('resultadosLeitura');
+  container.innerHTML = '';
+  const tabelas = ['familias', 'cidadaos', 'condicoes_saude', 'visitas'];
+  let algumaLeitura = false;
+
+  for (const tabela of tabelas) {
+    try {
+      const { data, error, count } = await db.from(tabela).select('*', { count: 'exact', head: false }).limit(1);
+      if (error) {
+        item(container, 'ok', `Tabela "${tabela}"`, 'Leitura bloqueada: ' + error.message);
+      } else {
+        algumaLeitura = true;
+        item(container, 'alerta', `Tabela "${tabela}"`, `Leitura pública permitida (qualquer um lê os dados desta tabela).`);
+      }
+    } catch (e) {
+      item(container, 'erro', `Tabela "${tabela}"`, 'Erro de conexão: ' + e.message);
+    }
+  }
+  podeLer = algumaLeitura;
+  atualizarVeredito();
+});
+
+document.getElementById('btnTesteEscrita').addEventListener('click', async () => {
+  if (!confirm('Isso vai tentar inserir e remover um registro de teste real no seu banco. Confirma?')) return;
+  const container = document.getElementById('resultadosEscrita');
+  container.innerHTML = '';
+
+  const marcador = '__TESTE_SEGURANCA_' + Date.now() + '__';
+  let inseriuOk = false, idCriado = null;
+
+  // Tenta inserir
+  const { data: inserido, error: erroInsert } = await db.from('familias')
+    .insert({ logradouro: marcador, bairro: 'TESTE - PODE IGNORAR/EXCLUIR' })
+    .select();
+
+  if (erroInsert) {
+    item(container, 'ok', 'Inserção anônima', 'Bloqueada: ' + erroInsert.message);
+    podeEscrever = false;
+  } else {
+    inseriuOk = true;
+    idCriado = inserido?.[0]?.id;
+    item(container, 'alerta', 'Inserção anônima', 'Permitida — qualquer pessoa pode criar registros falsos no seu cadastro.');
+    podeEscrever = true;
+  }
+
+  // Se inseriu, tenta remover imediatamente
+  if (inseriuOk && idCriado) {
+    const { error: erroDelete } = await db.from('familias').delete().eq('id', idCriado);
+    if (erroDelete) {
+      item(container, 'erro', 'Remoção do registro de teste FALHOU', `Restou um registro de teste no banco (logradouro = "${marcador}", id = ${idCriado}). Remova manualmente no painel do Supabase, na tabela "familias".`);
+    } else {
+      item(container, 'ok', 'Remoção do registro de teste', 'Removido com sucesso, nenhum dado de teste ficou no banco.');
+    }
+    item(container, 'alerta', 'Conclusão da escrita', 'A mesma chave que criou também conseguiu apagar — ou seja, a exclusão de QUALQUER família real também está liberada hoje.');
+  }
+
+  atualizarVeredito();
+});
+</script>
+</body>
+</html>
