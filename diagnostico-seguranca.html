@@ -84,6 +84,11 @@ function atualizarVeredito() {
     return;
   }
 
+  if (podeEscrever === 'inconclusivo') {
+    veredito.innerHTML = `<div class="veredito ok">O teste de escrita não deu um resultado claro — falhou por um motivo que não parece ser de permissão. Não dá pra concluir nada ainda; me manda a mensagem de erro exata que apareceu.</div>`;
+    return;
+  }
+
   if (podeEscrever) {
     veredito.innerHTML = `<div class="veredito exposto">
       Confirmado: hoje, qualquer pessoa que descobrir a URL do seu app consegue LER e ESCREVER (criar, alterar, apagar) os dados de saúde de pacientes reais, sem login.<br><br>
@@ -126,17 +131,28 @@ document.getElementById('btnTesteEscrita').addEventListener('click', async () =>
   const marcador = '__TESTE_SEGURANCA_' + Date.now() + '__';
   let inseriuOk = false, idCriado = null;
 
-  // Tenta inserir
+  // IMPORTANTE: a tabela "familias" não tem valor padrão pra coluna "id" -
+  // o próprio app sempre gera um UUID no JavaScript antes de inserir (veja
+  // familias.html -> salvarNovaFamilia). Sem isso, o insert falha por
+  // "not-null constraint", o que NÃO tem nada a ver com permissão/RLS.
+  const idTeste = crypto.randomUUID();
+
   const { data: inserido, error: erroInsert } = await db.from('familias')
-    .insert({ logradouro: marcador, bairro: 'TESTE - PODE IGNORAR/EXCLUIR' })
+    .insert({ id: idTeste, logradouro: marcador, bairro: 'TESTE - PODE IGNORAR/EXCLUIR' })
     .select();
 
   if (erroInsert) {
-    item(container, 'ok', 'Inserção anônima', 'Bloqueada: ' + erroInsert.message);
-    podeEscrever = false;
+    const ehErroDePermissao = /row-level security|RLS|permission denied|42501/i.test(erroInsert.message || '');
+    if (ehErroDePermissao) {
+      item(container, 'ok', 'Inserção anônima', 'Bloqueada por política de segurança (RLS): ' + erroInsert.message);
+      podeEscrever = false;
+    } else {
+      item(container, 'erro', 'Inserção anônima — resultado inconclusivo', 'Falhou, mas por um motivo que NÃO parece ser de permissão: "' + erroInsert.message + '". Isso não confirma que a escrita está bloqueada — pode ser outro problema (ex: coluna obrigatória faltando). Avise-me com essa mensagem de erro.');
+      podeEscrever = 'inconclusivo';
+    }
   } else {
     inseriuOk = true;
-    idCriado = inserido?.[0]?.id;
+    idCriado = inserido?.[0]?.id || idTeste;
     item(container, 'alerta', 'Inserção anônima', 'Permitida — qualquer pessoa pode criar registros falsos no seu cadastro.');
     podeEscrever = true;
   }
