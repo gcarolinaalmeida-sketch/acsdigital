@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Entrar - ACS Digital</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
+<style>
+:root {
+  --bg-color: #FAFAFA; --surface: #FFFFFF; --text-main: #111827; --text-muted: #6B7280;
+  --border: #E5E7EB; --primary: #0A84FF; --danger: #FF3B30; --radius: 14px;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+body { background: var(--bg-color); height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
+.login-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 36px 32px; width: 100%; max-width: 380px; box-shadow: 0 8px 24px rgba(17,24,39,0.06); }
+.login-logo { font-size: 28px; margin-bottom: 6px; }
+.login-card h1 { font-size: 20px; font-weight: 700; margin-bottom: 4px; }
+.login-card p { font-size: 13px; color: var(--text-muted); margin-bottom: 24px; }
+.field-row { margin-bottom: 14px; }
+.field-row label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; }
+.field-row input { width: 100%; padding: 12px 14px; border: 1px solid var(--border); border-radius: 10px; font-size: 15px; outline: none; }
+.field-row input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(10,132,255,0.1); }
+.btn-entrar { width: 100%; background: var(--primary); color: white; border: none; padding: 13px; border-radius: 10px; font-weight: 700; font-size: 15px; cursor: pointer; margin-top: 8px; }
+.btn-entrar:disabled { opacity: 0.6; cursor: not-allowed; }
+.erro-msg { background: #FFEDEC; color: var(--danger); border-radius: 8px; padding: 10px 12px; font-size: 13px; margin-bottom: 14px; display: none; }
+.erro-msg.show { display: block; }
+.rodape { text-align: center; font-size: 12px; color: var(--text-muted); margin-top: 18px; }
+</style>
+</head>
+<body>
+<div class="login-card">
+  <div class="login-logo">🩺</div>
+  <h1>ACS Digital</h1>
+  <p>Micro-área 03 · UBS Guarda-Mor</p>
+
+  <div class="erro-msg" id="erroMsg"></div>
+
+  <form id="formLogin">
+    <div class="field-row">
+      <label for="campoEmail">E-mail</label>
+      <input type="email" id="campoEmail" required autocomplete="username">
+    </div>
+    <div class="field-row">
+      <label for="campoSenha">Senha</label>
+      <input type="password" id="campoSenha" required autocomplete="current-password">
+    </div>
+    <button type="submit" class="btn-entrar" id="btnEntrar">Entrar</button>
+  </form>
+
+  <div class="rodape">Acesso restrito à equipe da UBS.</div>
+</div>
+
+<script>
+// Se já tem sessão válida, pula direto pro destino (evita ficar preso no login).
+(async () => {
+  const { data } = await db.auth.getSession();
+  if (data && data.session) {
+    const params = new URLSearchParams(window.location.search);
+    window.location.href = params.get('retorno') || 'index.html';
+  }
+})();
+
+document.getElementById('formLogin').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const email = document.getElementById('campoEmail').value.trim();
+  const senha = document.getElementById('campoSenha').value;
+  const btn = document.getElementById('btnEntrar');
+  const erroEl = document.getElementById('erroMsg');
+  erroEl.classList.remove('show');
+  btn.disabled = true;
+  btn.textContent = 'Entrando...';
+
+  const { error } = await db.auth.signInWithPassword({ email, password: senha });
+
+  if (error) {
+    erroEl.textContent = error.message === 'Invalid login credentials'
+      ? 'E-mail ou senha incorretos.'
+      : error.message;
+    erroEl.classList.add('show');
+    btn.disabled = false;
+    btn.textContent = 'Entrar';
+    return;
+  }
+
+  const params = new URLSearchParams(window.location.search);
+  window.location.href = params.get('retorno') || 'index.html';
+});
+</script>
+</body>
+</html>
