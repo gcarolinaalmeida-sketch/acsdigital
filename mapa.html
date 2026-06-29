@@ -202,8 +202,8 @@ function abrirPopoverFamilia(familiaId, elementoPin) {
   const popover = document.getElementById('mapPopover');
   const rect = elementoPin.getBoundingClientRect();
 
-  document.getElementById('popTitle').innerText = nomePrincipalDe(f);
-  document.getElementById('popAddress').innerText = enderecoDe(f) + (f.bairro ? ' - ' + f.bairro : '');
+  document.getElementById('popTitle').textContent = nomePrincipalDe(f);
+  document.getElementById('popAddress').textContent = enderecoDe(f) + (f.bairro ? ' - ' + f.bairro : '');
 
   const tagClasse = f.prio.nivel === 'urgente' ? 'tag-danger' : f.prio.nivel === 'atencao' ? 'tag-warning' : 'tag-info';
   document.getElementById('popTags').innerHTML = `
@@ -214,7 +214,7 @@ function abrirPopoverFamilia(familiaId, elementoPin) {
   const ultimaVisitaTxt = f.totalVisitas > 0
     ? `há ${f.diasDesdeUltimaVisita} dia${f.diasDesdeUltimaVisita === 1 ? '' : 's'}`
     : 'nunca visitada';
-  document.getElementById('popMeta').innerText = `👨‍👩‍👧‍👦 ${f.membros.length} morador${f.membros.length === 1 ? '' : 'es'} | ⏱️ Últ. visita: ${ultimaVisitaTxt}`;
+  document.getElementById('popMeta').textContent = `👨‍👩‍👧‍👦 ${f.membros.length} morador${f.membros.length === 1 ? '' : 'es'} | ⏱️ Últ. visita: ${ultimaVisitaTxt}`;
 
   document.getElementById('popActions').innerHTML = `
     <a href="nova-visita.html?familia_id=${f.id}" class="btn-popover btn-visit">Iniciar Visita</a>
