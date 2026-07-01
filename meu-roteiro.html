@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Meu Roteiro - ACS Digital</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<!-- Lucide Icons para uma iconografia limpa e moderna -->
+<script src="https://unpkg.com/lucide@latest"></script>
+<script src="config.js"></script>
+<script src="auth.js"></script>
+<script>protegerPagina();</script>
+<script src="branding.js"></script>
+<script src="roteiro.js"></script>
+
+<style>
+/* Tokens Base - Estética Clean e Minimalista */
+:root {
+  --bg-color: #F8FAFC;
+  --surface: #FFFFFF;
+  --text-main: #0F172A;
+  --text-muted: #64748B;
+  --border: #E2E8F0;
+  --primary: #0A84FF; /* Azul Apple */
+  --primary-soft: #EFF6FF;
+  --danger: #EF4444;
+  --danger-soft: #FEF2F2;
+  --success: #22C55E;
+  --success-soft: #F0FDF4;
+  --warning: #F59E0B;
+  --radius-sm: 12px;
+  --radius-md: 16px;
+  --radius-lg: 24px;
+  --shadow-sm: 0 4px 12px rgba(0,0,0,0.03);
+  --shadow-md: 0 12px 32px rgba(10, 132, 255, 0.12);
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif; -webkit-tap-highlight-color: transparent; }
+
+body { background-color: var(--bg-color); color: var(--text-main); display: flex; min-height: 100vh; }
+
+/* Ocultar scrollbar, mas permitir scroll */
+::-webkit-scrollbar { display: none; }
+
+/* --- Layout Principal --- */
+.sidebar { width: 260px; background: var(--surface); border-right: 1px solid var(--border); padding: 24px 16px; display: flex; flex-direction: column; gap: 24px; }
+.sidebar-header h2 { font-size: 15px; font-weight: 700; }
+.sidebar-header span { font-size: 13px; color: var(--text-muted); }
+.nav-links { list-style: none; display: flex; flex-direction: column; gap: 4px; }
+.nav-links li a { text-decoration: none; color: var(--text-muted); font-size: 14px; padding: 10px 14px; border-radius: var(--radius-sm); display: flex; align-items: center; gap: 12px; transition: 0.2s; font-weight: 500; }
+.nav-links li a:hover, .nav-links li a.active { background: var(--primary-soft); color: var(--primary); font-weight: 600; }
+
+.main-content { flex: 1; display: flex; flex-direction: column; overflow-y: auto; padding-bottom: 90px; }
+.content-wrapper { max-width: 720px; margin: 0 auto; width: 100%; padding: 24px; }
+
+/* --- Cabeçalho e Resumo --- */
+.header { margin-bottom: 24px; }
+.header-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+.back-btn { display: flex; align-items: center; gap: 8px; color: var(--text-muted); text-decoration: none; font-size: 14px; font-weight: 500; }
+.header h1 { font-size: 28px; font-weight: 800; letter-spacing: -0.5px; margin-bottom: 4px; }
+.header-meta { font-size: 14px; color: var(--text-muted); font-weight: 500; }
+
+.summary-card { background: var(--surface); border-radius: var(--radius-md); padding: 20px; border: 1px solid var(--border); box-shadow: var(--shadow-sm); margin-bottom: 32px; }
+.summary-stats { display: flex; justify-content: space-between; margin-bottom: 16px; align-items: baseline; }
+.stat-main { font-size: 20px; font-weight: 700; }
+.stat-sub { font-size: 13px; color: var(--text-muted); font-weight: 500; }
+.progress-container { width: 100%; height: 8px; background: var(--border); border-radius: 4px; overflow: hidden; margin-bottom: 12px; }
+.progress-bar { height: 100%; background: var(--primary); border-radius: 4px; transition: width 0.4s ease; }
+.progress-labels { display: flex; justify-content: space-between; font-size: 13px; font-weight: 600; color: var(--text-muted); }
+
+/* --- Próxima Visita (O Destaque) --- */
+.section-title { font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 700; color: var(--text-muted); margin-bottom: 16px; }
+
+.next-visit-card { background: var(--surface); border-radius: var(--radius-lg); padding: 24px; border: 1px solid var(--border); box-shadow: var(--shadow-sm); margin-bottom: 32px; position: relative; overflow: hidden; }
+.next-visit-card::before { content: ''; position: absolute; top: 0; left: 0; bottom: 0; width: 4px; background: var(--primary); }
+.next-visit-card.urgente::before { background: var(--danger); }
+
+.nv-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px; }
+.nv-name { font-size: 24px; font-weight: 800; color: var(--text-main); line-height: 1.2; margin-bottom: 6px; display: flex; align-items: center; gap: 8px; }
+.nv-address { font-size: 15px; color: var(--text-muted); display: flex; align-items: center; gap: 6px; }
+.nv-distance { font-size: 13px; font-weight: 600; background: var(--bg-color); padding: 4px 10px; border-radius: 20px; color: var(--text-main); display: flex; align-items: center; gap: 4px; }
+
+.nv-meta { display: flex; flex-direction: column; gap: 8px; margin-bottom: 24px; padding-top: 16px; border-top: 1px solid var(--bg-color); }
+.nv-meta-item { font-size: 14px; font-weight: 500; color: var(--text-muted); display: flex; align-items: center; gap: 8px; }
+.nv-meta-item strong { color: var(--text-main); font-weight: 600; }
+
+.nv-tags { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 24px; }
+.tag { font-size: 12px; font-weight: 700; padding: 6px 12px; border-radius: 8px; display: flex; align-items: center; gap: 6px; }
+.tag.urgente { background: var(--danger-soft); color: var(--danger); }
+.tag.atencao { background: #FFFBEB; color: var(--warning); }
+.tag.info { background: var(--primary-soft); color: var(--primary); }
+
+.btn-primary { width: 100%; background: var(--primary); color: white; border: none; padding: 18px; border-radius: var(--radius-md); font-size: 16px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; box-shadow: var(--shadow-md); transition: transform 0.1s; text-decoration: none; }
+.btn-primary:active { transform: scale(0.98); }
+.btn-primary.urgente { background: var(--danger); box-shadow: 0 12px 32px rgba(239, 68, 68, 0.15); }
+
+/* --- Filtros --- */
+.filters-scroll { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; margin-bottom: 20px; scroll-behavior: smooth; }
+.filter-chip { padding: 10px 16px; background: var(--surface); border: 1px solid var(--border); border-radius: 20px; font-size: 14px; font-weight: 600; color: var(--text-muted); white-space: nowrap; cursor: pointer; transition: 0.2s; }
+.filter-chip.active { background: var(--text-main); color: var(--surface); border-color: var(--text-main); }
+
+/* --- Lista Clean --- */
+.route-list { display: flex; flex-direction: column; gap: 12px; }
+.list-item { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 16px; display: flex; justify-content: space-between; align-items: center; text-decoration: none; color: inherit; transition: border-color 0.2s; }
+.list-item:active { background: var(--bg-color); }
+.list-item-left { display: flex; align-items: center; gap: 12px; }
+.status-icon { width: 24px; height: 24px; border-radius: 50%; border: 2px solid var(--border); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.status-icon.done { background: var(--success); border-color: var(--success); color: white; }
+.status-icon.pending { border-color: var(--primary); }
+.list-name { font-size: 15px; font-weight: 600; color: var(--text-main); }
+.list-meta { font-size: 13px; color: var(--text-muted); margin-top: 2px; display: flex; align-items: center; gap: 6px; }
+.list-right { display: flex; align-items: center; gap: 12px; }
+
+/* Estado Vazio */
+.empty-state { text-align: center; padding: 40px 20px; color: var(--text-muted); }
+.empty-state i { margin-bottom: 16px; color: var(--border); }
+.empty-state h3 { font-size: 18px; font-weight: 700; color: var(--text-main); margin-bottom: 8px; }
+.empty-state p { font-size: 14px; }
+
+/* Navegação Mobile */
+.bottom-nav { display: none; }
+
+@media (max-width: 768px) {
+  .sidebar { display: none; }
+  .content-wrapper { padding: 20px 20px 100px; }
+  .header h1 { font-size: 24px; }
+  
+  .bottom-nav { display: flex; position: fixed; bottom: 0; left: 0; right: 0; background: rgba(255,255,255,0.9); backdrop-filter: blur(10px); border-top: 1px solid var(--border); z-index: 50; padding: 8px 16px calc(env(safe-area-inset-bottom, 0px) + 8px); justify-content: space-around; }
+  .bottom-nav a { display: flex; flex-direction: column; align-items: center; gap: 4px; text-decoration: none; color: var(--text-muted); font-size: 11px; font-weight: 500; padding: 4px 0; }
+  .bottom-nav a.active { color: var(--primary); }
+}
+</style>
+</head>
+<body>
+
+<aside class="sidebar">
+  <div class="sidebar-header">
+    <h2 id="sideUbs">UBS Guarda-Mor</h2>
+    <span id="sideArea">Micro-área 03</span>
+  </div>
+  <ul class="nav-links">
+    <li><a href="index.html"><i data-lucide="layout-dashboard"></i> Dashboard</a></li>
+    <li><a href="meu-roteiro.html" class="active"><i data-lucide="map"></i> Meu Roteiro</a></li>
+    <li><a href="familias.html"><i data-lucide="users"></i> Famílias</a></li>
+    <li><a href="mapa.html"><i data-lucide="map-pin"></i> Mapa</a></li>
+    <li class="nav-divider"></li>
+    <li><a href="busca.html"><i data-lucide="search"></i> Busca</a></li>
+  </ul>
+</aside>
+
+<main class="main-content">
+  <div class="content-wrapper">
+    
+    <div class="header">
+      <div class="header-top">
+        <a href="index.html" class="back-btn"><i data-lucide="chevron-left" size="18"></i> Início</a>
+        <div class="header-meta" id="headerDate">--</div>
+      </div>
+      <h1>Meu Roteiro</h1>
+      <div class="header-meta" id="headerMicroarea">Microárea --</div>
+    </div>
+
+    <!-- Resumo Compacto -->
+    <div class="summary-card">
+      <div class="summary-stats">
+        <div>
+          <div class="stat-main" id="statVisitas">-- visitas hoje</div>
+          <div class="stat-sub" id="statTempo">Tempo estimado: --h</div>
+        </div>
+        <div style="text-align: right;">
+          <div class="stat-main" id="statConcluidas">-- / --</div>
+          <div class="stat-sub">concluídas</div>
+        </div>
+      </div>
+      <div class="progress-container">
+        <div class="progress-bar" id="progressBar" style="width: 0%"></div>
+      </div>
+    </div>
+
+    <div id="nextVisitContainer">
+      <!-- Injetado via JS -->
+      <div class="empty-state">Carregando roteiro...</div>
+    </div>
+
+    <div class="section-title" style="margin-top: 16px;">Lista do Roteiro</div>
+    
+    <div class="filters-scroll" id="filters">
+      <div class="filter-chip active" data-filter="todos">Todos</div>
+      <div class="filter-chip" data-filter="urgentes">Urgentes</div>
+      <div class="filter-chip" data-filter="criancas">Crianças</div>
+      <div class="filter-chip" data-filter="gestantes">Gestantes</div>
+      <div class="filter-chip" data-filter="cronicos">Hipertensos/Diabéticos</div>
+    </div>
+
+    <div class="route-list" id="routeList">
+      <!-- Injetado via JS -->
+    </div>
+
+  </div>
+</main>
+
+<nav class="bottom-nav">
+  <a href="index.html"><i data-lucide="layout-dashboard"></i><span>Início</span></a>
+  <a href="meu-roteiro.html" class="active"><i data-lucide="map"></i><span>Roteiro</span></a>
+  <a href="familias.html"><i data-lucide="users"></i><span>Famílias</span></a>
+  <a href="busca.html"><i data-lucide="search"></i><span>Busca</span></a>
+</nav>
+
+<script>
+// Inicializa ícones Lucide
+lucide.createIcons();
+
+let roteiroGlobal = [];
+let pendentesGlobais = [];
+let concluidasGlobais = [];
+
+// Funções utilitárias de roteiro.js já garantem os cálculos.
+async function carregarPagina() {
+  // Aplicar branding local
+  const cfg = obterConfiguracaoLocal();
+  document.getElementById('sideUbs').textContent = cfg.nomeUbs;
+  document.getElementById('sideArea').textContent = cfg.microarea;
+  document.getElementById('headerMicroarea').textContent = cfg.microarea;
+  
+  // Data atual formatada
+  const options = { day: 'numeric', month: 'long' };
+  document.getElementById('headerDate').textContent = new Date().toLocaleDateString('pt-BR', options);
+
+  try {
+    const { familiasEnriquecidas } = await carregarFamiliasEnriquecidas();
+    roteiroGlobal = calcularRoteiroDoDia(familiasEnriquecidas, cfg.capacidadeDiaria);
+    
+    pendentesGlobais = roteiroGlobal.filter(f => !f.visitouHoje);
+    concluidasGlobais = roteiroGlobal.filter(f => f.visitouHoje);
+    
+    atualizarResumo(cfg.tempoMedioVisita);
+    renderizarProximaVisita();
+    renderizarLista('todos');
+    
+  } catch (e) {
+    console.error(e);
+    document.getElementById('nextVisitContainer').innerHTML = `<div class="empty-state">Erro ao carregar o roteiro.</div>`;
+  }
+}
+
+function atualizarResumo(tempoMedio) {
+  const total = roteiroGlobal.length;
+  const concluidas = concluidasGlobais.length;
+  const pendentes = pendentesGlobais.length;
+  
+  const minutosTotais = pendentes * tempoMedio;
+  const horas = Math.floor(minutosTotais / 60);
+  const min = minutosTotais % 60;
+  const tempoStr = horas > 0 ? `${horas}h${min > 0 ? min+'m' : ''}` : `${min}m`;
+  
+  const pct = total === 0 ? 0 : Math.round((concluidas / total) * 100);
+  
+  document.getElementById('statVisitas').textContent = `${total} visitas hoje`;
+  document.getElementById('statTempo').textContent = `Tempo estimado: ${tempoStr}`;
+  document.getElementById('statConcluidas').textContent = `${concluidas} de ${total}`;
+  document.getElementById('progressBar').style.width = `${pct}%`;
+}
+
+// Pseudo-distância determinística para visualização
+function pseudoDistancia(id) {
+  let hash = 0;
+  for (let i = 0; i < id.length; i++) hash = (hash * 31 + id.charCodeAt(i)) % 1000;
+  return (hash + 50) + ' metros';
+}
+
+function renderizarProximaVisita() {
+  const container = document.getElementById('nextVisitContainer');
+  
+  if (pendentesGlobais.length === 0) {
+    container.innerHTML = `
+      <div class="empty-state">
+        <i data-lucide="check-circle-2" style="width: 48px; height: 48px; color: var(--success);"></i>
+        <h3>Roteiro Concluído!</h3>
+        <p>Você não possui mais visitas programadas para hoje.</p>
+      </div>`;
+    lucide.createIcons();
+    return;
+  }
+  
+  const f = pendentesGlobais[0];
+  const isUrgente = f.prio.nivel === 'urgente';
+  const nome = escapeHtml(nomePrincipalDe(f));
+  const endereco = escapeHtml(enderecoDe(f));
+  
+  let tagsHtml = `<span class="tag ${f.prio.nivel}">${f.prio.tipoPrincipal.emoji} ${f.prio.tipoPrincipal.label}</span>`;
+  if (f.temCriancaMenor2 && f.prio.tipoPrincipal.label !== 'Criança < 2 anos') tagsHtml += `<span class="tag info">👶 Criança</span>`;
+  if (f.temGestante && f.prio.tipoPrincipal.label !== 'Gestante') tagsHtml += `<span class="tag info">🤰 Gestante</span>`;
+  
+  const ultimaVisita = f.ultimaVisita ? `${f.diasDesdeUltimaVisita} dias sem visita` : 'Nunca visitada';
+
+  container.innerHTML = `
+    <div class="section-title">Próxima Visita</div>
+    <div class="next-visit-card ${isUrgente ? 'urgente' : ''}">
+      <div class="nv-header">
+        <div>
+          <div class="nv-name">${nome}</div>
+          <div class="nv-address"><i data-lucide="map-pin" size="14"></i> ${endereco}</div>
+        </div>
+        <div class="nv-distance"><i data-lucide="navigation" size="12"></i> ${pseudoDistancia(f.id)}</div>
+      </div>
+      
+      <div class="nv-meta">
+        <div class="nv-meta-item"><i data-lucide="clock" size="16"></i> <strong>Tempo:</strong> ${ultimaVisita}</div>
+        <div class="nv-meta-item"><i data-lucide="users" size="16"></i> <strong>Domicílio:</strong> ${f.membros.length} moradores</div>
+      </div>
+      
+      <div class="nv-tags">${tagsHtml}</div>
+      
+      <a href="nova-visita.html?familia_id=${f.id}" class="btn-primary ${isUrgente ? 'urgente' : ''}">
+        ${isUrgente ? 'Iniciar visita urgente' : 'Iniciar roteiro'} <i data-lucide="arrow-right"></i>
+      </a>
+    </div>
+  `;
+  lucide.createIcons();
+}
+
+function renderizarLista(filtro) {
+  const container = document.getElementById('routeList');
+  
+  // Ignora o primeiro item pendente (já está no card principal)
+  let listaParaExibir = [...pendentesGlobais.slice(1), ...concluidasGlobais];
+  
+  if (filtro === 'urgentes') listaParaExibir = listaParaExibir.filter(f => f.prio.nivel === 'urgente');
+  if (filtro === 'criancas') listaParaExibir = listaParaExibir.filter(f => f.temCriancaMenor2);
+  if (filtro === 'gestantes') listaParaExibir = listaParaExibir.filter(f => f.temGestante);
+  if (filtro === 'cronicos') listaParaExibir = listaParaExibir.filter(f => f.temHas || f.temDm);
+
+  if (listaParaExibir.length === 0) {
+    container.innerHTML = `<div class="empty-state" style="padding: 20px;"><p>Nenhuma visita restante neste filtro.</p></div>`;
+    return;
+  }
+
+  container.innerHTML = listaParaExibir.map(f => {
+    const iconClass = f.visitouHoje ? 'done' : 'pending';
+    const icon = f.visitouHoje ? '<i data-lucide="check" size="14"></i>' : '<div style="width: 8px; height: 8px; border-radius: 50%; background: var(--primary);"></div>';
+    const tagEmoji = f.prio.tipoPrincipal.emoji;
+    
+    return `
+      <a href="${f.visitouHoje ? '#' : `nova-visita.html?familia_id=${f.id}`}" class="list-item" style="${f.visitouHoje ? 'opacity: 0.6;' : ''}">
+        <div class="list-item-left">
+          <div class="status-icon ${iconClass}">${icon}</div>
+          <div>
+            <div class="list-name">${escapeHtml(nomePrincipalDe(f))}</div>
+            <div class="list-meta">${tagEmoji} ${escapeHtml(f.prio.tipoPrincipal.label)} • ${f.visitouHoje ? 'Concluída' : pseudoDistancia(f.id)}</div>
+          </div>
+        </div>
+        <div class="list-right">
+          ${!f.visitouHoje ? '<i data-lucide="chevron-right" size="18" color="var(--border)"></i>' : ''}
+        </div>
+      </a>
+    `;
+  }).join('');
+  
+  lucide.createIcons();
+}
+
+// Lógica dos filtros
+document.getElementById('filters').addEventListener('click', (e) => {
+  if (e.target.classList.contains('filter-chip')) {
+    document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+    e.target.classList.add('active');
+    renderizarLista(e.target.dataset.filter);
+  }
+});
+
+carregarPagina();
+</script>
+</body>
+</html>

@@ -1,392 +1,223 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Nova Visita - ACS Digital</title>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="config.js"></script>
-    <style>
-        :root {
-            --bg-color: #FAFAFA;
-            --surface: #FFFFFF;
-            --text-main: #111827;
-            --text-muted: #6B7280;
-            --border: #E5E7EB;
-            --primary: #0A84FF;
-            --success: #34C759;
-            --danger: #FF3B30;
-            --warning: #FF9500;
-            --radius: 12px;
-            --chip-bg: #F2F2F7;
-        }
-
-        * { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
-
-        body { background-color: var(--bg-color); color: var(--text-main); height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
-
-        /* Navbar Superior */
-        .navbar {
-            height: 60px;
-            background-color: var(--surface);
-            border-bottom: 1px solid var(--border);
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 0 24px;
-            flex-shrink: 0;
-            z-index: 10;
-        }
-
-        .navbar h1 { font-size: 16px; font-weight: 600; }
-        .btn-text { background: none; border: none; color: var(--text-muted); font-size: 16px; cursor: pointer; }
-        .btn-save { background: var(--primary); color: white; border: none; padding: 8px 16px; border-radius: 8px; font-weight: 600; font-size: 14px; cursor: pointer; transition: 0.2s; opacity: 0.5; pointer-events: none; }
-        .btn-save.active { opacity: 1; pointer-events: auto; }
-
-        /* Estrutura Principal (Split View) */
-        .container { display: flex; flex: 1; overflow: hidden; }
-
-        /* Lado Esquerdo - Contexto */
-        .sidebar-context {
-            width: 35%;
-            background-color: var(--bg-color);
-            border-right: 1px solid var(--border);
-            padding: 32px;
-            overflow-y: auto;
-        }
-
-        .family-info h2 { font-size: 20px; margin-bottom: 8px; }
-        .info-row { display: flex; gap: 8px; color: var(--text-muted); font-size: 14px; margin-bottom: 8px; }
-        .divider { height: 1px; background-color: var(--border); margin: 24px 0; }
-        .section-label { font-size: 12px; font-weight: 600; color: var(--text-muted); letter-spacing: 0.5px; margin-bottom: 12px; }
-        .history-text { font-size: 14px; margin-bottom: 4px; }
-        .alert-text { color: var(--warning); font-size: 14px; font-weight: 500; margin-top: 8px; }
-
-        /* Lado Direito - Ação */
-        .main-action {
-            width: 65%;
-            background-color: var(--surface);
-            padding: 40px;
-            overflow-y: auto;
-        }
-
-        /* Chips */
-        .chip-group { display: flex; flex-wrap: wrap; gap: 12px; }
-        .chip {
-            background-color: var(--chip-bg);
-            border: 1px solid transparent;
-            padding: 10px 16px;
-            border-radius: 24px;
-            font-size: 15px;
-            font-weight: 500;
-            color: var(--text-main);
-            cursor: pointer;
-            transition: all 0.2s ease;
-            user-select: none;
-        }
-        .chip:hover { background-color: #E5E5EA; }
-        .chip.selected { background-color: var(--primary); color: white; }
-
-        /* Observações */
-        textarea {
-            width: 100%;
-            height: 100px;
-            background-color: var(--chip-bg);
-            border: 1px solid transparent;
-            border-radius: var(--radius);
-            padding: 16px;
-            font-size: 15px;
-            resize: none;
-            outline: none;
-        }
-        textarea:focus { border-color: var(--primary); }
-
-        /* Botão de Assinatura */
-        .btn-signature {
-            width: 100%;
-            padding: 16px;
-            background-color: rgba(10, 132, 255, 0.1);
-            color: var(--primary);
-            border: 1px dashed var(--primary);
-            border-radius: var(--radius);
-            font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            transition: 0.2s;
-        }
-        .btn-signature.signed { background-color: var(--success); color: white; border-style: solid; border-color: var(--success); }
-
-        /* Modal de Assinatura */
-        .modal-overlay {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.5); backdrop-filter: blur(4px);
-            display: flex; align-items: center; justify-content: center;
-            z-index: 100; opacity: 0; pointer-events: none; transition: 0.3s;
-        }
-        .modal-overlay.active { opacity: 1; pointer-events: auto; }
-        .modal-content {
-            background: var(--surface); width: 90%; max-width: 600px;
-            border-radius: 16px; padding: 24px; display: flex; flex-direction: column; gap: 16px;
-        }
-        .canvas-container { border: 2px solid var(--border); border-radius: 12px; background: #fff; overflow: hidden; touch-action: none; }
-        canvas { width: 100%; height: 250px; cursor: crosshair; display: block; }
-        .modal-actions { display: flex; justify-content: space-between; margin-top: 8px; }
-        .btn-clear { color: var(--danger); background: none; border: none; font-size: 15px; font-weight: 600; cursor: pointer; }
-        .btn-confirm { background: var(--primary); color: white; border: none; padding: 10px 20px; border-radius: 8px; font-weight: 600; cursor: pointer; }
-
-        @media (max-width: 768px) {
-            .container { flex-direction: column; overflow-y: auto; }
-            .sidebar-context, .main-action { width: 100%; border-right: none; }
-            .sidebar-context { padding: 24px; border-bottom: 1px solid var(--border); }
-            .main-action { padding: 24px; }
-            body { height: auto; min-height: 100vh; overflow-y: auto; }
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Nova Visita - ACS Digital</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
+<style>
+:root{--bg:#f8fafc;--card:#fff;--text:#111827;--muted:#6b7280;--border:#e5e7eb;--primary:#2563eb;--success:#22c55e;--danger:#ef4444;--warning:#f59e0b;--soft:#f3f4f6}
+*{box-sizing:border-box;margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif}
+body{background:var(--bg);color:var(--text);min-height:100vh;padding-bottom:96px}
+.topbar{height:56px;display:flex;align-items:center;justify-content:space-between;padding:0 16px;background:rgba(248,250,252,.95);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:20;backdrop-filter:blur(12px)}
+.topbar h1{font-size:16px;font-weight:750}.btn-link{border:0;background:transparent;color:var(--muted);font-size:15px}
+.page{max-width:760px;margin:0 auto;padding:18px 16px 32px}.family-card{background:var(--card);border-radius:20px;padding:20px;box-shadow:0 8px 24px rgba(17,24,39,.04);margin-bottom:24px}
+.family-card h2{font-size:22px;line-height:1.2;margin-bottom:12px}.meta{font-size:15px;color:var(--muted);margin-top:6px}.details{margin-top:14px;border-top:1px solid var(--border);padding-top:12px}
+.details summary{font-size:14px;color:var(--primary);font-weight:700;cursor:pointer}.details div{font-size:14px;color:var(--muted);margin-top:10px}
+.label{font-size:13px;font-weight:800;margin:26px 0 12px}.choices{display:grid;gap:12px}.choices.three{grid-template-columns:repeat(3,1fr)}.choices.two{grid-template-columns:repeat(2,1fr)}
+.choice{min-height:54px;border:1px solid var(--border);background:var(--card);border-radius:16px;font-size:15px;font-weight:650;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 6px 18px rgba(17,24,39,.03)}
+.choice.selected{background:#eff6ff;border-color:#bfdbfe;color:var(--primary);font-weight:850}.section{display:none}.section.show{display:block}
+textarea{width:100%;min-height:118px;border:1px solid var(--border);border-radius:16px;background:var(--card);padding:16px;font-size:16px;line-height:1.45;resize:vertical;outline:none}
+textarea:focus{border-color:#93c5fd;box-shadow:0 0 0 3px rgba(37,99,235,.08)}
+.sign-btn{width:100%;min-height:58px;border-radius:16px;border:1px dashed #93c5fd;background:#eff6ff;color:var(--primary);font-weight:800;font-size:16px}
+.sign-btn.signed{background:#dcfce7;color:#166534;border-color:#bbf7d0}
+.dock{position:fixed;left:0;right:0;bottom:0;background:rgba(248,250,252,.95);border-top:1px solid var(--border);padding:12px 16px calc(12px + env(safe-area-inset-bottom));backdrop-filter:blur(12px);z-index:30}
+.dock-inner{max-width:760px;margin:0 auto;display:flex;gap:12px;align-items:center}.status{flex:1;font-size:13px;color:var(--muted)}
+.save{min-width:190px;min-height:52px;border:0;border-radius:16px;background:var(--primary);color:white;font-size:16px;font-weight:850;opacity:.45}.save.active{opacity:1}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:center;justify-content:center;z-index:50;padding:16px}.modal.show{display:flex}
+.modal-box{background:#fff;border-radius:20px;padding:18px;width:100%;max-width:620px}.canvas-wrap{border:1px solid var(--border);border-radius:16px;overflow:hidden;background:#fff;margin:12px 0}canvas{width:100%;height:250px;display:block;touch-action:none}
+.modal-actions{display:flex;justify-content:space-between;gap:12px}.btn-danger,.btn-primary{border:0;background:transparent;font-weight:800;font-size:15px}.btn-danger{color:var(--danger)}.btn-primary{background:var(--primary);color:#fff;border-radius:12px;padding:10px 16px}
+@media(max-width:560px){.choices.three,.choices.two{grid-template-columns:1fr}.dock-inner{display:block}.status{margin-bottom:8px}.save{width:100%}.family-card h2{font-size:20px}}
+</style>
 </head>
 <body>
+<header class="topbar">
+  <button class="btn-link" id="btnCancelar">Cancelar</button>
+  <h1>Nova visita</h1>
+  <span></span>
+</header>
 
-    <header class="navbar">
-        <button class="btn-text" id="btnCancelar">Cancelar</button>
-        <h1>Nova Visita</h1>
-        <button class="btn-save" id="btnSalvar">Salvar Visita</button>
-    </header>
+<main class="page">
+  <section class="family-card" id="familyCard">
+    <h2>Carregando família...</h2>
+    <div class="meta">Buscando dados da família.</div>
+  </section>
 
-    <div class="container">
-        
-        <aside class="sidebar-context">
-            <div class="family-info" id="familyContext">
-                <h2>Carregando família...</h2>
-            </div>
-            <div class="divider"></div>
-            <div class="history-info" id="historyInfo">
-                <div class="section-label">HISTÓRICO RESUMIDO</div>
-                <div class="history-text">Carregando...</div>
-            </div>
-        </aside>
+  <div class="label">A visita foi realizada?</div>
+  <div class="choices three" id="desfechoGroup">
+    <button class="choice" data-value="Realizada">Realizada</button>
+    <button class="choice" data-value="Ausente">Ausente</button>
+    <button class="choice" data-value="Recusada">Recusada</button>
+  </div>
 
-        <main class="main-action">
-            <div class="section-label">DESFECHO DA VISITA (Obrigatório)</div>
-            <div class="chip-group" id="desfechoGroup" style="margin-bottom: 32px;">
-                <div class="chip" data-type="radio">Realizada</div>
-                <div class="chip" data-type="radio">Ausente</div>
-                <div class="chip" data-type="radio">Recusada</div>
-            </div>
+  <section class="section" id="motivoSection">
+    <div class="label">Motivo rápido</div>
+    <div class="choices two" id="motivoGroup">
+      <button class="choice" data-value="Não atendeu">Não atendeu</button>
+      <button class="choice" data-value="Casa fechada">Casa fechada</button>
+      <button class="choice" data-value="Mudou-se">Mudou-se</button>
+      <button class="choice" data-value="Outro">Outro</button>
+    </div>
+  </section>
 
-            <div class="section-label">ACOMPANHAMENTOS REALIZADOS</div>
-            <div class="chip-group" id="acompanhamentosGroup" style="margin-bottom: 32px;">
-                <div class="chip" data-type="checkbox">🫀 Hipertenso</div>
-                <div class="chip" data-type="checkbox">🍬 Diabético</div>
-                <div class="chip" data-type="checkbox">🤰 Gestante</div>
-            </div>
-
-            <div class="section-label">OBSERVAÇÕES</div>
-            <textarea id="observacoesTexto" placeholder="Descreva como foi a visita..." style="margin-bottom: 32px;"></textarea>
-
-            <div class="section-label">ASSINATURA DO PACIENTE (Obrigatório)</div>
-            <button class="btn-signature" id="btnAbrirAssinatura">✍️ Coletar Assinatura</button>
-        </main>
+  <section class="section" id="realizadaSection">
+    <div class="label">Acompanhamentos realizados</div>
+    <div class="choices two" id="acompanhamentosGroup">
+      <button class="choice" data-value="Hipertenso">Hipertenso</button>
+      <button class="choice" data-value="Diabético">Diabético</button>
+      <button class="choice" data-value="Gestante">Gestante</button>
+      <button class="choice" data-value="Criança">Criança</button>
     </div>
 
-    <div class="modal-overlay" id="modalAssinatura">
-        <div class="modal-content">
-            <div class="section-label" style="text-align: center;">ASSINE NO QUADRO ABAIXO</div>
-            <div class="canvas-container">
-                <canvas id="signatureCanvas"></canvas>
-            </div>
-            <div class="modal-actions">
-                <button class="btn-clear" id="btnLimpar">Limpar</button>
-                <div>
-                    <button class="btn-text" id="btnCancelarModal" style="margin-right: 16px;">Cancelar</button>
-                    <button class="btn-confirm" id="btnConfirmarAssinatura">Confirmar</button>
-                </div>
-            </div>
-        </div>
+    <div class="label">Assinatura do paciente</div>
+    <button class="sign-btn" id="btnAssinatura">Coletar assinatura</button>
+  </section>
+
+  <section class="section" id="obsSection">
+    <div class="label">Observações rápidas</div>
+    <textarea id="observacoes" placeholder="Ex.: orientações, sinais observados, encaminhamentos..."></textarea>
+  </section>
+</main>
+
+<div class="dock">
+  <div class="dock-inner">
+    <div class="status" id="statusText">Escolha o desfecho para continuar</div>
+    <button class="save" id="btnSalvar">Salvar visita</button>
+  </div>
+</div>
+
+<div class="modal" id="modalAssinatura">
+  <div class="modal-box">
+    <div class="label" style="margin-top:0">Assine no quadro abaixo</div>
+    <div class="canvas-wrap"><canvas id="canvas"></canvas></div>
+    <div class="modal-actions">
+      <button class="btn-danger" id="btnLimpar">Limpar</button>
+      <div>
+        <button class="btn-link" id="btnFecharModal">Cancelar</button>
+        <button class="btn-primary" id="btnConfirmar">Confirmar</button>
+      </div>
     </div>
+  </div>
+</div>
 
-    <script>
-        const params = new URLSearchParams(window.location.search);
-        const familiaId = params.get('familia_id');
+<script>
+const params=new URLSearchParams(location.search);
+const familiaId=params.get('familia_id');
+let desfecho=null,motivo=null,assinatura=false,desenhando=false,assinou=false;
 
-        // Variáveis de controle
-        let desfechoPreenchido = false;
-        let assinaturaColetada = false;
-        let desfechoSelecionado = null;
+const $=id=>document.getElementById(id);
+const btnSalvar=$('btnSalvar'),statusText=$('statusText');
 
-        async function carregarContexto() {
-            const contextEl = document.getElementById('familyContext');
-            const historyEl = document.getElementById('historyInfo');
+async function carregarContexto(){
+  const card=$('familyCard');
+  if(!familiaId){
+    card.innerHTML='<h2>Nenhuma família selecionada</h2><div class="meta">Abra esta tela pelo dashboard ou pela lista de famílias.</div>';
+    return;
+  }
+  const {data:f,error}=await db.from('familias').select('*, cidadaos(*)').eq('id',familiaId).single();
+  if(error||!f){card.innerHTML='<h2>Família não encontrada</h2>';return;}
+  const endereco=[f.logradouro,f.numero,f.complemento].filter(Boolean).join(', ')||'Endereço não informado';
+  const {data:u}=await db.from('visitas').select('data_visita').eq('familia_id',familiaId).order('data_visita',{ascending:false}).limit(1).maybeSingle();
+  card.innerHTML=`
+    <h2>${endereco}</h2>
+    <div class="meta">${f.bairro||'Bairro não informado'}</div>
+    <div class="meta">${(f.cidadaos||[]).length} morador(es)</div>
+    <details class="details">
+      <summary>Ver detalhes</summary>
+      <div>Última visita: ${u?formatarDataBR(u.data_visita):'Nenhuma visita registrada'}</div>
+    </details>`;
+}
 
-            if (!familiaId) {
-                contextEl.innerHTML = `<h2>⚠️ Nenhuma família selecionada</h2><div class="info-row">Acesse esta tela a partir do Diretório de Famílias.</div>`;
-                historyEl.innerHTML = '';
-                return;
-            }
+function selecionarUnico(group,btn){
+  group.querySelectorAll('.choice').forEach(b=>b.classList.remove('selected'));
+  btn.classList.add('selected');
+}
 
-            const { data: familia, error } = await db
-                .from('familias')
-                .select('*, cidadaos(*)')
-                .eq('id', familiaId)
-                .single();
+function atualizar(){
+  const realizada=desfecho==='Realizada';
+  const ausenteOuRecusada=desfecho==='Ausente'||desfecho==='Recusada';
+  $('realizadaSection').classList.toggle('show',realizada);
+  $('motivoSection').classList.toggle('show',ausenteOuRecusada);
+  $('obsSection').classList.toggle('show',!!desfecho);
 
-            if (error || !familia) {
-                contextEl.innerHTML = `<h2>Família não encontrada</h2>`;
-                console.error(error);
-                return;
-            }
+  const ok=realizada?assinatura:!!desfecho;
+  btnSalvar.classList.toggle('active',ok);
 
-            const endereco = [familia.logradouro, familia.numero, familia.complemento].filter(Boolean).join(', ');
-            contextEl.innerHTML = `
-                <h2>👨‍👩‍👧 ${endereco || 'Família'}</h2>
-                <div class="info-row">📍 ${familia.bairro || ''}</div>
-                <div class="info-row">${(familia.cidadaos || []).length} morador(es)</div>
-            `;
+  if(!desfecho) statusText.textContent='Escolha o desfecho para continuar';
+  else if(realizada) statusText.textContent=assinatura?'Pronto para salvar':'Colete a assinatura para finalizar';
+  else statusText.textContent='Assinatura não é necessária';
+  btnSalvar.textContent=realizada?'Salvar visita':desfecho==='Ausente'?'Salvar ausência':'Salvar recusa';
+}
 
-            const { data: ultimaVisita } = await db
-                .from('visitas')
-                .select('data_visita')
-                .eq('familia_id', familiaId)
-                .order('data_visita', { ascending: false })
-                .limit(1)
-                .maybeSingle();
+$('desfechoGroup').addEventListener('click',e=>{
+  const b=e.target.closest('.choice'); if(!b)return;
+  selecionarUnico($('desfechoGroup'),b);
+  desfecho=b.dataset.value;
+  atualizar();
+});
 
-            historyEl.innerHTML = `
-                <div class="section-label">HISTÓRICO RESUMIDO</div>
-                <div class="history-text"><strong>Última Visita:</strong> ${ultimaVisita ? formatarDataBR(ultimaVisita.data_visita) : 'Nenhuma visita registrada ainda'}</div>
-            `;
-        }
+$('motivoGroup').addEventListener('click',e=>{
+  const b=e.target.closest('.choice'); if(!b)return;
+  selecionarUnico($('motivoGroup'),b);
+  motivo=b.dataset.value;
+});
 
-        // 1. Lógica dos Chips de Desfecho
-        const desfechoChips = document.querySelectorAll('#desfechoGroup .chip');
-        desfechoChips.forEach(chip => {
-            chip.addEventListener('click', () => {
-                desfechoChips.forEach(c => c.classList.remove('selected'));
-                chip.classList.add('selected');
-                desfechoPreenchido = true;
-                desfechoSelecionado = chip.textContent.trim();
-                validarFormulario();
-            });
-        });
+$('acompanhamentosGroup').addEventListener('click',e=>{
+  const b=e.target.closest('.choice'); if(b)b.classList.toggle('selected');
+});
 
-        // 2. Lógica dos Chips de Acompanhamento
-        const acompanhamentoChips = document.querySelectorAll('#acompanhamentosGroup .chip');
-        acompanhamentoChips.forEach(chip => {
-            chip.addEventListener('click', () => chip.classList.toggle('selected'));
-        });
+$('btnCancelar').onclick=()=>{
+  if(desfecho||$('observacoes').value.trim()){
+    if(!confirm('Cancelar esta visita? Os dados não salvos serão perdidos.'))return;
+  }
+  location.href='familias.html';
+};
 
-        // 3. Validação do Botão Salvar
-        const btnSalvar = document.getElementById('btnSalvar');
-        function validarFormulario() {
-            if (desfechoPreenchido && assinaturaColetada) {
-                btnSalvar.classList.add('active');
-            } else {
-                btnSalvar.classList.remove('active');
-            }
-        }
+const modal=$('modalAssinatura'),canvas=$('canvas'),ctx=canvas.getContext('2d');
+function resizeCanvas(){canvas.width=canvas.clientWidth;canvas.height=250;ctx.lineWidth=3;ctx.lineCap='round';ctx.strokeStyle='#111827'}
+function pos(e){const r=canvas.getBoundingClientRect(),t=e.touches?e.touches[0]:e;return{x:t.clientX-r.left,y:t.clientY-r.top}}
+function start(e){e.preventDefault();desenhando=true;assinou=true;ctx.beginPath();const p=pos(e);ctx.moveTo(p.x,p.y)}
+function draw(e){if(!desenhando)return;e.preventDefault();const p=pos(e);ctx.lineTo(p.x,p.y);ctx.stroke()}
+function stop(){desenhando=false}
 
-        // 4. Lógica do Modal de Assinatura
-        const modal = document.getElementById('modalAssinatura');
-        const btnAbrir = document.getElementById('btnAbrirAssinatura');
-        const canvas = document.getElementById('signatureCanvas');
-        const ctx = canvas.getContext('2d');
-        let desenhando = false, assinou = false;
+$('btnAssinatura').onclick=()=>{modal.classList.add('show');setTimeout(resizeCanvas,50)};
+$('btnFecharModal').onclick=()=>modal.classList.remove('show');
+$('btnLimpar').onclick=()=>{ctx.clearRect(0,0,canvas.width,canvas.height);assinou=false};
+$('btnConfirmar').onclick=()=>{
+  if(!assinou){alert('Por favor, assine no quadro.');return;}
+  assinatura=true;
+  $('btnAssinatura').classList.add('signed');
+  $('btnAssinatura').textContent='Assinatura coletada';
+  modal.classList.remove('show');
+  atualizar();
+};
+canvas.addEventListener('mousedown',start);canvas.addEventListener('mousemove',draw);canvas.addEventListener('mouseup',stop);
+canvas.addEventListener('touchstart',start,{passive:false});canvas.addEventListener('touchmove',draw,{passive:false});canvas.addEventListener('touchend',stop);
 
-        function redimensionarCanvas() {
-            canvas.width = canvas.parentElement.clientWidth;
-            canvas.height = 250;
-            ctx.lineWidth = 3; ctx.lineCap = 'round'; ctx.strokeStyle = '#000';
-        }
+btnSalvar.onclick=async()=>{
+  if(!btnSalvar.classList.contains('active'))return;
+  if(!familiaId){alert('Nenhuma família selecionada.');return;}
 
-        btnAbrir.addEventListener('click', () => {
-            modal.classList.add('active');
-            setTimeout(redimensionarCanvas, 50); // Dá tempo para o modal abrir antes de medir o canvas
-        });
+  const acompanhamentos=desfecho==='Realizada'
+    ? Array.from(document.querySelectorAll('#acompanhamentosGroup .selected')).map(b=>b.dataset.value)
+    : [];
 
-        document.getElementById('btnCancelarModal').addEventListener('click', () => modal.classList.remove('active'));
+  const obs=[
+    motivo?`Motivo: ${motivo}`:'',
+    $('observacoes').value.trim()
+  ].filter(Boolean).join(' | ')||null;
 
-        // Eventos de Desenho no Canvas
-        function getPos(e) {
-            const rect = canvas.getBoundingClientRect();
-            const clienteX = e.touches ? e.touches[0].clientX : e.clientX;
-            const clienteY = e.touches ? e.touches[0].clientY : e.clientY;
-            return { x: clienteX - rect.left, y: clienteY - rect.top };
-        }
+  const novaVisita={
+    familia_id:familiaId,
+    data_visita:new Date().toISOString().slice(0,10),
+    desfecho,
+    acompanhamentos,
+    observacoes:obs,
+    assinatura_coletada:desfecho==='Realizada',
+    profissional:'ACS'
+  };
 
-        function iniciarDesenho(e) { e.preventDefault(); desenhando = true; assinou = true; ctx.beginPath(); ctx.moveTo(getPos(e).x, getPos(e).y); }
-        function desenhar(e) { if (!desenhando) return; e.preventDefault(); ctx.lineTo(getPos(e).x, getPos(e).y); ctx.stroke(); }
-        function pararDesenho() { desenhando = false; }
-
-        canvas.addEventListener('mousedown', iniciarDesenho);
-        canvas.addEventListener('mousemove', desenhar);
-        canvas.addEventListener('mouseup', pararDesenho);
-        canvas.addEventListener('touchstart', iniciarDesenho, {passive: false});
-        canvas.addEventListener('touchmove', desenhar, {passive: false});
-        canvas.addEventListener('touchend', pararDesenho);
-
-        document.getElementById('btnLimpar').addEventListener('click', () => {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            assinou = false;
-        });
-
-        document.getElementById('btnConfirmarAssinatura').addEventListener('click', () => {
-            if (assinou) {
-                assinaturaColetada = true;
-                btnAbrir.classList.add('signed');
-                btnAbrir.innerHTML = '✔️ Assinatura Coletada';
-                modal.classList.remove('active');
-                validarFormulario();
-            } else {
-                alert("Por favor, assine no quadro.");
-            }
-        });
-
-        // 5. Lógica de Navegação (Cancelar e Salvar)
-        const btnCancelar = document.getElementById('btnCancelar');
-        btnCancelar.addEventListener('click', () => {
-            if (desfechoPreenchido || assinaturaColetada) {
-                if (confirm("Tem certeza que deseja cancelar? Os dados não salvos serão perdidos.")) {
-                    window.location.href = 'familias.html';
-                }
-            } else {
-                window.location.href = 'familias.html';
-            }
-        });
-
-        btnSalvar.addEventListener('click', async () => {
-            if (!btnSalvar.classList.contains('active')) return;
-            if (!familiaId) {
-                alert('Nenhuma família selecionada, não é possível salvar.');
-                return;
-            }
-
-            const acompanhamentos = Array.from(document.querySelectorAll('#acompanhamentosGroup .chip.selected'))
-                .map(c => c.textContent.trim());
-
-            const novaVisita = {
-                familia_id: familiaId,
-                data_visita: new Date().toISOString().slice(0, 10),
-                desfecho: desfechoSelecionado,
-                acompanhamentos,
-                observacoes: document.getElementById('observacoesTexto').value.trim() || null,
-                assinatura_coletada: true,
-                profissional: 'ACS',
-            };
-
-            const { error } = await db.from('visitas').insert(novaVisita);
-            if (error) {
-                alert('Erro ao salvar a visita: ' + error.message);
-                console.error(error);
-                return;
-            }
-
-            alert("Visita salva com sucesso!");
-            window.location.href = 'familias.html';
-        });
-
-        carregarContexto();
-    </script>
-</body>
-</html>
+  const {error}=await db.from('visitas').insert(novaVisita);
+  if(error){alert('Erro ao salvar a visita: '+error.message);console.error(error);return;}
+  alert('Visita salva com sucesso
