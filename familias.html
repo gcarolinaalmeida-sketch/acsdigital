@@ -178,10 +178,48 @@ body { flex-direction: column; }
 <button class="btn-icon" onclick="fecharDrawer('drawerFamilia')">←</button>
 <h2 style="font-size: 18px;" id="familiaDrawerTitulo">Família</h2>
 </div>
-<button class="btn-action" onclick="alert('Cadastro de novo cidadão na família ainda não está disponível nesta versão.')">+ Cidadão</button>
+<button class="btn-action" onclick="abrirDrawerNovoCidadao()">+ Cidadão</button>
 </div>
 <div class="drawer-body" id="familiaDrawerBody">
 <!-- Preenchido dinamicamente via JS -->
+</div>
+</div>
+<!-- DRAWER: NOVO CIDADÃO (dentro de uma família existente) -->
+<div class="drawer" id="drawerNovoCidadao" style="z-index: 40;">
+<div class="drawer-header">
+<div style="display: flex; align-items: center; gap: 12px;">
+<button class="btn-icon" onclick="fecharDrawer('drawerNovoCidadao'); abrirDrawer('drawerFamilia');">←</button>
+<h2 style="font-size: 18px;">Novo Cidadão</h2>
+</div>
+<button class="btn-action primary" onclick="salvarNovoCidadao()">Salvar</button>
+</div>
+<div class="drawer-body">
+<p id="novoCidadaoFamiliaInfo" style="color: var(--text-muted); font-size: 13px; margin-bottom: 20px;"></p>
+
+<span class="section-label" style="margin-top: 0;">DADOS PESSOAIS</span>
+<input type="text" class="input-form" id="campoCidadaoNome" placeholder="Nome completo">
+<div class="form-row">
+<input type="date" class="input-form" id="campoCidadaoNascimento" style="flex: 1;">
+</div>
+<input type="text" class="input-form" id="campoCidadaoCpf" placeholder="CPF (opcional)">
+<input type="text" class="input-form" id="campoCidadaoCns" placeholder="CNS (opcional)">
+
+<span class="section-label">RESPONSÁVEL FAMILIAR</span>
+<div class="chip-group" data-grupo="responsavel">
+<div class="chip" onclick="selecionarUnico(this)">Sim, é o(a) responsável</div>
+<div class="chip selected" onclick="selecionarUnico(this)">Não</div>
+</div>
+<p id="avisoTrocaResponsavel" style="display:none; font-size: 12px; color: var(--warning); margin-top: -6px; margin-bottom: 12px;">
+⚠️ Esta família já tem um responsável cadastrado. Marcar "Sim" aqui vai transferir essa marcação para este novo cidadão.
+</p>
+
+<span class="section-label">CONDIÇÕES DE SAÚDE</span>
+<div class="chip-group" data-grupo="condicoesNovoCidadao" style="margin-bottom: 32px;">
+<div class="chip" onclick="this.classList.toggle('selected')">🫀 Hipertensão</div>
+<div class="chip" onclick="this.classList.toggle('selected')">🍬 Diabetes</div>
+<div class="chip" onclick="this.classList.toggle('selected')">🤰 Gestante</div>
+<div class="chip" onclick="this.classList.toggle('selected')">🛏️ Acamado</div>
+</div>
 </div>
 </div>
 <script>
@@ -301,6 +339,7 @@ ${incompleto ? `<span class="badge alert">⚠️ Cadastro incompleto</span>` : '
 function abrirFamilia(familiaId) {
 const familia = familiasComMembros.find(f => f.id === familiaId);
 if (!familia) return;
+familiaAtualAberta = familia; // guarda referência para o formulário de novo cidadão
 const endereco = [familia.logradouro, familia.numero, familia.complemento].filter(Boolean).join(', ');
 document.getElementById('familiaDrawerTitulo').textContent = endereco || 'Família';
 const membros = familia.cidadaos || [];
@@ -329,7 +368,110 @@ return `
 abrirDrawer('drawerFamilia');
 }
 
-// ---------- Busca e Filtros ----------
+// ---------- Novo Cidadão em Família Existente ----------
+let familiaAtualAberta = null; // referência pra família do drawer aberto
+
+function selecionarUnico(el) {
+  const grupo = el.closest('.chip-group');
+  grupo.querySelectorAll('.chip').forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+}
+
+function abrirDrawerNovoCidadao() {
+  if (!familiaAtualAberta) return;
+  const familia = familiaAtualAberta;
+  const temResponsavel = (familia.cidadaos || []).some(c => c.e_responsavel_familiar);
+
+  // Limpa o formulário
+  document.getElementById('campoCidadaoNome').value = '';
+  document.getElementById('campoCidadaoNascimento').value = '';
+  document.getElementById('campoCidadaoCpf').value = '';
+  document.getElementById('campoCidadaoCns').value = '';
+  document.querySelectorAll('[data-grupo="condicoesNovoCidadao"] .chip').forEach(c => c.classList.remove('selected'));
+
+  // Responsável: padrão "Não" se já existe um, "Sim" se família não tem nenhum
+  const chipsResp = document.querySelectorAll('[data-grupo="responsavel"] .chip');
+  chipsResp.forEach(c => c.classList.remove('selected'));
+  if (temResponsavel) {
+    chipsResp[1].classList.add('selected'); // "Não"
+    document.getElementById('avisoTrocaResponsavel').style.display = 'none';
+  } else {
+    chipsResp[0].classList.add('selected'); // "Sim"
+    document.getElementById('avisoTrocaResponsavel').style.display = 'none';
+  }
+  chipsResp[0].onclick = function() {
+    selecionarUnico(this);
+    document.getElementById('avisoTrocaResponsavel').style.display = temResponsavel ? 'block' : 'none';
+  };
+  chipsResp[1].onclick = function() {
+    selecionarUnico(this);
+    document.getElementById('avisoTrocaResponsavel').style.display = 'none';
+  };
+
+  const endereco = [familia.logradouro, familia.numero].filter(Boolean).join(', ');
+  document.getElementById('novoCidadaoFamiliaInfo').textContent = `📍 Adicionando à família: ${endereco || 'Endereço não informado'}`;
+  abrirDrawer('drawerNovoCidadao');
+}
+
+async function salvarNovoCidadao() {
+  if (!familiaAtualAberta) return;
+
+  const nome = document.getElementById('campoCidadaoNome').value.trim();
+  if (!nome) { alert('O nome do cidadão é obrigatório.'); return; }
+
+  const nascimento = document.getElementById('campoCidadaoNascimento').value || null;
+  const cpf = document.getElementById('campoCidadaoCpf').value.trim() || null;
+  const cns = document.getElementById('campoCidadaoCns').value.trim() || null;
+  const eResponsavel = document.querySelector('[data-grupo="responsavel"] .chip.selected')?.textContent.includes('Sim') || false;
+
+  const condicoesSelecionadas = [...document.querySelectorAll('[data-grupo="condicoesNovoCidadao"] .chip.selected')]
+    .map(c => c.textContent.trim().replace(/^[^\w]+/, '')); // remove emoji inicial
+
+  const novoCidadaoId = crypto.randomUUID();
+  const novoCidadao = {
+    id: novoCidadaoId,
+    familia_id: familiaAtualAberta.id,
+    nome,
+    data_nascimento: nascimento,
+    cpf,
+    cns,
+    e_responsavel_familiar: eResponsavel,
+    sexo: null,
+  };
+
+  // Se este novo cidadão vai ser responsável, remove a marcação do anterior
+  if (eResponsavel) {
+    const responsavelAnterior = (familiaAtualAberta.cidadaos || []).find(c => c.e_responsavel_familiar);
+    if (responsavelAnterior) {
+      await db.from('cidadaos').update({ e_responsavel_familiar: false }).eq('id', responsavelAnterior.id);
+    }
+  }
+
+  const { error: erroCidadao } = await db.from('cidadaos').insert(novoCidadao);
+  if (erroCidadao) {
+    alert('Erro ao salvar cidadão: ' + erroCidadao.message);
+    console.error(erroCidadao);
+    return;
+  }
+
+  // Salva condições de saúde selecionadas
+  if (condicoesSelecionadas.length > 0) {
+    const mapaCondicoes = { 'Hipertensão': 'Hipertensão', 'Diabetes': 'Diabetes', 'Gestante': 'Gestante', 'Acamado': 'Acamado' };
+    const registrosCondicoes = condicoesSelecionadas
+      .filter(c => mapaCondicoes[c])
+      .map(c => ({ id: crypto.randomUUID(), cidadao_id: novoCidadaoId, condicao: mapaCondicoes[c] }));
+    if (registrosCondicoes.length > 0) {
+      const { error: erroCondicoes } = await db.from('condicoes_saude').insert(registrosCondicoes);
+      if (erroCondicoes) console.error('Erro ao salvar condições:', erroCondicoes);
+    }
+  }
+
+  fecharDrawer('drawerNovoCidadao');
+  // Recarrega os dados e reabre o drawer da família já atualizado
+  await carregarFamilias();
+  abrirFamilia(familiaAtualAberta.id);
+  alert(`${nome} adicionado(a) à família com sucesso.`);
+}
 document.querySelector('.search-bar').addEventListener('input', (e) => {
 termoBusca = e.target.value;
 renderizarGrid();
