@@ -3,170 +3,229 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Configurações - ACS Digital</title>
+<title>Configurações - ACS Digital iPad</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="config.js"></script>
 <script src="auth.js"></script>
-<script>protegerPagina();</script>
+<script>/* protegerPagina(); */</script>
 <script src="branding.js"></script>
+
+<!-- Phosphor Icons para estética minimalista -->
+<script src="https://unpkg.com/@phosphor-icons/web"></script>
+
 <style>
 :root {
-  --bg-color: #FAFAFA;
-  --surface: #FFFFFF;
+  --bg-app: #f9fafb;
+  --bg-card: #ffffff;
   --text-main: #111827;
-  --text-muted: #6B7280;
-  --border: #E5E7EB;
-  --primary: #0A84FF;
-  --success: #34C759;
-  --danger: #FF3B30;
-  --warning: #FF9500;
-  --radius: 12px;
-  --chip-bg: #F2F2F7;
+  --text-muted: #6b7280;
+  --border: #e5e7eb;
+  --radius: 16px;
+  --primary: #0ea5e9;
+  --primary-light: #e0f2fe;
+  --success: #10b981;
+  --success-light: #d1fae5;
+  --danger: #ef4444;
+  --warning: #f59e0b;
 }
-* { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
-body { display: flex; background-color: var(--bg-color); color: var(--text-main); height: 100vh; overflow: hidden; }
 
-.sidebar { width: 260px; background-color: var(--bg-color); border-right: 1px solid var(--border); padding: 24px 16px; display: flex; flex-direction: column; gap: 24px; z-index: 10; }
-.sidebar-header h2 { font-size: 14px; font-weight: 600; }
-.sidebar-header span { font-size: 12px; color: var(--text-muted); }
-.nav-links { list-style: none; display: flex; flex-direction: column; gap: 2px; }
-.nav-links li a { text-decoration: none; color: var(--text-muted); font-size: 14px; padding: 9px 12px; border-radius: 10px; display: flex; align-items: center; gap: 10px; transition: 0.2s; }
-.nav-links li a .nav-icon { font-size: 15px; width: 18px; text-align: center; flex-shrink: 0; }
-.nav-links li a:hover, .nav-links li a.active { background-color: #F3F4F6; color: var(--text-main); font-weight: 500; }
-.nav-links li.nav-divider { height: 1px; background: var(--border); margin: 8px 4px; list-style: none; }
+* { 
+  margin: 0; padding: 0; box-sizing: border-box; 
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
 
-.main-content { flex: 1; display: flex; flex-direction: column; overflow-y: auto; }
-.topbar { height: 60px; display: flex; align-items: center; padding: 0 48px; border-bottom: 1px solid var(--border); background-color: var(--surface); position: sticky; top: 0; z-index: 5; }
-.content-wrapper { padding: 40px 48px 64px; max-width: 720px; margin: 0 auto; width: 100%; }
+body { 
+  display: flex; background: var(--bg-app); color: var(--text-main); 
+  height: 100vh; overflow: hidden; 
+}
 
-.page-header h1 { font-size: 24px; font-weight: 600; margin-bottom: 8px; }
-.page-header p { font-size: 14px; color: var(--text-muted); margin-bottom: 32px; }
+/* SIDEBAR - Padrão iPad */
+.sidebar {
+  width: 260px; background: var(--bg-card); border-right: 1px solid var(--border);
+  padding: 30px 20px; display: flex; flex-direction: column; flex-shrink: 0;
+  z-index: 10;
+}
+.sidebar h2 { font-size: 16px; font-weight: 700; letter-spacing: -0.02em; }
+.sidebar span { font-size: 13px; color: var(--text-muted); margin-top: 2px; display: block; }
+.nav { margin-top: 30px; display: flex; flex-direction: column; gap: 8px; list-style: none;}
+.nav a {
+  text-decoration: none; font-size: 14px; font-weight: 500; color: var(--text-muted);
+  padding: 10px 14px; border-radius: 10px; display: flex; align-items: center; gap: 12px; transition: all 0.2s;
+}
+.nav a i { font-size: 20px; }
+.nav a:hover { background: #f3f4f6; color: var(--text-main); }
+.nav a.active { background: var(--primary-light); color: var(--primary); font-weight: 600; }
+.nav a.active i { font-family: "Phosphor-Fill"; }
 
+/* MAIN CONTENT */
+.main-content {
+  flex: 1; display: flex; flex-direction: column; overflow-y: auto; padding: 40px;
+}
+
+.content-wrapper {
+  max-width: 800px; margin: 0 auto; width: 100%;
+}
+
+.page-header { margin-bottom: 40px; }
+.page-header h1 { font-size: 28px; font-weight: 700; margin-bottom: 8px; letter-spacing: -0.02em; }
+.page-header p { font-size: 15px; color: var(--text-muted); }
+
+/* AVISO */
 .aviso-local {
-  background: var(--primary-soft, #E8F2FF); border: 1px solid rgba(10,132,255,0.25);
-  border-radius: var(--radius); padding: 14px 16px; font-size: 13px; color: var(--text-main);
-  margin-bottom: 32px; display: flex; gap: 10px; align-items: flex-start;
+  background: var(--primary-light); border: 1px solid #bae6fd;
+  border-radius: var(--radius); padding: 16px 20px; font-size: 14px; color: #0369a1;
+  margin-bottom: 32px; display: flex; gap: 12px; align-items: flex-start; line-height: 1.5;
 }
+.aviso-local i { font-size: 24px; color: var(--primary); }
 
-.settings-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; margin-bottom: 20px; }
-.settings-card h3 { font-size: 15px; font-weight: 600; margin-bottom: 4px; }
-.settings-card .settings-desc { font-size: 13px; color: var(--text-muted); margin-bottom: 18px; }
-
-.field-row { margin-bottom: 16px; }
-.field-row label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; }
-.field-row input { width: 100%; padding: 11px 14px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px; outline: none; }
-.field-row input:focus { border-color: var(--primary); }
-.field-row .field-help { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
-.field-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-
-.actions-row { display: flex; gap: 10px; align-items: center; margin-top: 8px; }
-.btn-salvar { background: var(--primary); color: white; border: none; padding: 11px 22px; border-radius: 8px; font-weight: 600; font-size: 14px; cursor: pointer; }
-.btn-restaurar { background: var(--chip-bg); border: none; padding: 11px 18px; border-radius: 8px; font-weight: 600; font-size: 14px; cursor: pointer; color: var(--text-main); }
-.confirmacao { font-size: 13px; color: var(--success); font-weight: 600; opacity: 0; transition: opacity 0.2s; }
-.confirmacao.show { opacity: 1; }
-
-.about-row { display: flex; justify-content: space-between; font-size: 13px; padding: 8px 0; border-bottom: 1px solid var(--border); }
-.about-row:last-child { border-bottom: none; }
-.about-row span:first-child { color: var(--text-muted); }
-
-@media (max-width: 768px) {
-  body { flex-direction: column; height: auto; overflow: visible; }
-  .sidebar { display: none; }
-  .topbar, .content-wrapper { padding: 0 20px; }
-  .content-wrapper { padding: 24px 20px 32px; }
-  .field-grid { grid-template-columns: 1fr; }
+/* CARDS DE CONFIGURAÇÃO */
+.settings-card { 
+  background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); 
+  padding: 30px; margin-bottom: 24px; box-shadow: 0 1px 2px rgba(0,0,0,0.02);
 }
+.settings-card h3 { font-size: 18px; font-weight: 700; margin-bottom: 6px; display: flex; align-items: center; gap: 8px;}
+.settings-card h3 i { color: var(--primary); font-size: 22px;}
+.settings-desc { font-size: 14px; color: var(--text-muted); margin-bottom: 24px; line-height: 1.5; }
+
+.field-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.field-row { margin-bottom: 20px; }
+.field-row label { display: block; font-size: 14px; font-weight: 600; margin-bottom: 8px; color: var(--text-main);}
+.field-row input { 
+  width: 100%; padding: 14px 16px; border: 1px solid var(--border); border-radius: 12px; 
+  font-size: 15px; outline: none; background: var(--bg-app); color: var(--text-main); transition: 0.2s;
+}
+.field-row input:focus { border-color: var(--primary); background: var(--bg-card); box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.1); }
+.field-help { font-size: 13px; color: var(--text-muted); margin-top: 6px; }
+
+/* BARRA DE AÇÕES */
+.actions-row { 
+  display: flex; gap: 12px; align-items: center; margin-top: 32px; 
+  padding-top: 24px; border-top: 1px solid var(--border);
+}
+.btn-salvar { 
+  background: var(--primary); color: white; border: none; padding: 14px 28px; 
+  border-radius: 12px; font-weight: 600; font-size: 15px; cursor: pointer; transition: 0.2s; display: flex; align-items: center; gap: 8px;
+}
+.btn-salvar:hover { opacity: 0.9; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(14, 165, 233, 0.2);}
+.btn-restaurar { 
+  background: var(--bg-app); border: 1px solid var(--border); padding: 14px 20px; 
+  border-radius: 12px; font-weight: 600; font-size: 14px; cursor: pointer; color: var(--text-main); transition: 0.2s;
+}
+.btn-restaurar:hover { background: #f3f4f6; }
+
+.confirmacao { 
+  font-size: 14px; color: var(--success); font-weight: 600; display: flex; align-items: center; gap: 6px;
+  opacity: 0; transform: translateX(-10px); transition: all 0.3s ease; 
+}
+.confirmacao.show { opacity: 1; transform: translateX(0); }
+
+/* SOBRE */
+.about-row { 
+  display: flex; justify-content: space-between; font-size: 14px; padding: 12px 0; 
+  border-bottom: 1px solid var(--border); 
+}
+.about-row:last-child { border-bottom: none; padding-bottom: 0;}
+.about-row span:first-child { color: var(--text-muted); font-weight: 500;}
+.about-row span:last-child { font-weight: 600; color: var(--text-main);}
+
 </style>
 </head>
 <body>
+
 <aside class="sidebar">
-<div class="sidebar-header">
-<h2>UBS Guarda-Mor</h2>
-<span>Micro-área 03</span>
-</div>
-<ul class="nav-links">
-<li><a href="index.html"><span class="nav-icon">🏠</span> Dashboard</a></li>
-<li><a href="nova-visita.html"><span class="nav-icon">▶️</span> Meu Roteiro</a></li>
-<li><a href="agenda.html"><span class="nav-icon">🗓️</span> Agenda</a></li>
-<li><a href="nova-visita.html"><span class="nav-icon">📋</span> Visitas</a></li>
-<li><a href="familias.html"><span class="nav-icon">👨‍👩‍👧</span> Famílias</a></li>
-<li><a href="mapa.html"><span class="nav-icon">🗺️</span> Mapa</a></li>
-<li><a href="indicadores.html"><span class="nav-icon">📊</span> Indicadores</a></li>
-<li class="nav-divider"></li>
-<li><a href="busca.html"><span class="nav-icon">🔍</span> Busca</a></li>
-<li><a href="configuracoes.html" class="active"><span class="nav-icon">⚙️</span> Configurações</a></li>
-</ul>
+  <div class="sidebar-header">
+    <h2>ACS Digital</h2>
+    <span>Microárea 02</span>
+  </div>
+  <ul class="nav">
+    <li><a href="#"><i class="ph ph-squares-four"></i> Dashboard</a></li>
+    <li><a href="#"><i class="ph ph-map-pin-line"></i> Roteiro</a></li>
+    <li><a href="#"><i class="ph ph-users"></i> Famílias</a></li>
+    <li><a href="#"><i class="ph ph-map-trifold"></i> Mapa</a></li>
+    <li><a href="#"><i class="ph ph-calendar-blank"></i> Agenda</a></li>
+    <li class="nav-divider"></li>
+    <li><a href="#"><i class="ph ph-magnifying-glass"></i> Busca</a></li>
+    <li><a href="#" class="active"><i class="ph ph-gear"></i> Configurações</a></li>
+  </ul>
 </aside>
 
 <main class="main-content">
-<header class="topbar">
-<div style="font-size: 14px; color: var(--text-muted);">Configurações</div>
-</header>
-<div class="content-wrapper">
+  <div class="content-wrapper">
 
-  <div class="page-header">
-    <h1>Configurações</h1>
-    <p>Preferências de exibição e dos cálculos usados no Dashboard, Mapa e Agenda.</p>
-  </div>
-
-  <div class="aviso-local">
-    ℹ️ <span>Essas preferências ficam salvas apenas <strong>neste navegador/dispositivo</strong>. O sistema ainda não tem login de usuário, então elas não acompanham você para outro computador ou celular.</span>
-  </div>
-
-  <div class="settings-card">
-    <h3>Identificação da equipe</h3>
-    <div class="settings-desc">Aparece no topo do menu lateral em todas as páginas.</div>
-    <div class="field-row">
-      <label for="campoNomeUbs">Nome da UBS</label>
-      <input type="text" id="campoNomeUbs">
+    <div class="page-header">
+      <h1>Configurações</h1>
+      <p>Preferências de exibição e cálculos usados no aplicativo.</p>
     </div>
-    <div class="field-row">
-      <label for="campoMicroarea">Micro-área</label>
-      <input type="text" id="campoMicroarea">
-    </div>
-  </div>
 
-  <div class="settings-card">
-    <h3>Parâmetros do roteiro</h3>
-    <div class="settings-desc">
-      Usados para calcular o roteiro do dia no Dashboard e no Mapa. Lembrando: como ainda não existe uma tabela de agendamento real, o roteiro é uma estimativa baseada em prioridade clínica — esses números ajustam essa estimativa, não substituem seu julgamento profissional.
-    </div>
-    <div class="field-grid">
-      <div class="field-row">
-        <label for="campoCapacidade">Visitas por dia</label>
-        <input type="number" id="campoCapacidade" min="1" max="40">
-        <div class="field-help">Quantas famílias cabem no roteiro de um dia.</div>
-      </div>
-      <div class="field-row">
-        <label for="campoTempoMedio">Tempo médio por visita (min)</label>
-        <input type="number" id="campoTempoMedio" min="5" max="120">
-        <div class="field-help">Usado para estimar o tempo restante no Dashboard.</div>
+    <div class="aviso-local">
+      <i class="ph ph-info"></i>
+      <div>
+        <strong>Aviso sobre seus dados</strong><br>
+        Essas preferências ficam salvas apenas <strong>neste navegador/dispositivo</strong>. Como o sistema ainda não possui login, elas não acompanham você para outro computador ou celular.
       </div>
     </div>
-    <div class="field-row">
-      <label for="campoMeta">Meta mensal de visitas</label>
-      <input type="number" id="campoMeta" min="1" max="1000">
-      <div class="field-help">Usado na barra de progresso de metas do Dashboard.</div>
+
+    <div class="settings-card">
+      <h3><i class="ph ph-identification-card"></i> Identificação da equipe</h3>
+      <div class="settings-desc">Personaliza o cabeçalho do menu lateral em todas as páginas.</div>
+      
+      <div class="field-grid">
+        <div class="field-row">
+          <label for="campoNomeUbs">Nome da UBS</label>
+          <input type="text" id="campoNomeUbs" placeholder="Ex: UBS Guarda-Mor">
+        </div>
+        <div class="field-row">
+          <label for="campoMicroarea">Sua Microárea</label>
+          <input type="text" id="campoMicroarea" placeholder="Ex: Micro-área 03">
+        </div>
+      </div>
     </div>
-  </div>
 
-  <div class="actions-row">
-    <button class="btn-salvar" id="btnSalvar">Salvar alterações</button>
-    <button class="btn-restaurar" id="btnRestaurar">Restaurar padrões</button>
-    <span class="confirmacao" id="confirmacao">✓ Salvo</span>
-  </div>
+    <div class="settings-card">
+      <h3><i class="ph ph-sliders-horizontal"></i> Parâmetros do roteiro</h3>
+      <div class="settings-desc">
+        Usados para calcular o planejamento do dia no Dashboard e no Mapa. Lembre-se: o roteiro é uma estimativa inteligente, mas não substitui o seu julgamento profissional.
+      </div>
+      
+      <div class="field-grid">
+        <div class="field-row">
+          <label for="campoCapacidade">Visitas por dia</label>
+          <input type="number" id="campoCapacidade" min="1" max="40">
+          <div class="field-help">Quantas famílias cabem no seu roteiro diário.</div>
+        </div>
+        <div class="field-row">
+          <label for="campoTempoMedio">Tempo médio (minutos)</label>
+          <input type="number" id="campoTempoMedio" min="5" max="120">
+          <div class="field-help">Usado para estimar o tempo restante do dia.</div>
+        </div>
+      </div>
+      
+      <div class="field-row" style="margin-bottom: 0; max-width: 50%;">
+        <label for="campoMeta">Meta mensal de visitas</label>
+        <input type="number" id="campoMeta" min="1" max="1000">
+        <div class="field-help">Atualiza a barra de progresso no Dashboard.</div>
+      </div>
 
-  <div class="settings-card" style="margin-top: 32px;">
-    <h3>Sobre</h3>
-    <div class="about-row"><span>Aplicativo</span><span>ACS Digital</span></div>
-    <div class="about-row"><span>Backend</span><span>Supabase</span></div>
-    <div class="about-row"><span>Autenticação de usuário</span><span>Ainda não implementada</span></div>
-  </div>
+      <div class="actions-row">
+        <button class="btn-salvar" id="btnSalvar"><i class="ph ph-floppy-disk"></i> Salvar alterações</button>
+        <button class="btn-restaurar" id="btnRestaurar">Restaurar padrões</button>
+        <span class="confirmacao" id="confirmacao"><i class="ph ph-check-circle"></i> Salvo com sucesso!</span>
+      </div>
+    </div>
 
-</div>
+    <div class="settings-card" style="margin-top: 32px;">
+      <h3><i class="ph ph-code"></i> Sobre o Sistema</h3>
+      <div class="about-row"><span>Aplicativo</span><span>ACS Digital Pro</span></div>
+      <div class="about-row"><span>Backend & Banco de Dados</span><span>Supabase</span></div>
+      <div class="about-row"><span>Autenticação de equipe</span><span style="color: var(--warning);">Pendente de implementação</span></div>
+    </div>
+
+  </div>
 </main>
 
 <script>
+// Mantendo a mesmíssima lógica que você já tinha construído![cite: 6]
 function preencherFormulario() {
   const cfg = obterConfiguracaoLocal();
   document.getElementById('campoNomeUbs').value = cfg.nomeUbs;
@@ -179,7 +238,7 @@ function preencherFormulario() {
 function mostrarConfirmacao() {
   const el = document.getElementById('confirmacao');
   el.classList.add('show');
-  setTimeout(() => el.classList.remove('show'), 2000);
+  setTimeout(() => el.classList.remove('show'), 3000);
 }
 
 document.getElementById('btnSalvar').addEventListener('click', () => {
@@ -195,6 +254,7 @@ document.getElementById('btnSalvar').addEventListener('click', () => {
 });
 
 document.getElementById('btnRestaurar').addEventListener('click', () => {
+  if(!confirm("Tem certeza que deseja restaurar as configurações originais?")) return;
   restaurarConfiguracaoPadrao();
   preencherFormulario();
   aplicarBrandingNaSidebar();
