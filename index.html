@@ -6,71 +6,243 @@
 <title>ACS Digital</title>
 
 <style>
-  body {
-    margin: 0;
-    font-family: Arial, sans-serif;
-    background: #f7f7f8;
-    color: #111;
+
+:root {
+  --bg-color: #ffffff;
+  --surface: #ffffff;
+  --text-main: #111111;
+  --text-muted: #6b7280;
+  --border: rgba(0,0,0,0.08);
+  --primary: #0a84ff;
+
+  --radius: 10px;
+  --chip-bg: #f6f6f6;
+}
+
+/* base */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+}
+
+body {
+  display: flex;
+  background: var(--bg-color);
+  color: var(--text-main);
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* sidebar (mais leve, estilo Notion) */
+.sidebar {
+  width: 240px;
+  background: #fff;
+  border-right: 1px solid var(--border);
+  padding: 20px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.sidebar-header h2 {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.sidebar-header span {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.nav-links {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.nav-links li a {
+  text-decoration: none;
+  color: var(--text-muted);
+  font-size: 13px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  display: flex;
+  gap: 8px;
+}
+
+.nav-links li a:hover,
+.nav-links li a.active {
+  background: #f5f5f5;
+  color: var(--text-main);
+}
+
+/* main */
+.main-content {
+  flex: 1;
+  overflow-y: auto;
+  background: #fff;
+}
+
+/* topo estilo Notion (quase invisível) */
+.topbar {
+  height: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 32px;
+  border-bottom: 1px solid var(--border);
+  background: #fff;
+}
+
+.breadcrumb {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+/* conteúdo */
+.content-wrapper {
+  max-width: 980px;
+  margin: 0 auto;
+  padding: 28px 32px 80px;
+}
+
+/* HERO mais Notion (menos “dashboard”) */
+.hero h1 {
+  font-size: 22px;
+  font-weight: 600;
+}
+
+.hero-meta {
+  margin-top: 6px;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+/* botão principal (menos chamativo) */
+.btn-roteiro {
+  margin-top: 18px;
+  width: 100%;
+  padding: 14px 16px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: #111;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.btn-roteiro:hover {
+  opacity: 0.9;
+}
+
+/* seções estilo Notion */
+.section-block {
+  margin-top: 28px;
+}
+
+.section-title {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+  margin-bottom: 10px;
+}
+
+/* cards viram “blocos leves” */
+.summary-grid,
+.priority-grid,
+.metrics-grid,
+.quick-grid {
+  display: grid;
+  gap: 10px;
+}
+
+.summary-grid {
+  grid-template-columns: repeat(6, 1fr);
+}
+
+.summary-tile,
+.priority-card,
+.metric-card,
+.quick-action {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px 14px;
+  box-shadow: none;
+}
+
+/* menos contraste visual */
+.summary-value {
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.summary-label {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+/* prioridades mais discretas */
+.priority-card {
+  border-left: 2px solid var(--border);
+}
+
+.priority-name {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.priority-address {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+/* alertas estilo lista (Notion puro) */
+.alert-row {
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  background: #fff;
+}
+
+/* ações rápidas mais leves */
+.quick-action {
+  text-decoration: none;
+  color: var(--text-main);
+  font-size: 13px;
+}
+
+.quick-action:hover {
+  background: #f7f7f7;
+}
+
+/* mobile */
+@media (max-width: 768px) {
+  body { flex-direction: column; overflow: auto; }
+
+  .sidebar { display: none; }
+
+  .content-wrapper {
+    padding: 18px 16px 80px;
   }
 
-  .container {
-    max-width: 850px;
-    margin: 50px auto;
-    padding: 0 20px;
+  .summary-grid {
+    grid-template-columns: repeat(2, 1fr);
   }
 
-  .header {
-    margin-bottom: 40px;
+  .topbar {
+    padding: 0 16px;
   }
-
-  .title {
-    font-size: 28px;
-    font-weight: bold;
-  }
-
-  .subtitle {
-    font-size: 14px;
-    color: #666;
-    margin-top: 5px;
-  }
-
-  .section {
-    margin-bottom: 30px;
-  }
-
-  .section-title {
-    font-size: 12px;
-    letter-spacing: 1px;
-    color: #777;
-    margin-bottom: 10px;
-  }
-
-  .card {
-    background: white;
-    border: 1px solid #e6e6e6;
-    border-radius: 10px;
-    padding: 14px 16px;
-    margin-bottom: 10px;
-    cursor: pointer;
-    transition: 0.2s;
-  }
-
-  .card:hover {
-    transform: translateY(-1px);
-    border-color: #d0d0d0;
-  }
-
-  .card-title {
-    font-size: 14px;
-    font-weight: 600;
-  }
-
-  .card-desc {
-    font-size: 13px;
-    color: #666;
-    margin-top: 3px;
-  }
-</style>
+}
+  </style>
 </head>
 
 <body>
