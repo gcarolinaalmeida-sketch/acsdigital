@@ -87,32 +87,99 @@ function nomePrincipalDe(f) {
   return resp ? resp.nome : enderecoDe(f);
 }
 
-// ----------------------------- Carregamento + enriquecimento -----------------
-// Busca familias + visitas no Supabase e devolve as famílias já enriquecidas
-// com dados derivados (última visita, condições, idade dos membros, etc.).
-async function carregarFamiliasEnriquecidas() {
-  const [{ data: familias, error: erroFamilias },
-         { data: visitas, error: erroVisitas }] = await Promise.all([
-    db.from('familias').select('*, cidadaos(*, condicoes_saude(*))').order('logradouro'),
-    db.from('visitas').select('familia_id, cidadao_id, data_visita, desfecho, observacoes, acompanhamentos').order('data_visita', { ascending: false }),
-  ]);
+// ----------------------------- Cache local (resiliência offline) --------------
+// Chave usada no localStorage para guardar os dados da última carga bem-sucedida.
+// Se a próxima carga falhar (sem sinal, timeout, etc.), usamos esses dados em vez
+// de deixar a tela travada em "Carregando..." pra sempre.
+const CACHE_KEY = 'acsdigital_cache_dados';
+const CACHE_MAX_IDADE_HORAS = 24; // ignora cache com mais de 24h (dado muito velho)
+const TIMEOUT_SUPABASE_MS = 8000; // 8 segundos — tempo máximo de espera antes de usar o cache
 
-  if (erroFamilias || erroVisitas) {
-    const erro = erroFamilias || erroVisitas;
-    throw erro;
+function salvarCacheLocal(familiasEnriquecidas, visitas) {
+  try {
+    localStorage.setItem(CACHE_KEY, JSON.stringify({
+      ts: Date.now(),
+      familiasEnriquecidas,
+      visitas,
+    }));
+  } catch (e) { /* localStorage cheio ou indisponível — segue sem cache */ }
+}
+
+function lerCacheLocal() {
+  try {
+    const raw = localStorage.getItem(CACHE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    const idadeHoras = (Date.now() - parsed.ts) / 3600000;
+    if (idadeHoras > CACHE_MAX_IDADE_HORAS) return null;
+    return parsed;
+  } catch (e) { return null; }
+}
+
+function idadeCacheTexto() {
+  try {
+    const raw = localStorage.getItem(CACHE_KEY);
+    if (!raw) return null;
+    const { ts } = JSON.parse(raw);
+    const mins = Math.round((Date.now() - ts) / 60000);
+    if (mins < 60) return `${mins} min atrás`;
+    const horas = Math.round(mins / 60);
+    return `${horas}h atrás`;
+  } catch (e) { return null; }
+}
+
+// ----------------------------- Carregamento + enriquecimento -----------------
+async function carregarFamiliasEnriquecidas() {
+  // Tenta buscar do Supabase com timeout. Se falhar ou demorar demais, usa o cache.
+  let dados = null;
+  let usouCache = false;
+
+  try {
+    const promiseDados = Promise.all([
+      db.from('familias').select('*, cidadaos(*, condicoes_saude(*))').order('logradouro'),
+      db.from('visitas').select('familia_id, cidadao_id, data_visita, desfecho, observacoes, acompanhamentos').order('data_visita', { ascending: false }),
+    ]);
+
+    const promiseTimeout = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('timeout')), TIMEOUT_SUPABASE_MS)
+    );
+
+    const [{ data: familias, error: erroFamilias }, { data: visitas, error: erroVisitas }]
+      = await Promise.race([promiseDados, promiseTimeout]);
+
+    if (erroFamilias || erroVisitas) throw (erroFamilias || erroVisitas);
+
+    dados = { familias: familias || [], visitas: visitas || [] };
+  } catch (e) {
+    // Falha de rede ou timeout: tenta o cache
+    const cache = lerCacheLocal();
+    if (cache) {
+      usouCache = true;
+      // Avisa o usuário de forma não-invasiva (banner no topo da página, se existir)
+      _mostrarAvisoOffline(idadeCacheTexto());
+      return {
+        familiasEnriquecidas: cache.familiasEnriquecidas,
+        visitas: cache.visitas,
+        usouCache: true,
+      };
+    }
+    // Sem cache e sem rede: relança o erro pra mostrarErroGeral() tratar
+    throw e;
   }
 
+  const { familias, visitas } = dados;
+
   const visitasPorFamilia = new Map();
-  (visitas || []).forEach(v => {
+  visitas.forEach(v => {
     if (!v.familia_id) return;
     if (!visitasPorFamilia.has(v.familia_id)) visitasPorFamilia.set(v.familia_id, []);
     visitasPorFamilia.get(v.familia_id).push(v);
   });
 
   const hoje = hojeISO();
-  const familiasEnriquecidas = (familias || []).map(f => {
+  const familiasEnriquecidas = familias.map(f => {
     const membros = f.cidadaos || [];
-    const historico = visitasPorFamilia.get(f.id) || []; // já ordenado desc pela query
+    const historico = visitasPorFamilia.get(f.id) || [];
     const ultimaVisita = historico[0]?.data_visita || null;
     const idades = membros.map(c => calcularIdadeSegura(c.data_nascimento)).filter(i => i !== null);
 
@@ -134,8 +201,28 @@ async function carregarFamiliasEnriquecidas() {
     };
   });
 
-  return { familiasEnriquecidas, visitas: visitas || [] };
+  // Salva no cache local pra próxima vez sem sinal
+  salvarCacheLocal(familiasEnriquecidas, visitas);
+
+  return { familiasEnriquecidas, visitas, usouCache: false };
 }
+
+// Banner de aviso offline — só injeta se a página tiver o content-wrapper (todas as páginas do app têm).
+function _mostrarAvisoOffline(idadeTexto) {
+  if (document.getElementById('_avisoOffline')) return; // já existe
+  const wrapper = document.querySelector('.content-wrapper');
+  if (!wrapper) return;
+  const banner = document.createElement('div');
+  banner.id = '_avisoOffline';
+  banner.style.cssText = `
+    background: #FFF4E5; border: 1px solid #FF9500; border-radius: 10px;
+    padding: 10px 16px; font-size: 13px; color: #111827;
+    display: flex; align-items: center; gap: 8px; margin-bottom: 16px;
+  `;
+  banner.innerHTML = `📶 <span>Sem conexão — exibindo dados salvos${idadeTexto ? ' de ' + idadeTexto : ''}. As alterações feitas agora <strong>não serão salvas</strong> até você reconectar.</span>`;
+  wrapper.insertBefore(banner, wrapper.firstChild);
+}
+
 
 // ----------------------------- Heurística do roteiro --------------------------
 // Critério: gestante/acamado > criança < 2 anos > HAS/DM > idoso > rotina,

@@ -58,8 +58,16 @@ function mostrarErroGeral() {
   const blocos = ['priorityGrid', 'alertsList', 'timelineList', 'goalsGrid', 'metricsGrid'];
   blocos.forEach(id => {
     const el = document.getElementById(id);
-    if (el) el.innerHTML = `<p class="estado-erro">Não foi possível carregar os dados agora. Verifique a conexão e tente novamente.</p>`;
+    if (el) el.innerHTML = `<p class="estado-erro">📶 Sem conexão e sem dados salvos localmente. Abra o app quando tiver sinal para carregar os dados pela primeira vez.</p>`;
   });
+  // Também atualiza os tiles do resumo
+  ['sumProgramadas','sumUrgentes','sumRetornos','sumConcluidas','sumPendentes','sumTempo'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = '—';
+  });
+  document.getElementById('heroVisitasHoje').textContent = '—';
+  document.getElementById('heroPercentual').textContent = '—%';
+  document.getElementById('roteiroSub').textContent = 'Sem conexão — reconecte para ver o roteiro.';
 }
 
 // As funções calcularPrioridade(), calcularRoteiroDoDia(), enderecoDe(),
