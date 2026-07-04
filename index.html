@@ -1,522 +1,139 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-br">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>ACS Digital - Micro-área 03</title>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="config.js"></script>
-<script src="auth.js"></script>
-<script>protegerPagina();</script>
-<script src="branding.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ACS Digital</title>
+
 <style>
-:root {
-  /* Tokens originais do projeto (preservados) */
-  --bg-color: #FAFAFA;
-  --surface: #FFFFFF;
-  --text-main: #111827;
-  --text-muted: #6B7280;
-  --border: #E5E7EB;
-  --primary: #0A84FF;
-  --danger: #FF3B30;
-  --success: #34C759;
-  --warning: #FF9500;
-  --radius: 12px;
-  --chip-bg: #F2F2F7;
-
-  /* Tokens novos, derivados dos mesmos matizes (não substituem os existentes) */
-  --primary-soft: #E8F2FF;
-  --danger-soft: #FFEDEC;
-  --warning-soft: #FFF4E5;
-  --success-soft: #E9F9EE;
-  --info: #5856D6;
-  --info-soft: #EFEEFD;
-  --radius-lg: 18px;
-  --radius-xl: 22px;
-  --shadow-card: 0 1px 2px rgba(17,24,39,0.04);
-  --shadow-roteiro: 0 10px 24px rgba(10,132,255,0.22);
-}
-
-* { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
-
-body {
-  display: flex;
-  background-color: var(--bg-color);
-  color: var(--text-main);
-  height: 100vh;
-  overflow: hidden;
-}
-
-/* ===================== Sidebar (reorganizada) ===================== */
-.sidebar {
-  width: 260px;
-  background-color: var(--bg-color);
-  border-right: 1px solid var(--border);
-  padding: 24px 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 24px;
-  z-index: 10;
-}
-.sidebar-header h2 { font-size: 14px; font-weight: 600; }
-.sidebar-header span { font-size: 12px; color: var(--text-muted); }
-.nav-links { list-style: none; display: flex; flex-direction: column; gap: 2px; }
-.nav-links li a {
-  text-decoration: none;
-  color: var(--text-muted);
-  font-size: 14px;
-  padding: 9px 12px;
-  border-radius: 10px;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  transition: all 0.15s;
-}
-.nav-links li a .nav-icon { font-size: 15px; width: 18px; text-align: center; flex-shrink: 0; }
-.nav-links li a:hover, .nav-links li a.active { background-color: #F3F4F6; color: var(--text-main); font-weight: 500; }
-.nav-links li.nav-divider { height: 1px; background: var(--border); margin: 8px 4px; list-style: none; }
-
-/* ===================== Área principal ===================== */
-.main-content { flex: 1; display: flex; flex-direction: column; overflow-y: auto; position: relative; }
-
-.topbar {
-  height: 56px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 48px;
-  border-bottom: 1px solid var(--border);
-  background-color: var(--bg-color);
-  position: sticky;
-  top: 0;
-  z-index: 10;
-}
-.breadcrumb { font-size: 14px; color: var(--text-muted); }
-.topbar-actions { font-size: 14px; color: var(--text-muted); display: flex; align-items: center; gap: 16px; }
-.topbar-actions kbd { background: var(--chip-bg); border-radius: 6px; padding: 2px 6px; font-size: 12px; }
-
-.content-wrapper { padding: 32px 48px 64px; max-width: 1200px; margin: 0 auto; width: 100%; }
-
-.section-block { margin-bottom: 40px; }
-.section-header { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 16px; }
-.section-title {
-  font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em;
-  color: var(--text-muted); font-weight: 600;
-}
-.section-link { font-size: 13px; font-weight: 600; color: var(--primary); text-decoration: none; }
-
-/* ===================== 1+2+3. Hero + CTA ===================== */
-.hero {
-  display: flex; align-items: flex-end; justify-content: space-between;
-  gap: 24px; margin-bottom: 20px; flex-wrap: wrap;
-}
-.hero h1 { font-size: 26px; font-weight: 600; margin-bottom: 6px; }
-.hero-meta { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-.hero-meta .badge-area {
-  background: var(--primary-soft); color: var(--primary);
-  font-size: 12px; font-weight: 600; padding: 4px 10px; border-radius: 999px;
-}
-.hero-meta .hero-date { font-size: 14px; color: var(--text-muted); }
-.hero-ring {
-  display: flex; align-items: center; gap: 14px;
-  background: var(--surface); border: 1px solid var(--border);
-  border-radius: var(--radius); padding: 12px 18px;
-}
-.hero-ring .ring-value { font-size: 22px; font-weight: 700; }
-.hero-ring .ring-label { font-size: 12px; color: var(--text-muted); }
-.hero-ring .ring-sep { width: 1px; height: 28px; background: var(--border); }
-
-.btn-roteiro {
-  width: 100%;
-  display: flex; align-items: center; justify-content: center; gap: 10px;
-  background: linear-gradient(135deg, var(--primary), #3aa0ff);
-  color: white; border: none;
-  padding: 18px 24px;
-  border-radius: var(--radius-lg);
-  font-size: 18px; font-weight: 700;
-  cursor: pointer;
-  box-shadow: var(--shadow-roteiro);
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
-  margin-bottom: 10px;
-}
-.btn-roteiro:hover { transform: translateY(-1px); box-shadow: 0 14px 28px rgba(10,132,255,0.28); }
-.btn-roteiro:active { transform: translateY(0); }
-.btn-roteiro .play-icon { font-size: 16px; }
-.roteiro-sub {
-  text-align: center; font-size: 13px; color: var(--text-muted);
-  margin-bottom: 36px;
-}
-.roteiro-sub strong { color: var(--text-main); font-weight: 600; }
-
-/* ===================== 4. Resumo do dia ===================== */
-.summary-grid {
-  display: grid; grid-template-columns: repeat(6, 1fr); gap: 12px;
-}
-.summary-tile {
-  background: var(--surface); border: 1px solid var(--border);
-  border-radius: var(--radius); padding: 14px 16px;
-  box-shadow: var(--shadow-card);
-}
-.summary-tile .summary-value { font-size: 22px; font-weight: 700; line-height: 1.1; }
-.summary-tile .summary-label { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
-.summary-tile.is-danger .summary-value { color: var(--danger); }
-.summary-tile.is-success .summary-value { color: var(--success); }
-
-/* ===================== 5. Visitas prioritárias ===================== */
-.priority-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(290px, 1fr)); gap: 16px; }
-.priority-card {
-  background: var(--surface); border: 1px solid var(--border);
-  border-left: 4px solid var(--border);
-  border-radius: var(--radius); padding: 18px;
-  display: flex; flex-direction: column; gap: 10px;
-  box-shadow: var(--shadow-card);
-}
-.priority-card.nivel-urgente { border-left-color: var(--danger); }
-.priority-card.nivel-atencao { border-left-color: var(--warning); }
-.priority-card.nivel-rotina { border-left-color: var(--info); }
-
-.priority-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-.priority-tag { font-size: 12px; font-weight: 700; display: inline-flex; align-items: center; gap: 4px; }
-.priority-tag.nivel-urgente { color: var(--danger); }
-.priority-tag.nivel-atencao { color: var(--warning); }
-.priority-tag.nivel-rotina { color: var(--info); }
-.priority-type-badge {
-  font-size: 12px; font-weight: 500; background: var(--chip-bg);
-  padding: 3px 9px; border-radius: 999px; white-space: nowrap;
-}
-.priority-name { font-size: 16px; font-weight: 600; }
-.priority-address { font-size: 13px; color: var(--text-muted); }
-.priority-lastvisit { font-size: 12px; color: var(--text-muted); }
-.priority-actions { display: flex; gap: 8px; margin-top: 6px; }
-.btn-mini {
-  flex: 1; text-align: center; text-decoration: none;
-  font-size: 13px; font-weight: 600; padding: 9px 10px;
-  border-radius: 9px; cursor: pointer; border: 1px solid transparent;
-}
-.btn-mini.primary { background: var(--primary); color: white; }
-.btn-mini.ghost { background: var(--chip-bg); color: var(--text-main); }
-
-/* ===================== 6. Alertas ===================== */
-.alerts-list { display: flex; flex-direction: column; gap: 8px; }
-.alert-row {
-  display: flex; align-items: center; gap: 14px;
-  background: var(--surface); border: 1px solid var(--border);
-  border-radius: var(--radius); padding: 14px 16px;
-  text-decoration: none; color: var(--text-main);
-  transition: 0.15s;
-}
-.alert-row:hover { border-color: #D1D5DB; }
-.alert-row.is-disabled { opacity: 0.55; cursor: default; pointer-events: none; }
-.alert-icon {
-  width: 34px; height: 34px; border-radius: 10px;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 16px; flex-shrink: 0;
-}
-.alert-icon.sev-alta { background: var(--danger-soft); }
-.alert-icon.sev-media { background: var(--warning-soft); }
-.alert-icon.sev-baixa { background: var(--chip-bg); }
-.alert-text { flex: 1; }
-.alert-title { font-size: 14px; font-weight: 600; }
-.alert-sub { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
-.alert-count {
-  font-size: 13px; font-weight: 700; padding: 3px 10px;
-  border-radius: 999px; background: var(--chip-bg); color: var(--text-main);
-}
-.alert-chevron { color: var(--text-muted); font-size: 16px; }
-
-/* ===================== 7. Próximas visitas ===================== */
-.timeline-list { display: flex; flex-direction: column; }
-.timeline-item {
-  display: flex; gap: 16px; align-items: flex-start;
-  padding: 14px 4px; border-bottom: 1px solid var(--border);
-}
-.timeline-item:last-child { border-bottom: none; }
-.timeline-pos { font-size: 13px; font-weight: 700; color: var(--text-muted); width: 28px; flex-shrink: 0; padding-top: 2px; }
-.timeline-body { flex: 1; }
-.timeline-name { font-size: 14px; font-weight: 600; }
-.timeline-detail { font-size: 13px; color: var(--text-muted); margin-top: 2px; }
-
-/* ===================== 8. Progresso das metas ===================== */
-.goals-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
-.goal-card {
-  background: var(--surface); border: 1px solid var(--border);
-  border-radius: var(--radius); padding: 18px;
-  box-shadow: var(--shadow-card);
-}
-.goal-top { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 10px; }
-.goal-title { font-size: 14px; font-weight: 600; }
-.goal-numbers { font-size: 13px; color: var(--text-muted); }
-.goal-track { height: 8px; background: var(--chip-bg); border-radius: 4px; overflow: hidden; margin-bottom: 8px; }
-.goal-fill { height: 100%; border-radius: 4px; background: var(--success); transition: width 0.5s ease-out; }
-.goal-fill.warning { background: var(--warning); }
-.goal-fill.danger { background: var(--danger); }
-.goal-footer { display: flex; justify-content: space-between; font-size: 12px; color: var(--text-muted); }
-.goal-footer strong { color: var(--text-main); }
-
-/* ===================== Mapa-resumo da microárea ===================== */
-.map-summary {
-  background: var(--surface); border: 1px solid var(--border);
-  border-radius: var(--radius-lg); padding: 0; overflow: hidden;
-  display: flex; flex-wrap: wrap;
-  box-shadow: var(--shadow-card);
-}
-.map-visual {
-  flex: 1 1 260px; min-height: 160px; position: relative;
-  background-image:
-    radial-gradient(circle at 20% 30%, rgba(10,132,255,0.06), transparent 40%),
-    linear-gradient(var(--border) 1px, transparent 1px),
-    linear-gradient(90deg, var(--border) 1px, transparent 1px);
-  background-size: auto, 28px 28px, 28px 28px;
-  background-color: #F6F8FB;
-}
-.map-pin {
-  position: absolute; width: 12px; height: 12px; border-radius: 50%;
-  border: 2px solid white; box-shadow: 0 1px 3px rgba(0,0,0,0.25);
-}
-.map-pin.pendente { background: var(--text-muted); }
-.map-pin.visitada { background: var(--success); }
-.map-pin.urgente { background: var(--danger); }
-.map-pin.eu {
-  background: var(--primary); width: 14px; height: 14px;
-  box-shadow: 0 0 0 6px rgba(10,132,255,0.18);
-}
-.map-side {
-  flex: 1 1 220px; padding: 20px 22px; display: flex; flex-direction: column; gap: 14px;
-}
-.map-legend { display: flex; flex-direction: column; gap: 8px; }
-.map-legend-item { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-muted); }
-.map-legend-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
-.map-legend-dot.pendente { background: var(--text-muted); }
-.map-legend-dot.visitada { background: var(--success); }
-.map-legend-dot.urgente { background: var(--danger); }
-
-/* ===================== Indicadores ===================== */
-.metrics-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 14px; }
-.metric-card {
-  background: var(--surface); border: 1px solid var(--border);
-  border-radius: var(--radius); padding: 16px;
-  box-shadow: var(--shadow-card);
-}
-.metric-icon-label { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
-.metric-icon-label .emoji { font-size: 15px; }
-.metric-icon-label .label { font-size: 12px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em; }
-.metric-value { font-size: 26px; font-weight: 700; }
-.metric-trend { font-size: 12px; margin-top: 4px; color: var(--text-muted); }
-.metric-trend.up { color: var(--success); }
-.metric-trend.down { color: var(--danger); }
-
-/* ===================== Ações rápidas ===================== */
-.quick-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
-.quick-action {
-  background: var(--surface); border: 1px solid var(--border);
-  border-radius: var(--radius); padding: 16px 14px;
-  display: flex; flex-direction: column; gap: 8px;
-  text-decoration: none; color: var(--text-main);
-  transition: 0.15s; cursor: pointer;
-}
-.quick-action:hover { border-color: var(--primary); background: #F8FBFF; }
-.quick-action .quick-emoji { font-size: 20px; }
-.quick-action .quick-label { font-size: 13px; font-weight: 600; }
-.quick-action.is-disabled { opacity: 0.5; cursor: default; pointer-events: none; }
-.quick-action.is-disabled .quick-label::after { content: " (em breve)"; font-weight: 400; color: var(--text-muted); }
-
-.estado-vazio { color: var(--text-muted); padding: 32px 0; font-size: 14px; }
-.estado-erro { color: var(--danger); padding: 16px 0; font-size: 14px; }
-
-/* ===================== Responsivo ===================== */
-@media (max-width: 980px) {
-  .summary-grid { grid-template-columns: repeat(3, 1fr); }
-}
-@media (max-width: 768px) {
-  body { flex-direction: column; height: auto; overflow: visible; padding-bottom: 64px; }
-  .sidebar { display: none; }
-  .topbar, .content-wrapper { padding: 0 20px; }
-  .topbar { padding: 0 20px; }
-  .content-wrapper { padding: 20px 20px 32px; }
-  .hero { flex-direction: column; align-items: flex-start; }
-  .hero-ring { width: 100%; justify-content: space-around; }
-  .summary-grid { grid-template-columns: repeat(2, 1fr); }
-  .map-summary { flex-direction: column; }
-
-  /* Navegação inferior fixa, otimizada para uso em campo (celular) */
-  .bottom-nav {
-    display: flex; position: fixed; bottom: 0; left: 0; right: 0;
-    background: var(--surface); border-top: 1px solid var(--border);
-    z-index: 50; padding: 6px 4px calc(env(safe-area-inset-bottom, 0px) + 6px);
+  body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background: #f7f7f8;
+    color: #111;
   }
-  .bottom-nav a {
-    flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px;
-    text-decoration: none; color: var(--text-muted); font-size: 11px; padding: 6px 0;
+
+  .container {
+    max-width: 850px;
+    margin: 50px auto;
+    padding: 0 20px;
   }
-  .bottom-nav a .bn-icon { font-size: 18px; }
-  .bottom-nav a.active { color: var(--primary); font-weight: 600; }
-}
-@media (min-width: 769px) {
-  .bottom-nav { display: none; }
-}
+
+  .header {
+    margin-bottom: 40px;
+  }
+
+  .title {
+    font-size: 28px;
+    font-weight: bold;
+  }
+
+  .subtitle {
+    font-size: 14px;
+    color: #666;
+    margin-top: 5px;
+  }
+
+  .section {
+    margin-bottom: 30px;
+  }
+
+  .section-title {
+    font-size: 12px;
+    letter-spacing: 1px;
+    color: #777;
+    margin-bottom: 10px;
+  }
+
+  .card {
+    background: white;
+    border: 1px solid #e6e6e6;
+    border-radius: 10px;
+    padding: 14px 16px;
+    margin-bottom: 10px;
+    cursor: pointer;
+    transition: 0.2s;
+  }
+
+  .card:hover {
+    transform: translateY(-1px);
+    border-color: #d0d0d0;
+  }
+
+  .card-title {
+    font-size: 14px;
+    font-weight: 600;
+  }
+
+  .card-desc {
+    font-size: 13px;
+    color: #666;
+    margin-top: 3px;
+  }
 </style>
 </head>
+
 <body>
 
-<!-- Sidebar (reorganizada conforme prioridades do produto) -->
-<aside class="sidebar">
-  <div class="sidebar-header">
-    <h2>UBS Guarda-Mor</h2>
-    <span>Micro-área 03</span>
+<div class="container">
+
+  <!-- HEADER -->
+  <div class="header">
+    <div class="title">ACS Digital</div>
+    <div class="subtitle">Microárea 02 • ESF Guarda-Mor</div>
   </div>
-  <ul class="nav-links">
-    <li><a href="index.html" class="active"><span class="nav-icon">🏠</span> Dashboard</a></li>
-    <li><a href="nova-visita.html"><span class="nav-icon">▶️</span> Meu Roteiro</a></li>
-    <li><a href="agenda.html"><span class="nav-icon">🗓️</span> Agenda</a></li>
-    <li><a href="nova-visita.html"><span class="nav-icon">📋</span> Visitas</a></li>
-    <li><a href="familias.html"><span class="nav-icon">👨‍👩‍👧</span> Famílias</a></li>
-    <li><a href="mapa.html"><span class="nav-icon">🗺️</span> Mapa</a></li>
-    <li><a href="indicadores.html"><span class="nav-icon">📊</span> Indicadores</a></li>
-    <li class="nav-divider"></li>
-    <li><a href="busca.html"><span class="nav-icon">🔍</span> Busca</a></li>
-    <li><a href="configuracoes.html"><span class="nav-icon">⚙️</span> Configurações</a></li>
-  </ul>
-</aside>
 
-<!-- Conteúdo principal -->
-<main class="main-content">
-  <header class="topbar">
-    <div class="breadcrumb">Início / Dashboard</div>
-    <div class="topbar-actions">
-      <span>Buscar <kbd>⌘K</kbd></span>
-      <span>Perfil</span>
-    </div>
-  </header>
+  <!-- ATALHOS -->
+  <div class="section">
+    <div class="section-title">Atalhos</div>
 
-  <div class="content-wrapper">
-
-    <!-- 1 + 2: Saudação + resumo rápido do dia -->
-    <div class="hero">
-      <div>
-        <h1 id="heroSaudacao">Bom dia, Gabriela 👋</h1>
-        <div class="hero-meta">
-          <span class="badge-area">Micro-área 03</span>
-          <span class="hero-date" id="heroData">—</span>
-        </div>
-      </div>
-      <div class="hero-ring">
-        <div>
-          <div class="ring-value" id="heroVisitasHoje">--</div>
-          <div class="ring-label">visitas previstas</div>
-        </div>
-        <div class="ring-sep"></div>
-        <div>
-          <div class="ring-value" id="heroPercentual">--%</div>
-          <div class="ring-label">concluído hoje</div>
-        </div>
-      </div>
+    <div class="card">
+      <div class="card-title">Visitas do dia</div>
+      <div class="card-desc">Abrir roteiro de visitas domiciliares</div>
     </div>
 
-    <!-- 3: CTA principal -->
-    <button class="btn-roteiro" id="btnIniciarRoteiro">
-      <span class="play-icon">▶</span> Iniciar roteiro de hoje
-    </button>
-    <div class="roteiro-sub" id="roteiroSub">Calculando a próxima parada...</div>
+    <div class="card">
+      <div class="card-title">Famílias</div>
+      <div class="card-desc">Lista de famílias cadastradas</div>
+    </div>
 
-    <!-- 4: Resumo do dia -->
-    <section class="section-block">
-      <div class="summary-grid" id="summaryGrid">
-        <div class="summary-tile"><div class="summary-value" id="sumProgramadas">--</div><div class="summary-label">Programadas</div></div>
-        <div class="summary-tile is-danger"><div class="summary-value" id="sumUrgentes">--</div><div class="summary-label">Urgentes</div></div>
-        <div class="summary-tile"><div class="summary-value" id="sumRetornos">--</div><div class="summary-label">Retornos</div></div>
-        <div class="summary-tile is-success"><div class="summary-value" id="sumConcluidas">--</div><div class="summary-label">Concluídas</div></div>
-        <div class="summary-tile"><div class="summary-value" id="sumPendentes">--</div><div class="summary-label">Pendentes</div></div>
-        <div class="summary-tile"><div class="summary-value" id="sumTempo">--</div><div class="summary-label">Tempo estimado</div></div>
-      </div>
-    </section>
-
-    <!-- 5: Visitas prioritárias -->
-    <section class="section-block">
-      <div class="section-header">
-        <span class="section-title">Visitas prioritárias</span>
-        <a href="familias.html" class="section-link">Ver todas →</a>
-      </div>
-      <div class="priority-grid" id="priorityGrid">
-        <p class="estado-vazio">Carregando visitas prioritárias...</p>
-      </div>
-    </section>
-
-    <!-- 6: Alertas -->
-    <section class="section-block">
-      <div class="section-header"><span class="section-title">Alertas</span></div>
-      <div class="alerts-list" id="alertsList">
-        <p class="estado-vazio">Carregando alertas...</p>
-      </div>
-    </section>
-
-    <!-- 7: Próximas visitas -->
-    <section class="section-block">
-      <div class="section-header"><span class="section-title">Próximas visitas do roteiro</span></div>
-      <div class="timeline-list" id="timelineList">
-        <p class="estado-vazio">Carregando...</p>
-      </div>
-    </section>
-
-    <!-- 8: Progresso das metas -->
-    <section class="section-block">
-      <div class="section-header"><span class="section-title">Progresso das metas</span></div>
-      <div class="goals-grid" id="goalsGrid">
-        <p class="estado-vazio">Carregando metas...</p>
-      </div>
-    </section>
-
-    <!-- Mapa-resumo -->
-    <section class="section-block">
-      <div class="section-header">
-        <span class="section-title">Mapa da microárea</span>
-        <a href="mapa.html" class="section-link">Abrir mapa completo →</a>
-      </div>
-      <div class="map-summary">
-        <div class="map-visual" id="mapVisual"></div>
-        <div class="map-side">
-          <div class="map-legend">
-            <div class="map-legend-item"><span class="map-legend-dot urgente"></span> <span id="mapUrgentesTxt">-- urgentes hoje</span></div>
-            <div class="map-legend-item"><span class="map-legend-dot pendente"></span> <span id="mapPendentesTxt">-- pendentes</span></div>
-            <div class="map-legend-item"><span class="map-legend-dot visitada"></span> <span id="mapVisitadasTxt">-- visitadas hoje</span></div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- 8b: Indicadores da microárea -->
-    <section class="section-block">
-      <div class="section-header"><span class="section-title">Indicadores da microárea 03</span></div>
-      <div class="metrics-grid" id="metricsGrid">
-        <p class="estado-vazio">Carregando indicadores...</p>
-      </div>
-    </section>
-
-    <!-- 9: Ações rápidas -->
-    <section class="section-block">
-      <div class="section-header"><span class="section-title">Ações rápidas</span></div>
-      <div class="quick-grid" id="quickGrid">
-        <a class="quick-action" href="familias.html"><span class="quick-emoji">👨‍👩‍👧</span><span class="quick-label">Nova Família</span></a>
-        <a class="quick-action" id="quickNovaVisita" href="nova-visita.html"><span class="quick-emoji">📋</span><span class="quick-label">Nova Visita</span></a>
-        <a class="quick-action" href="familias.html"><span class="quick-emoji">🔍</span><span class="quick-label">Buscar Pessoa</span></a>
-        <a class="quick-action" href="mapa.html"><span class="quick-emoji">🗺️</span><span class="quick-label">Abrir Mapa</span></a>
-        <a class="quick-action" href="familias.html"><span class="quick-emoji">🏠</span><span class="quick-label">Cadastrar Domicílio</span></a>
-        <a class="quick-action is-disabled" href="#" onclick="return false;"><span class="quick-emoji">📷</span><span class="quick-label">Escanear Cartão SUS</span></a>
-      </div>
-    </section>
-
+    <div class="card">
+      <div class="card-title">Cadastros</div>
+      <div class="card-desc">Atualizar dados de usuários</div>
+    </div>
   </div>
-</main>
 
-<!-- Navegação inferior (somente mobile) -->
-<nav class="bottom-nav">
-  <a href="index.html" class="active"><span class="bn-icon">🏠</span>Dashboard</a>
-  <a href="nova-visita.html"><span class="bn-icon">▶️</span>Roteiro</a>
-  <a href="familias.html"><span class="bn-icon">👨‍👩‍👧</span>Famílias</a>
-  <a href="busca.html"><span class="bn-icon">🔍</span>Busca</a>
-  <a href="mapa.html"><span class="bn-icon">🗺️</span>Mapa</a>
-</nav>
+  <!-- ROTINA -->
+  <div class="section">
+    <div class="section-title">Rotina</div>
 
-<script src="roteiro.js"></script>
-<script src="dashboard.js"></script>
+    <div class="card">
+      <div class="card-title">Planejamento do dia</div>
+      <div class="card-desc">Organizar visitas e prioridades</div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Visitas pendentes</div>
+      <div class="card-desc">Pendências não concluídas</div>
+    </div>
+  </div>
+
+  <!-- ALERTAS -->
+  <div class="section">
+    <div class="section-title">Alertas</div>
+
+    <div class="card">
+      <div class="card-title">Gestantes em atraso</div>
+      <div class="card-desc">Revisar acompanhamento</div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Hipertensos sem controle</div>
+      <div class="card-desc">Necessitam atenção</div>
+    </div>
+  </div>
+
+</div>
+
 </body>
 </html>
