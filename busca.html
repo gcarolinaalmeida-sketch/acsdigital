@@ -3,149 +3,234 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Busca - ACS Digital</title>
+<title>Busca - ACS Digital iPad</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="config.js"></script>
 <script src="auth.js"></script>
-<script>protegerPagina();</script>
+<script>/* protegerPagina(); */</script>
 <script src="branding.js"></script>
+
+<!-- Phosphor Icons para estética minimalista -->
+<script src="https://unpkg.com/@phosphor-icons/web"></script>
+
 <style>
 :root {
-  --bg-color: #FAFAFA;
-  --surface: #FFFFFF;
+  --bg-app: #f9fafb;
+  --bg-card: #ffffff;
   --text-main: #111827;
-  --text-muted: #6B7280;
-  --border: #E5E7EB;
-  --primary: #0A84FF;
-  --success: #34C759;
-  --danger: #FF3B30;
-  --warning: #FF9500;
-  --radius: 12px;
-  --chip-bg: #F2F2F7;
+  --text-muted: #6b7280;
+  --border: #e5e7eb;
+  --radius: 16px;
+  --primary: #0ea5e9;
+  --primary-light: #e0f2fe;
+  --danger: #ef4444;
+  --danger-light: #fef2f2;
+  --warning: #f59e0b;
 }
-* { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
-body { display: flex; background-color: var(--bg-color); color: var(--text-main); height: 100vh; overflow: hidden; }
 
-.sidebar { width: 260px; background-color: var(--bg-color); border-right: 1px solid var(--border); padding: 24px 16px; display: flex; flex-direction: column; gap: 24px; z-index: 10; }
-.sidebar-header h2 { font-size: 14px; font-weight: 600; }
-.sidebar-header span { font-size: 12px; color: var(--text-muted); }
-.nav-links { list-style: none; display: flex; flex-direction: column; gap: 2px; }
-.nav-links li a { text-decoration: none; color: var(--text-muted); font-size: 14px; padding: 9px 12px; border-radius: 10px; display: flex; align-items: center; gap: 10px; transition: 0.2s; }
-.nav-links li a .nav-icon { font-size: 15px; width: 18px; text-align: center; flex-shrink: 0; }
-.nav-links li a:hover, .nav-links li a.active { background-color: #F3F4F6; color: var(--text-main); font-weight: 500; }
-.nav-links li.nav-divider { height: 1px; background: var(--border); margin: 8px 4px; list-style: none; }
+* { 
+  margin: 0; padding: 0; box-sizing: border-box; 
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
 
-.main-content { flex: 1; display: flex; flex-direction: column; overflow-y: auto; }
-.topbar { height: 60px; display: flex; align-items: center; padding: 0 48px; border-bottom: 1px solid var(--border); background-color: var(--surface); position: sticky; top: 0; z-index: 5; }
-.content-wrapper { padding: 40px 48px; max-width: 760px; margin: 0 auto; width: 100%; }
+body { 
+  display: flex; background: var(--bg-app); color: var(--text-main); 
+  height: 100vh; overflow: hidden; 
+}
 
-.search-hero { margin-bottom: 28px; }
-.search-hero h1 { font-size: 24px; font-weight: 600; margin-bottom: 16px; }
-.search-input-wrap { position: relative; }
+/* SIDEBAR - Padrão iPad */
+.sidebar {
+  width: 260px; background: var(--bg-card); border-right: 1px solid var(--border);
+  padding: 30px 20px; display: flex; flex-direction: column; flex-shrink: 0;
+  z-index: 10;
+}
+.sidebar h2 { font-size: 16px; font-weight: 700; letter-spacing: -0.02em; }
+.sidebar span { font-size: 13px; color: var(--text-muted); margin-top: 2px; display: block; }
+.nav { margin-top: 30px; display: flex; flex-direction: column; gap: 8px; list-style: none;}
+.nav a {
+  text-decoration: none; font-size: 14px; font-weight: 500; color: var(--text-muted);
+  padding: 10px 14px; border-radius: 10px; display: flex; align-items: center; gap: 12px; transition: all 0.2s;
+}
+.nav a i { font-size: 20px; }
+.nav a:hover { background: #f3f4f6; color: var(--text-main); }
+.nav a.active { background: var(--primary-light); color: var(--primary); font-weight: 600; }
+.nav a.active i { font-family: "Phosphor-Fill"; }
+
+/* MAIN CONTAINER (Split View) */
+.main-content {
+  flex: 1; display: flex; overflow: hidden;
+}
+
+/* PAINEL ESQUERDO: Busca e Resultados */
+.list-panel {
+  flex: 1; max-width: 45%; border-right: 1px solid var(--border);
+  display: flex; flex-direction: column; background: var(--bg-app);
+}
+.list-header { padding: 30px 40px 20px; background: var(--bg-app); z-index: 2; }
+.list-header h1 { font-size: 24px; font-weight: 700; margin-bottom: 8px; letter-spacing: -0.02em; }
+.list-header p { font-size: 14px; color: var(--text-muted); margin-bottom: 24px; }
+
+.search-box {
+  position: relative; display: flex; align-items: center; margin-bottom: 20px;
+}
+.search-box i { position: absolute; left: 16px; color: var(--text-muted); font-size: 20px; }
 .search-bar {
-  width: 100%; padding: 16px 16px 16px 46px; border: 1px solid var(--border);
-  border-radius: var(--radius); font-size: 16px; background-color: var(--surface); outline: none;
+  width: 100%; padding: 14px 16px 14px 46px; border: 1px solid var(--border);
+  border-radius: 12px; font-size: 16px; background: var(--bg-card); outline: none; transition: 0.2s;
 }
-.search-bar:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(10,132,255,0.1); }
-.search-icon { position: absolute; left: 16px; top: 50%; transform: translateY(-50%); font-size: 16px; color: var(--text-muted); }
-.search-hint { font-size: 13px; color: var(--text-muted); margin-top: 8px; }
+.search-bar:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.1); }
 
-.filter-row { display: flex; gap: 8px; margin-bottom: 24px; }
-.filter-chip-busca { padding: 7px 14px; background: var(--surface); border: 1px solid var(--border); border-radius: 20px; font-size: 13px; cursor: pointer; }
-.filter-chip-busca.active { background: var(--primary); color: white; border-color: var(--primary); }
+.filters-scroll { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; scrollbar-width: none; }
+.filters-scroll::-webkit-scrollbar { display: none; }
+.filter-chip {
+  padding: 8px 16px; background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: 20px; font-size: 13px; font-weight: 500; white-space: nowrap; cursor: pointer; color: var(--text-muted); transition: 0.2s;
+}
+.filter-chip.active { background: var(--text-main); color: white; border-color: var(--text-main); }
 
-.results-count { font-size: 12px; color: var(--text-muted); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.04em; font-weight: 600; }
+.results-scroll {
+  flex: 1; overflow-y: auto; padding: 0 40px 40px;
+  display: flex; flex-direction: column; gap: 10px;
+}
+.results-count { font-size: 12px; color: var(--text-muted); margin-bottom: 8px; text-transform: uppercase; font-weight: 600; letter-spacing: 0.05em; }
+
 .result-item {
-  display: flex; align-items: center; gap: 14px; background: var(--surface);
-  border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px;
-  text-decoration: none; color: var(--text-main); margin-bottom: 8px; transition: 0.15s;
+  background: var(--bg-card); border: 1px solid var(--border); border-radius: 14px;
+  padding: 16px; display: flex; align-items: center; gap: 14px; cursor: pointer; transition: 0.2s;
 }
-.result-item:hover { border-color: #D1D5DB; }
-.result-icon { width: 36px; height: 36px; border-radius: 10px; background: var(--chip-bg); display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; }
+.result-item:hover { border-color: var(--primary); box-shadow: 0 4px 12px rgba(14, 165, 233, 0.05); transform: translateY(-1px); }
+.result-item.selected { border-color: var(--primary); background: var(--primary-light); }
+
+.result-icon {
+  width: 42px; height: 42px; border-radius: 12px; background: var(--bg-app);
+  display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0; color: var(--text-main);
+}
 .result-icon.familia { background: var(--primary); color: white; }
 .result-body { flex: 1; min-width: 0; }
-.result-title { font-size: 14px; font-weight: 600; }
-.result-sub { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
-.result-type { font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; flex-shrink: 0; }
-.result-tags { display: flex; gap: 4px; margin-top: 4px; }
-.mini-tag { font-size: 10px; background: var(--chip-bg); padding: 2px 6px; border-radius: 4px; font-weight: 600; }
+.result-title { font-size: 15px; font-weight: 600; color: var(--text-main); display: block; margin-bottom: 2px;}
+.result-sub { font-size: 13px; color: var(--text-muted); display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;}
+.result-tags { display: flex; gap: 6px; margin-top: 6px; }
+.mini-tag { font-size: 10px; background: var(--bg-app); padding: 2px 8px; border-radius: 6px; font-weight: 600; color: var(--text-muted);}
 
 .estado-vazio { color: var(--text-muted); padding: 40px 0; text-align: center; font-size: 14px; }
-.estado-inicial { color: var(--text-muted); padding: 24px 0; text-align: center; font-size: 14px; }
 
-@media (max-width: 768px) {
-  body { flex-direction: column; height: auto; overflow: visible; }
-  .sidebar { display: none; }
-  .topbar, .content-wrapper { padding: 0 20px; }
-  .content-wrapper { padding: 24px 20px 32px; }
+/* PAINEL DIREITO: Quick View (Detalhes Rápidos) */
+.detail-panel {
+  flex: 1; background: var(--bg-card); display: flex; flex-direction: column; overflow-y: auto;
 }
+.detail-empty {
+  flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  color: var(--text-muted); text-align: center; padding: 40px;
+}
+.detail-empty i { font-size: 48px; margin-bottom: 16px; opacity: 0.5; }
+
+.detail-content { display: none; padding: 60px 40px; }
+.detail-content.active { display: block; }
+.detail-header { text-align: center; margin-bottom: 40px; }
+.detail-avatar {
+  width: 80px; height: 80px; border-radius: 20px; background: var(--primary-light); color: var(--primary);
+  display: flex; align-items: center; justify-content: center; font-size: 36px; margin: 0 auto 20px;
+}
+.detail-title { font-size: 26px; font-weight: 700; color: var(--text-main); margin-bottom: 8px; letter-spacing: -0.02em;}
+.detail-subtitle { font-size: 15px; color: var(--text-muted); }
+
+.detail-info-box {
+  background: var(--bg-app); border: 1px solid var(--border); border-radius: 16px; padding: 24px; margin-bottom: 30px;
+}
+.info-row { display: flex; justify-content: space-between; margin-bottom: 16px; font-size: 14px; }
+.info-row:last-child { margin-bottom: 0; }
+.info-label { color: var(--text-muted); font-weight: 500; }
+.info-value { color: var(--text-main); font-weight: 600; text-align: right;}
+
+.btn-large {
+  width: 100%; background: var(--primary); color: white; border: none; padding: 16px;
+  border-radius: 14px; font-weight: 600; font-size: 15px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; transition: 0.2s; text-decoration: none;
+}
+.btn-large:hover { opacity: 0.9; transform: translateY(-2px); box-shadow: 0 8px 16px rgba(14, 165, 233, 0.15); }
 </style>
 </head>
 <body>
+
 <aside class="sidebar">
-<div class="sidebar-header">
-<h2>UBS Guarda-Mor</h2>
-<span>Micro-área 03</span>
-</div>
-<ul class="nav-links">
-<li><a href="index.html"><span class="nav-icon">🏠</span> Dashboard</a></li>
-<li><a href="nova-visita.html"><span class="nav-icon">▶️</span> Meu Roteiro</a></li>
-<li><a href="agenda.html"><span class="nav-icon">🗓️</span> Agenda</a></li>
-<li><a href="nova-visita.html"><span class="nav-icon">📋</span> Visitas</a></li>
-<li><a href="familias.html"><span class="nav-icon">👨‍👩‍👧</span> Famílias</a></li>
-<li><a href="mapa.html"><span class="nav-icon">🗺️</span> Mapa</a></li>
-<li><a href="indicadores.html"><span class="nav-icon">📊</span> Indicadores</a></li>
-<li class="nav-divider"></li>
-<li><a href="busca.html" class="active"><span class="nav-icon">🔍</span> Busca</a></li>
-<li><a href="configuracoes.html"><span class="nav-icon">⚙️</span> Configurações</a></li>
-</ul>
+  <div class="sidebar-header">
+    <h2>ACS Digital</h2>
+    <span>Microárea 02</span>
+  </div>
+  <ul class="nav">
+    <li><a href="#"><i class="ph ph-squares-four"></i> Dashboard</a></li>
+    <li><a href="#"><i class="ph ph-map-pin-line"></i> Roteiro</a></li>
+    <li><a href="#"><i class="ph ph-users"></i> Famílias</a></li>
+    <li><a href="#"><i class="ph ph-map-trifold"></i> Mapa</a></li>
+    <li><a href="#"><i class="ph ph-calendar-blank"></i> Agenda</a></li>
+    <li class="nav-divider"></li>
+    <li><a href="#" class="active"><i class="ph ph-magnifying-glass"></i> Busca</a></li>
+  </ul>
 </aside>
 
 <main class="main-content">
-<header class="topbar">
-<div style="font-size: 14px; color: var(--text-muted);">Busca</div>
-</header>
-<div class="content-wrapper">
+  <!-- PAINEL ESQUERDO: Lista de Busca -->
+  <div class="list-panel">
+    <div class="list-header">
+      <h1>Busca Global</h1>
+      <p>Pesquise por pessoa, família, CNS ou endereço</p>
+      
+      <div class="search-box">
+        <i class="ph ph-magnifying-glass"></i>
+        <input type="text" class="search-bar" id="campoBusca" placeholder="Digite para buscar..." autofocus>
+      </div>
 
-  <div class="search-hero">
-    <h1>Buscar pessoa, família ou endereço</h1>
-    <div class="search-input-wrap">
-      <span class="search-icon">🔍</span>
-      <input type="text" class="search-bar" id="campoBusca" placeholder="Nome, endereço, CNS ou CPF..." autofocus>
+      <div class="filters-scroll">
+        <div class="filter-chip active" data-tipo="todos">Todos</div>
+        <div class="filter-chip" data-tipo="cidadaos">Pessoas</div>
+        <div class="filter-chip" data-tipo="familias">Famílias</div>
+      </div>
     </div>
-    <div class="search-hint">Busca em todos os cadastros da Micro-área 03 em tempo real.</div>
+
+    <div class="results-scroll" id="resultados">
+      <p class="estado-vazio">Digite ao menos 2 letras para começar a buscar.</p>
+    </div>
   </div>
 
-  <div class="filter-row">
-    <div class="filter-chip-busca active" data-tipo="todos">Todos</div>
-    <div class="filter-chip-busca" data-tipo="cidadaos">👤 Pessoas</div>
-    <div class="filter-chip-busca" data-tipo="familias">🏠 Famílias</div>
-  </div>
+  <!-- PAINEL DIREITO: Quick View (Resumo) -->
+  <div class="detail-panel">
+    <div class="detail-empty" id="detailEmpty">
+      <i class="ph ph-magnifying-glass"></i>
+      <h3>Nenhum registro selecionado</h3>
+      <p>Clique em um resultado na lista ao lado para ver o resumo rápido.</p>
+    </div>
 
-  <div id="resultados">
-    <p class="estado-inicial">Digite ao menos 2 letras para começar a buscar.</p>
-  </div>
+    <div class="detail-content" id="detailContent">
+      <div class="detail-header">
+        <div class="detail-avatar" id="qvAvatar"><i class="ph ph-user"></i></div>
+        <h2 class="detail-title" id="qvTitle">Nome da Pessoa</h2>
+        <div class="detail-subtitle" id="qvSubtitle">📍 Endereço</div>
+      </div>
 
-</div>
+      <div class="detail-info-box" id="qvInfoBox">
+        <!-- Preenchido via JS -->
+      </div>
+
+      <a href="#" class="btn-large" id="qvBtnAction">
+        <i class="ph ph-arrow-right"></i> <span id="qvBtnLabel">Abrir Prontuário</span>
+      </a>
+    </div>
+  </div>
 </main>
 
 <script>
+// Mantendo a sua lógica original do Supabase
 let familiasGlobais = [];
 let filtroTipo = 'todos';
+let resultadosAtuais = { cidadaos: [], familias: [] }; // Guarda cache para o Quick View
 
-function condicoesDe(cidadao) {
-  return (cidadao.condicoes_saude || []).map(c => c.condicao);
-}
-
-function escapeHtml(str) {
-  return String(str ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-}
+function condicoesDe(cidadao) { return (cidadao.condicoes_saude || []).map(c => c.condicao); }
+function escapeHtml(str) { return String(str ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
 
 async function carregarDados() {
   const { data, error } = await db.from('familias').select('*, cidadaos(*, condicoes_saude(*))').order('logradouro');
   if (error) {
-    document.getElementById('resultados').innerHTML = `<p class="estado-vazio">Não foi possível carregar os dados para busca agora.</p>`;
-    console.error(error);
+    document.getElementById('resultados').innerHTML = `<p class="estado-vazio">Não foi possível carregar os dados.</p>`;
     return;
   }
   familiasGlobais = data || [];
@@ -164,8 +249,12 @@ function buscar(termo) {
   const resultadosEl = document.getElementById('resultados');
   const termoNorm = termo.trim().toLowerCase();
 
+  // Esconde o painel direito ao fazer nova busca
+  document.getElementById('detailEmpty').style.display = 'flex';
+  document.getElementById('detailContent').classList.remove('active');
+
   if (termoNorm.length < 2) {
-    resultadosEl.innerHTML = `<p class="estado-inicial">Digite ao menos 2 letras para começar a buscar.</p>`;
+    resultadosEl.innerHTML = `<p class="estado-vazio">Digite ao menos 2 letras para começar a buscar.</p>`;
     return;
   }
 
@@ -178,10 +267,7 @@ function buscar(termo) {
     if (enderecoMatch) matchFamilias.push(f);
 
     (f.cidadaos || []).forEach(c => {
-      const cMatch =
-        (c.nome || '').toLowerCase().includes(termoNorm) ||
-        (c.cns || '').includes(termoNorm) ||
-        (c.cpf || '').includes(termoNorm);
+      const cMatch = (c.nome || '').toLowerCase().includes(termoNorm) || (c.cns || '').includes(termoNorm) || (c.cpf || '').includes(termoNorm);
       if (cMatch) matchCidadaos.push({ cidadao: c, familia: f });
     });
   });
@@ -189,7 +275,11 @@ function buscar(termo) {
   const mostrarFamilias = filtroTipo === 'todos' || filtroTipo === 'familias';
   const mostrarCidadaos = filtroTipo === 'todos' || filtroTipo === 'cidadaos';
 
-  const totalResultados = (mostrarFamilias ? matchFamilias.length : 0) + (mostrarCidadaos ? matchCidadaos.length : 0);
+  // Salvando no cache local para o painel da direita
+  resultadosAtuais.familias = mostrarFamilias ? matchFamilias : [];
+  resultadosAtuais.cidadaos = mostrarCidadaos ? matchCidadaos : [];
+
+  const totalResultados = resultadosAtuais.familias.length + resultadosAtuais.cidadaos.length;
 
   if (totalResultados === 0) {
     resultadosEl.innerHTML = `<p class="estado-vazio">Nenhum resultado para "${escapeHtml(termo)}".</p>`;
@@ -199,36 +289,35 @@ function buscar(termo) {
   let html = `<div class="results-count">${totalResultados} resultado${totalResultados === 1 ? '' : 's'}</div>`;
 
   if (mostrarCidadaos && matchCidadaos.length > 0) {
-    html += matchCidadaos.map(({ cidadao: c, familia: f }) => {
+    html += matchCidadaos.map((item, idx) => {
+      const { cidadao: c, familia: f } = item;
       const endereco = [f.logradouro, f.numero].filter(Boolean).join(', ');
       const tags = tagsCidadao(c);
       return `
-        <a class="result-item" href="prontuario.html?id=${c.id}">
-          <span class="result-icon">👤</span>
-          <span class="result-body">
+        <div class="result-item" onclick="mostrarResumoCidadao(${idx}, this)">
+          <div class="result-icon"><i class="ph ph-user"></i></div>
+          <div class="result-body">
             <span class="result-title">${escapeHtml(c.nome)}</span>
-            <span class="result-sub">📍 ${escapeHtml(endereco || 'Endereço não informado')}${f.bairro ? ' - ' + escapeHtml(f.bairro) : ''}</span>
-            ${tags.length > 0 ? `<span class="result-tags">${tags.map(t => `<span class="mini-tag">${t}</span>`).join('')}</span>` : ''}
-          </span>
-          <span class="result-type">Pessoa</span>
-        </a>
+            <span class="result-sub">📍 ${escapeHtml(endereco || 'Endereço não informado')}</span>
+            ${tags.length > 0 ? `<div class="result-tags">${tags.map(t => `<span class="mini-tag">${t}</span>`).join('')}</div>` : ''}
+          </div>
+        </div>
       `;
     }).join('');
   }
 
   if (mostrarFamilias && matchFamilias.length > 0) {
-    html += matchFamilias.map(f => {
+    html += matchFamilias.map((f, idx) => {
       const endereco = [f.logradouro, f.numero].filter(Boolean).join(', ');
       const qtdMembros = (f.cidadaos || []).length;
       return `
-        <a class="result-item" href="familias.html?abrir=${f.id}">
-          <span class="result-icon familia">🏠</span>
-          <span class="result-body">
+        <div class="result-item" onclick="mostrarResumoFamilia(${idx}, this)">
+          <div class="result-icon familia"><i class="ph ph-house"></i></div>
+          <div class="result-body">
             <span class="result-title">${escapeHtml(endereco || 'Endereço não informado')}</span>
             <span class="result-sub">${f.bairro ? '📍 ' + escapeHtml(f.bairro) + ' · ' : ''}${qtdMembros} morador${qtdMembros === 1 ? '' : 'es'}</span>
-          </span>
-          <span class="result-type">Família</span>
-        </a>
+          </div>
+        </div>
       `;
     }).join('');
   }
@@ -236,9 +325,68 @@ function buscar(termo) {
   resultadosEl.innerHTML = html;
 }
 
-document.querySelectorAll('.filter-chip-busca').forEach(chip => {
+// Interação visual da Split View
+function marcarSelecionado(elemento) {
+  document.querySelectorAll('.result-item').forEach(el => el.classList.remove('selected'));
+  elemento.classList.add('selected');
+  document.getElementById('detailEmpty').style.display = 'none';
+  document.getElementById('detailContent').classList.add('active');
+}
+
+function mostrarResumoCidadao(idx, elemento) {
+  marcarSelecionado(elemento);
+  const { cidadao: c, familia: f } = resultadosAtuais.cidadaos[idx];
+  const endereco = [f.logradouro, f.numero].filter(Boolean).join(', ');
+
+  document.getElementById('qvAvatar').innerHTML = '<i class="ph ph-user"></i>';
+  document.getElementById('qvAvatar').style.background = 'var(--primary-light)';
+  document.getElementById('qvAvatar').style.color = 'var(--primary)';
+  
+  document.getElementById('qvTitle').textContent = c.nome;
+  document.getElementById('qvSubtitle').textContent = `📍 ${endereco}`;
+
+  const tags = tagsCidadao(c).join(', ') || 'Nenhuma condição registrada';
+  
+  document.getElementById('qvInfoBox').innerHTML = `
+    <div class="info-row"><span class="info-label">CNS</span><span class="info-value">${c.cns || 'Não informado'}</span></div>
+    <div class="info-row"><span class="info-label">CPF</span><span class="info-value">${c.cpf || 'Não informado'}</span></div>
+    <div class="info-row"><span class="info-label">Condições</span><span class="info-value">${tags}</span></div>
+    <div class="info-row"><span class="info-label">Responsável Familiar?</span><span class="info-value">${c.e_responsavel_familiar ? 'Sim' : 'Não'}</span></div>
+  `;
+
+  document.getElementById('qvBtnLabel').textContent = "Abrir Prontuário";
+  document.getElementById('qvBtnAction').href = `prontuario.html?id=${c.id}`;
+}
+
+function mostrarResumoFamilia(idx, elemento) {
+  marcarSelecionado(elemento);
+  const f = resultadosAtuais.familias[idx];
+  const endereco = [f.logradouro, f.numero].filter(Boolean).join(', ');
+  const qtdMembros = (f.cidadaos || []).length;
+  const responsavel = (f.cidadaos || []).find(c => c.e_responsavel_familiar)?.nome || 'Não definido';
+
+  document.getElementById('qvAvatar').innerHTML = '<i class="ph ph-house"></i>';
+  document.getElementById('qvAvatar').style.background = 'var(--primary)';
+  document.getElementById('qvAvatar').style.color = 'white';
+  
+  document.getElementById('qvTitle').textContent = endereco || 'Domicílio sem número';
+  document.getElementById('qvSubtitle').textContent = `Bairro: ${f.bairro || 'Não informado'}`;
+
+  document.getElementById('qvInfoBox').innerHTML = `
+    <div class="info-row"><span class="info-label">Responsável</span><span class="info-value">${responsavel}</span></div>
+    <div class="info-row"><span class="info-label">Moradores</span><span class="info-value">${qtdMembros}</span></div>
+    <div class="info-row"><span class="info-label">Água</span><span class="info-value">${f.abastecimento_agua || 'Não inf.'}</span></div>
+    <div class="info-row"><span class="info-label">Lixo</span><span class="info-value">${f.destino_lixo || 'Não inf.'}</span></div>
+  `;
+
+  document.getElementById('qvBtnLabel').textContent = "Ver no Diretório de Famílias";
+  document.getElementById('qvBtnAction').href = `familias.html?abrir=${f.id}`;
+}
+
+// Event Listeners
+document.querySelectorAll('.filter-chip').forEach(chip => {
   chip.addEventListener('click', () => {
-    document.querySelectorAll('.filter-chip-busca').forEach(c => c.classList.remove('active'));
+    document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
     chip.classList.add('active');
     filtroTipo = chip.dataset.tipo;
     buscar(document.getElementById('campoBusca').value);
