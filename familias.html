@@ -222,9 +222,53 @@ body { flex-direction: column; }
 </div>
 </div>
 </div>
+<!-- DRAWER: EDITAR FAMÍLIA -->
+<div class="drawer" id="drawerEditarFamilia" style="z-index: 50;">
+<div class="drawer-header">
+<div style="display: flex; align-items: center; gap: 12px;">
+<button class="btn-icon" onclick="fecharDrawer('drawerEditarFamilia'); abrirDrawer('drawerFamilia');">←</button>
+<h2 style="font-size: 18px;">Editar Domicílio</h2>
+</div>
+<button class="btn-action primary" onclick="salvarEdicaoFamilia()">Salvar</button>
+</div>
+<div class="drawer-body">
+<span class="section-label" style="margin-top:0;">ENDEREÇO</span>
+<input type="text" class="input-form" id="editFamiliaLogradouro" placeholder="Rua / Logradouro">
+<div class="form-row">
+<input type="text" class="input-form" id="editFamiliaNumero" placeholder="Número" style="width:100px;">
+<input type="text" class="input-form" id="editFamiliaComplemento" placeholder="Complemento">
+</div>
+<input type="text" class="input-form" id="editFamiliaBairro" placeholder="Bairro / Comunidade">
+<input type="text" class="input-form" id="editFamiliaCep" placeholder="CEP (Opcional)">
+</div>
+</div>
+<!-- DRAWER: EDITAR CIDADÃO -->
+<div class="drawer" id="drawerEditarCidadao" style="z-index: 50;">
+<div class="drawer-header">
+<div style="display: flex; align-items: center; gap: 12px;">
+<button class="btn-icon" onclick="fecharDrawer('drawerEditarCidadao'); abrirDrawer('drawerFamilia');">←</button>
+<h2 style="font-size: 18px;">Editar Cidadão</h2>
+</div>
+<button class="btn-action primary" onclick="salvarEdicaoCidadao()">Salvar</button>
+</div>
+<div class="drawer-body">
+<span class="section-label" style="margin-top:0;">DADOS PESSOAIS</span>
+<input type="text" class="input-form" id="editCidadaoNome" placeholder="Nome completo">
+<input type="date" class="input-form" id="editCidadaoNascimento">
+<input type="text" class="input-form" id="editCidadaoCpf" placeholder="CPF">
+<input type="text" class="input-form" id="editCidadaoCns" placeholder="CNS">
+<span class="section-label">CONDIÇÕES DE SAÚDE</span>
+<div class="chip-group" data-grupo="condicoesEdicao" style="margin-bottom:32px;">
+<div class="chip" data-cond="Hipertensão" onclick="this.classList.toggle('selected')">🫀 Hipertensão</div>
+<div class="chip" data-cond="Diabetes" onclick="this.classList.toggle('selected')">🍬 Diabetes</div>
+<div class="chip" data-cond="Gestante" onclick="this.classList.toggle('selected')">🤰 Gestante</div>
+<div class="chip" data-cond="Acamado" onclick="this.classList.toggle('selected')">🛏️ Acamado</div>
+</div>
+</div>
+</div>
 <script>
 const overlay = document.getElementById('overlay');
-let familiasComMembros = []; // cache local de tudo que foi carregado
+let familiasComMembros = [];
 let filtroAtivo = 'todas';
 let termoBusca = '';
 
@@ -339,28 +383,35 @@ ${incompleto ? `<span class="badge alert">⚠️ Cadastro incompleto</span>` : '
 function abrirFamilia(familiaId) {
 const familia = familiasComMembros.find(f => f.id === familiaId);
 if (!familia) return;
-familiaAtualAberta = familia; // guarda referência para o formulário de novo cidadão
+familiaAtualAberta = familia;
 const endereco = [familia.logradouro, familia.numero, familia.complemento].filter(Boolean).join(', ');
 document.getElementById('familiaDrawerTitulo').textContent = endereco || 'Família';
 const membros = familia.cidadaos || [];
 const corpo = document.getElementById('familiaDrawerBody');
 corpo.innerHTML = `
-<p style="color: var(--text-muted); font-size: 14px; margin-bottom: 16px;">
+<p style="color: var(--text-muted); font-size: 14px; margin-bottom: 12px;">
 📍 ${endereco || 'Endereço não informado'} - ${familia.bairro || ''} ${familia.cep ? '| CEP ' + familia.cep : ''}
 </p>
-<button class="btn-action primary" style="margin-bottom: 24px;" onclick="window.location.href='nova-visita.html?familia_id=${familia.id}'">📋 Iniciar Visita Domiciliar</button>
+<div style="display:flex; gap:8px; margin-bottom: 20px; flex-wrap: wrap;">
+  <button class="btn-action primary" style="flex:1;" onclick="window.location.href='nova-visita.html?familia_id=${familia.id}'">📋 Iniciar Visita</button>
+  <button class="btn-action" onclick="abrirDrawerEditarFamilia('${familia.id}')">✏️ Editar</button>
+  <button class="btn-action" style="color:var(--danger);" onclick="excluirFamilia('${familia.id}')">🗑️</button>
+</div>
 <h3 style="font-size: 14px; color: var(--text-muted); text-transform: uppercase; margin-bottom: 16px;">Membros da Família (${membros.length})</h3>
 ${membros.map(c => {
 const idade = calcularIdade(c.data_nascimento);
 const condicoes = condicoesDe(c);
 const tagsCondicao = condicoes.map(cond => cond === 'Hipertensão' ? '🫀 HAS' : cond === 'Diabetes' ? '🍬 DM' : cond).join(', ');
 return `
-<div class="citizen-item" onclick="window.location.href='prontuario.html?id=${c.id}'">
-<div>
-<div class="citizen-name">${c.nome}${idade !== null ? ` (${idade}a)` : ''} ${c.e_responsavel_familiar ? '<span class="badge" style="font-size: 10px;">Responsável</span>' : ''}</div>
+<div class="citizen-item" style="cursor:default;">
+<div style="flex:1;" onclick="window.location.href='prontuario.html?id=${c.id}'" style="cursor:pointer;">
+<div class="citizen-name">${c.nome}${idade !== null ? ` (${idade}a)` : ''} ${c.e_responsavel_familiar ? '<span class="badge" style="font-size:10px;">Responsável</span>' : ''}</div>
 <div class="citizen-cns">CNS: ${c.cns || 'não informado'}${tagsCondicao ? ' | ' + tagsCondicao : ''}</div>
 </div>
-<div style="color: var(--text-muted);">→</div>
+<div style="display:flex; gap:6px; align-items:center; flex-shrink:0;">
+  <button class="btn-action" style="padding:4px 10px; font-size:12px;" onclick="abrirDrawerEditarCidadao('${c.id}')">✏️</button>
+  <button class="btn-action" style="padding:4px 10px; font-size:12px; color:var(--danger);" onclick="excluirCidadao('${c.id}', '${c.nome.replace(/'/g,"\\'")}')">🗑️</button>
+</div>
 </div>
 `;
 }).join('')}
@@ -485,7 +536,117 @@ renderizarGrid();
 });
 });
 
-// ---------- Deep-link a partir de outras telas (ex: Dashboard) ----------
+// ---------- Editar Família ----------
+let familiaEmEdicaoId = null;
+
+function abrirDrawerEditarFamilia(familiaId) {
+  const f = familiasComMembros.find(x => x.id === familiaId);
+  if (!f) return;
+  familiaEmEdicaoId = familiaId;
+  document.getElementById('editFamiliaLogradouro').value = f.logradouro || '';
+  document.getElementById('editFamiliaNumero').value = f.numero || '';
+  document.getElementById('editFamiliaComplemento').value = f.complemento || '';
+  document.getElementById('editFamiliaBairro').value = f.bairro || '';
+  document.getElementById('editFamiliaCep').value = f.cep || '';
+  fecharDrawer('drawerFamilia');
+  abrirDrawer('drawerEditarFamilia');
+}
+
+async function salvarEdicaoFamilia() {
+  if (!familiaEmEdicaoId) return;
+  const logradouro = document.getElementById('editFamiliaLogradouro').value.trim();
+  if (!logradouro) { alert('O logradouro é obrigatório.'); return; }
+  const { error } = await db.from('familias').update({
+    logradouro,
+    numero: document.getElementById('editFamiliaNumero').value.trim() || null,
+    complemento: document.getElementById('editFamiliaComplemento').value.trim() || null,
+    bairro: document.getElementById('editFamiliaBairro').value.trim() || null,
+    cep: document.getElementById('editFamiliaCep').value.trim() || null,
+  }).eq('id', familiaEmEdicaoId);
+  if (error) { alert('Erro ao salvar: ' + error.message); return; }
+  fecharDrawer('drawerEditarFamilia');
+  await carregarFamilias();
+  abrirFamilia(familiaEmEdicaoId);
+}
+
+// ---------- Excluir Família ----------
+async function excluirFamilia(familiaId) {
+  const f = familiasComMembros.find(x => x.id === familiaId);
+  const membros = f?.cidadaos?.length || 0;
+  const aviso = membros > 0
+    ? `Esta família tem ${membros} cidadão(s) cadastrado(s). Excluir a família também remove todos eles e seu histórico de visitas. Tem certeza?`
+    : 'Excluir esta família? Esta ação não pode ser desfeita.';
+  if (!confirm(aviso)) return;
+  // Exclui na ordem correta (respeita foreign keys)
+  if (membros > 0) {
+    const ids = f.cidadaos.map(c => c.id);
+    await db.from('condicoes_saude').delete().in('cidadao_id', ids);
+    await db.from('visitas').delete().eq('familia_id', familiaId);
+    await db.from('cidadaos').delete().eq('familia_id', familiaId);
+  }
+  const { error } = await db.from('familias').delete().eq('id', familiaId);
+  if (error) { alert('Erro ao excluir: ' + error.message); return; }
+  fecharTodosDrawers();
+  await carregarFamilias();
+}
+
+// ---------- Editar Cidadão ----------
+let cidadaoEmEdicao = null;
+
+function abrirDrawerEditarCidadao(cidadaoId) {
+  const c = (familiaAtualAberta?.cidadaos || []).find(x => x.id === cidadaoId);
+  if (!c) return;
+  cidadaoEmEdicao = c;
+  document.getElementById('editCidadaoNome').value = c.nome || '';
+  document.getElementById('editCidadaoNascimento').value = c.data_nascimento || '';
+  document.getElementById('editCidadaoCpf').value = c.cpf || '';
+  document.getElementById('editCidadaoCns').value = c.cns || '';
+  // Pré-seleciona condições existentes
+  const condicoesAtuais = (c.condicoes_saude || []).map(x => x.condicao);
+  document.querySelectorAll('[data-grupo="condicoesEdicao"] .chip').forEach(chip => {
+    chip.classList.toggle('selected', condicoesAtuais.includes(chip.dataset.cond));
+  });
+  fecharDrawer('drawerFamilia');
+  abrirDrawer('drawerEditarCidadao');
+}
+
+async function salvarEdicaoCidadao() {
+  if (!cidadaoEmEdicao) return;
+  const nome = document.getElementById('editCidadaoNome').value.trim();
+  if (!nome) { alert('O nome é obrigatório.'); return; }
+  const { error } = await db.from('cidadaos').update({
+    nome,
+    data_nascimento: document.getElementById('editCidadaoNascimento').value || null,
+    cpf: document.getElementById('editCidadaoCpf').value.trim() || null,
+    cns: document.getElementById('editCidadaoCns').value.trim() || null,
+  }).eq('id', cidadaoEmEdicao.id);
+  if (error) { alert('Erro ao salvar: ' + error.message); return; }
+
+  // Atualiza condições: remove todas e reinserere as selecionadas
+  await db.from('condicoes_saude').delete().eq('cidadao_id', cidadaoEmEdicao.id);
+  const selecionadas = [...document.querySelectorAll('[data-grupo="condicoesEdicao"] .chip.selected')]
+    .map(chip => ({ id: crypto.randomUUID(), cidadao_id: cidadaoEmEdicao.id, condicao: chip.dataset.cond }));
+  if (selecionadas.length > 0) {
+    await db.from('condicoes_saude').insert(selecionadas);
+  }
+
+  fecharDrawer('drawerEditarCidadao');
+  await carregarFamilias();
+  abrirFamilia(familiaAtualAberta.id);
+}
+
+// ---------- Excluir Cidadão ----------
+async function excluirCidadao(cidadaoId, nome) {
+  if (!confirm(`Excluir ${nome} do cadastro? As visitas registradas para este cidadão também serão removidas.`)) return;
+  await db.from('condicoes_saude').delete().eq('cidadao_id', cidadaoId);
+  await db.from('visitas').delete().eq('cidadao_id', cidadaoId);
+  const { error } = await db.from('cidadaos').delete().eq('id', cidadaoId);
+  if (error) { alert('Erro ao excluir: ' + error.message); return; }
+  await carregarFamilias();
+  abrirFamilia(familiaAtualAberta.id);
+}
+
+// ---------- Deep-link a partir de outras telas ----------
 // Lê ?filtro= e ?busca= da URL para abrir o Diretório já filtrado/buscado,
 // permitindo que Alertas e Ações Rápidas do Dashboard cheguem aqui em 1 clique.
 function aplicarParametrosDeURL() {
