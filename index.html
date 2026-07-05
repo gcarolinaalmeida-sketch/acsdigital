@@ -7,7 +7,9 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="config.js"></script>
 <script src="auth.js"></script>
+<script>protegerPagina();</script>
 <script src="branding.js"></script>
+<script src="roteiro.js"></script>
 <!-- Phosphor Icons para estética minimalista -->
 <script src="https://unpkg.com/@phosphor-icons/web"></script>
 
@@ -15,41 +17,146 @@
 :root {
   --bg-app: #f9fafb; --bg-card: #ffffff; --text-main: #111827; --text-muted: #6b7280;
   --border: #e5e7eb; --primary: #0ea5e9; --primary-light: #e0f2fe; --danger: #ef4444;
-  --success: #10b981; --warning: #f59e0b; --radius: 16px; --radius-lg: 18px;
+  --danger-light: #fee2e2; --success: #10b981; --success-light: #d1fae5;
+  --warning: #f59e0b; --warning-light: #fef3c7; --radius: 16px; --radius-lg: 18px;
 }
 * { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif; -webkit-font-smoothing: antialiased; }
 body { display: flex; background: var(--bg-app); color: var(--text-main); height: 100vh; overflow: hidden; }
 
 /* Sidebar */
-.sidebar { width: 260px; background: var(--bg-card); border-right: 1px solid var(--border); padding: 30px 20px; display: flex; flex-direction: column; flex-shrink: 0; z-index: 10; }
-.sidebar h2 { font-size: 16px; font-weight: 700; }
-.sidebar span { font-size: 13px; color: var(--text-muted); margin-top: 2px; display: block; }
+.sidebar { width: 260px; background: var(--bg-card); border-right: 1px solid var(--border); padding: 30px 20px; display: flex; flex-direction: column; flex-shrink: 0; z-index: 10; overflow-y: auto; }
+.sidebar-header h2 { font-size: 16px; font-weight: 700; }
+.sidebar-header span { font-size: 13px; color: var(--text-muted); margin-top: 2px; display: block; }
 .nav-links { list-style: none; margin-top: 30px; display: flex; flex-direction: column; gap: 8px; }
 .nav-links li a { text-decoration: none; color: var(--text-muted); font-size: 14px; padding: 10px 14px; border-radius: 10px; display: flex; align-items: center; gap: 12px; transition: 0.2s; font-weight: 500; }
-.nav-links li a .nav-icon { font-size: 20px; }
+.nav-links li a i { font-size: 20px; width: 20px; text-align: center; flex-shrink: 0; }
 .nav-links li a:hover, .nav-links li a.active { background: var(--primary-light); color: var(--primary); font-weight: 600; }
+.nav-links li a.active i { font-family: "Phosphor-Fill"; }
 .nav-divider { height: 1px; background: var(--border); margin: 8px 4px; }
 
 /* Main Content */
 .main-content { flex: 1; display: flex; flex-direction: column; overflow-y: auto; }
 .topbar { height: 56px; display: flex; align-items: center; justify-content: space-between; padding: 0 48px; border-bottom: 1px solid var(--border); background: var(--bg-app); position: sticky; top: 0; z-index: 10; }
-.content-wrapper { padding: 32px 48px 64px; max-width: 1000px; margin: 0 auto; width: 100%; }
+.content-wrapper { padding: 32px 48px 64px; max-width: 1200px; margin: 0 auto; width: 100%; }
 
-.hero { margin-bottom: 40px; }
-.hero h1 { font-size: 28px; font-weight: 700; margin-bottom: 8px; }
+.hero { display: flex; justify-content: space-between; align-items: flex-end; gap: 24px; margin-bottom: 28px; flex-wrap: wrap; }
+.hero h1 { font-size: 28px; font-weight: 700; margin-bottom: 4px; }
+.hero-sub { color: var(--text-muted); font-size: 14px; text-transform: capitalize; }
+.hero-cta { display: flex; align-items: center; gap: 16px; }
+.hero-stat { text-align: right; }
+.hero-stat .big { font-size: 28px; font-weight: 700; line-height: 1; }
+.hero-stat .lbl { font-size: 12px; color: var(--text-muted); }
+.btn-primary { background: var(--primary); color: #fff; border: none; border-radius: 12px; padding: 12px 20px; font-size: 14px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 8px; white-space: nowrap; transition: 0.2s; }
+.btn-primary:hover { filter: brightness(0.93); }
+.roteiro-sub { font-size: 13px; color: var(--text-muted); margin-top: -18px; margin-bottom: 24px; }
 
-.quick-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 16px; margin-top: 24px; }
+/* Ações rápidas */
+.section-label { font-weight: 700; color: var(--text-muted); font-size: 13px; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 12px; }
+.quick-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 16px; margin-bottom: 32px; }
 .quick-action { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; display: flex; flex-direction: column; gap: 10px; text-decoration: none; color: var(--text-main); transition: 0.2s; }
 .quick-action:hover { border-color: var(--primary); background: var(--primary-light); }
 .quick-emoji { font-size: 24px; }
 .quick-label { font-size: 14px; font-weight: 600; }
 
+/* Resumo do dia */
+.summary-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 12px; margin-bottom: 32px; }
+.summary-tile { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; text-align: center; }
+.summary-tile .val { font-size: 22px; font-weight: 700; }
+.summary-tile .lbl { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
+
+/* Grid principal (2 colunas) */
+.dash-grid { display: grid; grid-template-columns: 1.4fr 1fr; gap: 24px; align-items: start; }
+.card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 22px; margin-bottom: 24px; }
+.card-title { font-size: 15px; font-weight: 700; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+
+.estado-vazio, .estado-erro { font-size: 13px; color: var(--text-muted); padding: 20px; text-align: center; border: 1px dashed var(--border); border-radius: 12px; background: var(--bg-app); }
+.estado-erro { border-color: var(--warning); color: #92600a; background: var(--warning-light); }
+
+/* Visitas prioritárias */
+.priority-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 14px; }
+.priority-card { border: 1px solid var(--border); border-left: 4px solid var(--text-muted); border-radius: 12px; padding: 14px; display: flex; flex-direction: column; gap: 6px; }
+.priority-card.nivel-urgente { border-left-color: var(--danger); }
+.priority-card.nivel-atencao { border-left-color: var(--warning); }
+.priority-card.nivel-rotina { border-left-color: var(--success); }
+.priority-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.priority-tag { font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 20px; }
+.priority-tag.nivel-urgente { color: var(--danger); background: var(--danger-light); }
+.priority-tag.nivel-atencao { color: var(--warning); background: var(--warning-light); }
+.priority-tag.nivel-rotina { color: var(--success); background: var(--success-light); }
+.priority-type-badge { font-size: 11px; color: var(--text-muted); }
+.priority-name { font-size: 14px; font-weight: 700; }
+.priority-address, .priority-lastvisit { font-size: 12px; color: var(--text-muted); }
+.priority-actions { display: flex; gap: 8px; margin-top: 6px; }
+.btn-mini { flex: 1; text-align: center; text-decoration: none; font-size: 12px; font-weight: 600; padding: 8px 10px; border-radius: 8px; transition: 0.2s; }
+.btn-mini.primary { background: var(--primary); color: #fff; }
+.btn-mini.primary:hover { filter: brightness(0.93); }
+.btn-mini.ghost { background: var(--bg-app); color: var(--text-muted); border: 1px solid var(--border); }
+.btn-mini.ghost:hover { color: var(--text-main); border-color: var(--text-muted); }
+
+/* Alertas */
+.alerts-list { display: flex; flex-direction: column; gap: 8px; }
+.alert-row { display: flex; align-items: center; gap: 12px; text-decoration: none; color: var(--text-main); padding: 10px; border-radius: 10px; transition: 0.2s; }
+.alert-row:hover { background: var(--bg-app); }
+.alert-row.is-disabled { opacity: 0.5; pointer-events: none; }
+.alert-icon { width: 34px; height: 34px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; }
+.alert-icon.sev-alta { background: var(--danger-light); }
+.alert-icon.sev-media { background: var(--warning-light); }
+.alert-icon.sev-baixa { background: var(--bg-app); border: 1px solid var(--border); }
+.alert-text { flex: 1; display: flex; flex-direction: column; }
+.alert-title { font-size: 13px; font-weight: 600; }
+.alert-sub { font-size: 12px; color: var(--text-muted); }
+.alert-count { font-size: 13px; font-weight: 700; color: var(--text-main); margin-left: 4px; }
+.alert-chevron { color: var(--text-muted); margin-left: 4px; }
+
+/* Próximas visitas */
+.timeline-list { display: flex; flex-direction: column; gap: 10px; }
+.timeline-item { display: flex; align-items: center; gap: 12px; }
+.timeline-pos { width: 30px; height: 30px; border-radius: 50%; background: var(--primary-light); color: var(--primary); font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.timeline-body { flex: 1; min-width: 0; }
+.timeline-name { font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.timeline-detail { font-size: 12px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* Metas */
+.goals-grid { display: flex; flex-direction: column; gap: 16px; }
+.goal-top { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 6px; }
+.goal-title { font-weight: 600; }
+.goal-numbers { color: var(--text-muted); }
+.goal-track { height: 8px; background: var(--bg-app); border-radius: 20px; overflow: hidden; border: 1px solid var(--border); }
+.goal-fill { height: 100%; background: var(--success); border-radius: 20px; }
+.goal-fill.warning { background: var(--warning); }
+.goal-fill.danger { background: var(--danger); }
+.goal-footer { display: flex; justify-content: space-between; font-size: 11px; color: var(--text-muted); margin-top: 6px; }
+
+/* Mapa resumo */
+.map-mini { position: relative; height: 160px; background: #eef2f5; border-radius: 12px; overflow: hidden; border: 1px solid var(--border); margin-bottom: 12px; }
+.map-pin { position: absolute; width: 10px; height: 10px; border-radius: 50%; border: 2px solid #fff; box-shadow: 0 1px 3px rgba(0,0,0,0.3); }
+.map-pin.urgente { background: var(--danger); }
+.map-pin.pendente { background: var(--warning); }
+.map-pin.visitada { background: var(--success); }
+.map-pin.eu { background: var(--primary); width: 14px; height: 14px; }
+.map-legend { display: flex; justify-content: space-between; font-size: 12px; color: var(--text-muted); }
+
+/* Indicadores */
+.metrics-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; }
+.metric-card { border: 1px solid var(--border); border-radius: 12px; padding: 14px; }
+.metric-icon-label { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text-muted); margin-bottom: 6px; }
+.metric-value { font-size: 22px; font-weight: 700; }
+.metric-trend { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
+.metric-trend.up { color: var(--success); }
+
 .bottom-nav { display: none; }
 
+@media (max-width: 1024px) {
+  .dash-grid { grid-template-columns: 1fr; }
+  .summary-grid { grid-template-columns: repeat(3, 1fr); }
+}
+
 @media (max-width: 768px) {
-  body { flex-direction: column; height: auto; }
+  body { flex-direction: column; height: auto; overflow: visible; }
   .sidebar { display: none; }
-  .content-wrapper { padding: 20px; }
+  .content-wrapper { padding: 20px 20px 90px; }
+  .topbar { padding: 0 20px; }
+  .summary-grid { grid-template-columns: repeat(3, 1fr); }
   .bottom-nav { display: flex; position: fixed; bottom: 0; left: 0; right: 0; background: var(--bg-card); border-top: 1px solid var(--border); z-index: 50; padding: 10px; justify-content: space-around; }
   .bottom-nav a { text-decoration: none; color: var(--text-muted); font-size: 11px; display: flex; flex-direction: column; align-items: center; gap: 4px; }
   .bottom-nav a.active { color: var(--primary); }
@@ -64,16 +171,16 @@ body { display: flex; background: var(--bg-app); color: var(--text-main); height
     <span>Micro-área 03</span>
   </div>
   <ul class="nav-links">
-    <li><a href="index.html" class="active"><span class="nav-icon">🏠</span> Dashboard</a></li>
-    <li><a href="meu-roteiro.html"><span class="nav-icon">▶️</span> Meu Roteiro</a></li>
-    <li><a href="agenda.html"><span class="nav-icon">🗓️</span> Agenda</a></li>
-    <li><a href="nova-visita.html"><span class="nav-icon">📋</span> Visitas</a></li>
-    <li><a href="familias.html"><span class="nav-icon">👨‍👩‍👧</span> Famílias</a></li>
-    <li><a href="mapa.html"><span class="nav-icon">🗺️</span> Mapa</a></li>
-    <li><a href="indicadores.html"><span class="nav-icon">📊</span> Indicadores</a></li>
+    <li><a href="index.html" class="active"><i class="ph ph-squares-four"></i> Dashboard</a></li>
+    <li><a href="meu-roteiro.html"><i class="ph ph-map-pin-line"></i> Meu Roteiro</a></li>
+    <li><a href="agenda.html"><i class="ph ph-calendar-blank"></i> Agenda</a></li>
+    <li><a href="nova-visita.html"><i class="ph ph-clipboard-text"></i> Visitas</a></li>
+    <li><a href="familias.html"><i class="ph ph-users"></i> Famílias</a></li>
+    <li><a href="mapa.html"><i class="ph ph-map-trifold"></i> Mapa</a></li>
+    <li><a href="indicadores.html"><i class="ph ph-chart-line-up"></i> Indicadores</a></li>
     <li class="nav-divider"></li>
-    <li><a href="busca.html"><span class="nav-icon">🔍</span> Busca</a></li>
-    <li><a href="configuracoes.html"><span class="nav-icon">⚙️</span> Configurações</a></li>
+    <li><a href="busca.html"><i class="ph ph-magnifying-glass"></i> Busca</a></li>
+    <li><a href="configuracoes.html"><i class="ph ph-gear"></i> Configurações</a></li>
   </ul>
 </aside>
 
@@ -83,18 +190,97 @@ body { display: flex; background: var(--bg-app); color: var(--text-main); height
   </header>
 
   <div class="content-wrapper">
-    <div class="hero">
-      <h1 id="heroSaudacao">Bom dia, Gabriela 👋</h1>
-      <p style="color: var(--text-muted);">Acompanhe suas tarefas e indicadores da Micro-área 03.</p>
-    </div>
 
-    <div class="section-label" style="font-weight: 700; color: var(--text-muted);">Ações rápidas</div>
+    <div class="hero">
+      <div>
+        <h1 id="heroSaudacao">Bom dia, Gabriela 👋</h1>
+        <p class="hero-sub" id="heroData">—</p>
+      </div>
+      <div class="hero-cta">
+        <div class="hero-stat">
+          <div class="big"><span id="heroVisitasHoje">—</span></div>
+          <div class="lbl">visitas hoje</div>
+        </div>
+        <div class="hero-stat">
+          <div class="big"><span id="heroPercentual">—%</span></div>
+          <div class="lbl">concluído</div>
+        </div>
+        <button class="btn-primary" id="btnIniciarRoteiro">▶️ Iniciar roteiro</button>
+      </div>
+    </div>
+    <p class="roteiro-sub" id="roteiroSub">Carregando roteiro do dia…</p>
+
+    <div class="section-label">Ações rápidas</div>
     <div class="quick-grid">
       <a class="quick-action" href="familias.html"><span class="quick-emoji">👨‍👩‍👧</span><span class="quick-label">Nova Família</span></a>
-      <a class="quick-action" href="nova-visita.html"><span class="quick-emoji">📋</span><span class="quick-label">Nova Visita</span></a>
+      <a class="quick-action" id="quickNovaVisita" href="nova-visita.html"><span class="quick-emoji">📋</span><span class="quick-label">Nova Visita</span></a>
       <a class="quick-action" href="busca.html"><span class="quick-emoji">🔍</span><span class="quick-label">Buscar Pessoa</span></a>
       <a class="quick-action" href="mapa.html"><span class="quick-emoji">🗺️</span><span class="quick-label">Abrir Mapa</span></a>
     </div>
+
+    <div class="section-label">Resumo do dia</div>
+    <div class="summary-grid">
+      <div class="summary-tile"><div class="val" id="sumProgramadas">—</div><div class="lbl">Programadas</div></div>
+      <div class="summary-tile"><div class="val" id="sumUrgentes">—</div><div class="lbl">Urgentes</div></div>
+      <div class="summary-tile"><div class="val" id="sumRetornos">—</div><div class="lbl">Retornos</div></div>
+      <div class="summary-tile"><div class="val" id="sumConcluidas">—</div><div class="lbl">Concluídas</div></div>
+      <div class="summary-tile"><div class="val" id="sumPendentes">—</div><div class="lbl">Pendentes</div></div>
+      <div class="summary-tile"><div class="val" id="sumTempo">—</div><div class="lbl">Tempo restante</div></div>
+    </div>
+
+    <div class="dash-grid">
+      <!-- Coluna principal -->
+      <div>
+        <div class="card">
+          <div class="card-title">🎯 Visitas prioritárias</div>
+          <div class="priority-grid" id="priorityGrid">
+            <p class="estado-vazio">Carregando…</p>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">⚠️ Alertas</div>
+          <div class="alerts-list" id="alertsList">
+            <p class="estado-vazio">Carregando…</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Coluna lateral -->
+      <div>
+        <div class="card">
+          <div class="card-title">📍 Próximas visitas</div>
+          <div class="timeline-list" id="timelineList">
+            <p class="estado-vazio">Carregando…</p>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">🏁 Metas do mês</div>
+          <div class="goals-grid" id="goalsGrid">
+            <p class="estado-vazio">Carregando…</p>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">🗺️ Mapa resumo</div>
+          <div class="map-mini" id="mapVisual"></div>
+          <div class="map-legend">
+            <span id="mapUrgentesTxt">—</span>
+            <span id="mapPendentesTxt">—</span>
+            <span id="mapVisitadasTxt">—</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-label">Indicadores da micro-área</div>
+    <div class="card">
+      <div class="metrics-grid" id="metricsGrid">
+        <p class="estado-vazio">Carregando…</p>
+      </div>
+    </div>
+
   </div>
 </main>
 
@@ -106,12 +292,7 @@ body { display: flex; background: var(--bg-app); color: var(--text-main); height
   <a href="mapa.html"><i class="ph ph-map-trifold"></i>Mapa</a>
 </nav>
 
-<script>
-  // Script simples para saudação
-  const hora = new Date().getHours();
-  const saudacao = hora < 12 ? 'Bom dia' : hora < 18 ? 'Boa tarde' : 'Boa noite';
-  document.getElementById('heroSaudacao').textContent = `${saudacao}, Gabriela 👋`;
-</script>
+<script src="dashboard.js"></script>
 
 </body>
 </html>

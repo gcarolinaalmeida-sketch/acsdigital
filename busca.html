@@ -7,7 +7,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="config.js"></script>
 <script src="auth.js"></script>
-<script>/* protegerPagina(); */</script>
+<script>protegerPagina();</script>
 <script src="branding.js"></script>
 
 <!-- Phosphor Icons para estética minimalista -->
@@ -47,15 +47,16 @@ body {
 }
 .sidebar h2 { font-size: 16px; font-weight: 700; letter-spacing: -0.02em; }
 .sidebar span { font-size: 13px; color: var(--text-muted); margin-top: 2px; display: block; }
-.nav { margin-top: 30px; display: flex; flex-direction: column; gap: 8px; list-style: none;}
-.nav a {
+.nav-links { margin-top: 30px; display: flex; flex-direction: column; gap: 8px; list-style: none;}
+.nav-links a {
   text-decoration: none; font-size: 14px; font-weight: 500; color: var(--text-muted);
   padding: 10px 14px; border-radius: 10px; display: flex; align-items: center; gap: 12px; transition: all 0.2s;
 }
-.nav a i { font-size: 20px; }
-.nav a:hover { background: #f3f4f6; color: var(--text-main); }
-.nav a.active { background: var(--primary-light); color: var(--primary); font-weight: 600; }
-.nav a.active i { font-family: "Phosphor-Fill"; }
+.nav-links a i { font-size: 20px; }
+.nav-links a:hover { background: #f3f4f6; color: var(--text-main); }
+.nav-links a.active { background: var(--primary-light); color: var(--primary); font-weight: 600; }
+.nav-links a.active i { font-family: "Phosphor-Fill"; }
+.nav-divider { height: 1px; background: var(--border); margin: 8px 4px; list-style: none; }
 
 /* MAIN CONTAINER (Split View) */
 .main-content {
@@ -157,14 +158,17 @@ body {
     <h2>ACS Digital</h2>
     <span>Microárea 02</span>
   </div>
-  <ul class="nav">
-    <li><a href="#"><i class="ph ph-squares-four"></i> Dashboard</a></li>
-    <li><a href="#"><i class="ph ph-map-pin-line"></i> Roteiro</a></li>
-    <li><a href="#"><i class="ph ph-users"></i> Famílias</a></li>
-    <li><a href="#"><i class="ph ph-map-trifold"></i> Mapa</a></li>
-    <li><a href="#"><i class="ph ph-calendar-blank"></i> Agenda</a></li>
+  <ul class="nav-links">
+    <li><a href="index.html"><i class="ph ph-squares-four"></i> Dashboard</a></li>
+    <li><a href="meu-roteiro.html"><i class="ph ph-map-pin-line"></i> Meu Roteiro</a></li>
+    <li><a href="agenda.html"><i class="ph ph-calendar-blank"></i> Agenda</a></li>
+    <li><a href="nova-visita.html"><i class="ph ph-clipboard-text"></i> Visitas</a></li>
+    <li><a href="familias.html"><i class="ph ph-users"></i> Famílias</a></li>
+    <li><a href="mapa.html"><i class="ph ph-map-trifold"></i> Mapa</a></li>
+    <li><a href="indicadores.html"><i class="ph ph-chart-line-up"></i> Indicadores</a></li>
     <li class="nav-divider"></li>
-    <li><a href="#" class="active"><i class="ph ph-magnifying-glass"></i> Busca</a></li>
+    <li><a href="busca.html" class="active"><i class="ph ph-magnifying-glass"></i> Busca</a></li>
+    <li><a href="configuracoes.html"><i class="ph ph-gear"></i> Configurações</a></li>
   </ul>
 </aside>
 
