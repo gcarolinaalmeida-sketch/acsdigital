@@ -195,14 +195,38 @@ body {
 </main>
 
 <script>
-// A sua lógica JavaScript original do 'agenda.html' vem aqui (carregarAgenda, renderizarCalendario, renderizarPainelDia, etc).
-// Ajustei apenas as classes no JS abaixo para baterem com o novo CSS na hora de montar os dias e as visitas.
+// Lógica real de agenda: usa carregarFamiliasEnriquecidas() (roteiro.js) pra saber
+// quais dias tiveram visita e o que foi feito em cada uma, em vez de "dia par".
 
-// --- INÍCIO DA LÓGICA MOCK PARA TESTAR O VISUAL ---
 let dataReferencia = new Date();
 let diaSelecionadoISO = new Date().toISOString().slice(0, 10);
+let diasComVisita = new Set();          // Set de datas ISO ('YYYY-MM-DD') com pelo menos 1 visita
+let visitasPorDia = new Map();          // 'YYYY-MM-DD' -> [visita, ...]
+let familiasPorId = new Map();          // id da família -> família enriquecida (endereço, membros, etc.)
 
-function renderizarCalendarioVisual() {
+async function iniciarAgenda() {
+  try {
+    const { familiasEnriquecidas, visitas } = await carregarFamiliasEnriquecidas();
+
+    familiasEnriquecidas.forEach(f => familiasPorId.set(f.id, f));
+
+    visitas.forEach(v => {
+      if (!v.data_visita) return;
+      diasComVisita.add(v.data_visita);
+      if (!visitasPorDia.has(v.data_visita)) visitasPorDia.set(v.data_visita, []);
+      visitasPorDia.get(v.data_visita).push(v);
+    });
+  } catch (e) {
+    console.error('Erro ao carregar a agenda:', e);
+    document.getElementById('dayPanel').innerHTML =
+      '<p class="estado-vazio">Não foi possível carregar as visitas. Verifique sua conexão.</p>';
+  }
+
+  renderizarCalendario();
+  renderizarPainelDia(diaSelecionadoISO);
+}
+
+function renderizarCalendario() {
   const ano = dataReferencia.getFullYear();
   const mes = dataReferencia.getMonth();
   const hoje = new Date().toISOString().slice(0, 10);
@@ -225,9 +249,8 @@ function renderizarCalendarioVisual() {
     if (c.iso === hoje) classes.push('hoje');
     if (c.iso === diaSelecionadoISO) classes.push('selecionado');
     if (c.iso > hoje) classes.push('futuro');
-    
-    // Simulando alguns dias com visita (dias pares do passado)
-    const temVisita = c.iso <= hoje && c.numero % 2 === 0; 
+
+    const temVisita = diasComVisita.has(c.iso);
     
     return `
       <div class="${classes.join(' ')}" onclick="selecionarDia('${c.iso}')">
@@ -240,8 +263,70 @@ function renderizarCalendarioVisual() {
 
 function selecionarDia(iso) {
   diaSelecionadoISO = iso;
-  renderizarCalendarioVisual();
-  renderizarPainelDiaVisual(iso);
+  renderizarCalendario();
+  renderizarPainelDia(iso);
 }
 
-function renderizarPainel
+function renderizarPainelDia(iso) {
+  const panel = document.getElementById('dayPanel');
+  const hoje = new Date().toISOString().slice(0, 10);
+  const tituloData = new Date(iso + 'T00:00:00').toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' });
+
+  const registros = (visitasPorDia.get(iso) || []).map(v => ({
+    visita: v,
+    familia: familiasPorId.get(v.familia_id) || null,
+  }));
+
+  let corpo;
+  if (registros.length === 0) {
+    corpo = iso > hoje
+      ? '<div class="estado-vazio-futuro">Nenhuma visita agendada para este dia ainda.</div>'
+      : '<p class="estado-vazio">Nenhuma visita registrada neste dia.</p>';
+  } else {
+    corpo = registros.map(r => {
+      const realizada = r.visita.desfecho === 'Realizada';
+      const nome = r.familia ? nomePrincipalDe(r.familia) : 'Família não encontrada';
+      const endereco = r.familia ? enderecoDe(r.familia) : '';
+      const href = r.visita.familia_id ? `nova-visita.html?familia_id=${r.visita.familia_id}` : '#';
+      return `
+        <a class="visit-item" href="${href}">
+          <div class="visit-icon ${realizada ? 'done' : 'pending'}"><i class="ph ph-${realizada ? 'check' : 'clock'}"></i></div>
+          <div class="visit-content">
+            <span class="visit-name">${escapeHtml(nome)}</span>
+            <span class="visit-sub">${escapeHtml(endereco)}${endereco ? ' · ' : ''}${escapeHtml(r.visita.desfecho || 'Sem desfecho')}</span>
+            ${r.visita.observacoes ? `<div class="visit-obs">${escapeHtml(r.visita.observacoes)}</div>` : ''}
+          </div>
+        </a>
+      `;
+    }).join('');
+  }
+
+  panel.innerHTML = `
+    <div class="day-panel-header">
+      <div class="day-panel-title">${tituloData}</div>
+      <div class="day-panel-sub">${registros.length} visita${registros.length === 1 ? '' : 's'} registrada${registros.length === 1 ? '' : 's'}</div>
+    </div>
+    <div class="panel-section-label"><i class="ph ph-clipboard-text"></i> Visitas do dia</div>
+    ${corpo}
+  `;
+}
+
+document.getElementById('btnMesAnterior').onclick = () => {
+  dataReferencia.setMonth(dataReferencia.getMonth() - 1);
+  renderizarCalendario();
+};
+document.getElementById('btnMesProximo').onclick = () => {
+  dataReferencia.setMonth(dataReferencia.getMonth() + 1);
+  renderizarCalendario();
+};
+document.getElementById('btnHoje').onclick = () => {
+  dataReferencia = new Date();
+  diaSelecionadoISO = new Date().toISOString().slice(0, 10);
+  renderizarCalendario();
+  renderizarPainelDia(diaSelecionadoISO);
+};
+
+iniciarAgenda();
+</script>
+</body>
+</html>

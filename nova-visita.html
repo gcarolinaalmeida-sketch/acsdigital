@@ -254,13 +254,16 @@ canvas { width: 100%; height: 300px; display: block; touch-action: none; cursor:
 </div>
 
 <script>
-// A mesmíssima lógica JavaScript que você já tinha construído, aplicada aos novos IDs e Classes!
 const params = new URLSearchParams(location.search);
 const familiaId = params.get('familia_id');
 let desfecho = null, motivo = null, assinatura = false, desenhando = false, assinou = false;
+let familiaAtual = null; // família carregada do Supabase, usada ao salvar
+let sessaoAtual = null;  // preenchida abaixo, usada pra registrar quem fez a visita
 
 const $ = id => document.getElementById(id);
 const btnSalvar = $('btnSalvar'), statusText = $('statusText');
+
+protegerPagina().then(s => { sessaoAtual = s; });
 
 async function carregarContexto() {
   const card = $('familyCard');
@@ -268,18 +271,47 @@ async function carregarContexto() {
     card.innerHTML = '<h2>Nenhuma família selecionada</h2><div class="context-meta">Selecione uma família no roteiro.</div>';
     return;
   }
-  
-  // Simulação do fetch do Supabase (substituir pela sua call original caso já esteja linkado)
-  const f = { logradouro: "Rua das Flores", numero: "120", bairro: "Centro", cidadaos: [{}, {}, {}] }; 
+
+  const { data: f, error: erroFamilia } = await db
+    .from('familias')
+    .select('*, cidadaos(*)')
+    .eq('id', familiaId)
+    .single();
+
+  if (erroFamilia || !f) {
+    card.innerHTML = `
+      <h2>Família não encontrada</h2>
+      <div class="context-meta"><i class="ph ph-warning"></i> Verifique o link ou volte ao roteiro.</div>
+    `;
+    console.error(erroFamilia);
+    return;
+  }
+
+  familiaAtual = f;
+
+  const { data: visitasAnteriores, error: erroVisitas } = await db
+    .from('visitas')
+    .select('data_visita')
+    .eq('familia_id', familiaId)
+    .order('data_visita', { ascending: false })
+    .limit(1);
+
+  if (erroVisitas) console.error(erroVisitas);
+
+  const ultimaVisitaISO = visitasAnteriores && visitasAnteriores[0] ? visitasAnteriores[0].data_visita : null;
+  const ultimaVisitaTexto = ultimaVisitaISO
+    ? `Há ${diasDesde(ultimaVisitaISO)} dia(s) (${formatarDataBR(ultimaVisitaISO)})`
+    : 'Nenhuma visita registrada ainda';
+
   const endereco = [f.logradouro, f.numero].filter(Boolean).join(', ') || 'Endereço não informado';
-  
+
   card.innerHTML = `
     <h2>${endereco}</h2>
     <div class="context-meta"><i class="ph ph-map-pin"></i> ${f.bairro || 'Bairro não informado'}</div>
     
     <div class="context-details">
       <div><strong>Moradores</strong> ${(f.cidadaos || []).length} cadastrados neste domicílio</div>
-      <div><strong>Última Visita</strong> Há 15 dias (10/06/2026)</div>
+      <div><strong>Última Visita</strong> ${ultimaVisitaTexto}</div>
     </div>
 
     <div class="save-area">
@@ -370,9 +402,44 @@ canvas.addEventListener('mousedown', start); canvas.addEventListener('mousemove'
 canvas.addEventListener('touchstart', start, {passive: false}); canvas.addEventListener('touchmove', draw, {passive: false}); canvas.addEventListener('touchend', stop);
 
 const salvarVisitaAction = async () => {
-  if(!$('btnSalvar').classList.contains('active')) return;
-  alert('Simulação: Visita salva com sucesso! (Integre sua função original do Supabase aqui)');
-  // A sua função original do Supabase entra aqui.
+  const btn = $('btnSalvar');
+  if(!btn.classList.contains('active') || btn.disabled) return;
+  if(!familiaId || !familiaAtual) { alert('Nenhuma família válida selecionada.'); return; }
+
+  const acompanhamentos = desfecho === 'Realizada'
+    ? Array.from($('acompanhamentosGroup').querySelectorAll('.choice-btn.selected')).map(b => b.dataset.value)
+    : [];
+
+  let observacoesFinal = ($('observacoes').value || '').trim();
+  if (motivo) {
+    observacoesFinal = `Motivo: ${motivo}${observacoesFinal ? ' — ' + observacoesFinal : ''}`;
+  }
+
+  const novaVisita = {
+    familia_id: familiaId,
+    data_visita: new Date().toISOString().slice(0, 10),
+    desfecho,
+    observacoes: observacoesFinal || null,
+    acompanhamentos,
+    profissional: sessaoAtual?.user?.email || 'ACS',
+  };
+
+  const textoOriginal = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = 'Salvando...';
+
+  const { error } = await db.from('visitas').insert(novaVisita);
+
+  if (error) {
+    alert('Erro ao salvar a visita: ' + error.message);
+    console.error(error);
+    btn.disabled = false;
+    btn.textContent = textoOriginal;
+    return;
+  }
+
+  alert('Visita salva com sucesso!');
+  location.href = 'meu-roteiro.html';
 };
 
 carregarContexto();

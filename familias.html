@@ -225,7 +225,7 @@ body {
       <div class="search-container">
         <div class="search-box">
           <i class="ph ph-magnifying-glass"></i>
-          <input type="text" class="search-bar" placeholder="Buscar por nome, rua ou CNS...">
+          <input type="text" class="search-bar" id="searchInput" placeholder="Buscar por nome, rua ou CNS...">
         </div>
         <button class="btn-primary" onclick="abrirDrawer('drawerNovaFamilia')">
           <i class="ph ph-plus"></i> Nova Família
@@ -242,29 +242,9 @@ body {
       </div>
     </div>
 
-    <!-- Container da Lista de Cards (Vai ser preenchido pelo JS) -->
+    <!-- Container da Lista de Cards (preenchido via JS a partir do Supabase) -->
     <div class="family-list-scroll" id="familyGrid">
-      
-      <!-- EXEMPLO MOCK (Apague quando ligar o Supabase) -->
-      <div class="family-card" onclick="mostrarDetalheFamilia(this)">
-        <div class="family-title">Rua das Flores, 120</div>
-        <div class="family-info">Resp: Maria da Silva<br>📍 Centro</div>
-        <div class="badges">
-          <span class="badge"><i class="ph ph-users"></i> 3 moradores</span>
-          <span class="badge">🫀 1 HAS</span>
-        </div>
-      </div>
-
-      <div class="family-card" onclick="mostrarDetalheFamilia(this)">
-        <div class="family-title">Av. Brasil, 55 - Casa 2</div>
-        <div class="family-info">Resp: João Pereira<br>📍 Guarda-Mor</div>
-        <div class="badges">
-          <span class="badge"><i class="ph ph-users"></i> 1 morador</span>
-          <span class="badge alert"><i class="ph ph-warning"></i> Incompleto</span>
-        </div>
-      </div>
-      <!-- FIM DO EXEMPLO MOCK -->
-
+      <p style="padding:20px;color:var(--text-muted);">Carregando famílias...</p>
     </div>
   </div>
 
@@ -287,7 +267,7 @@ body {
         </div>
         
         <div class="action-bar">
-          <button class="btn-primary"><i class="ph ph-clipboard-text"></i> Iniciar Visita</button>
+          <button class="btn-primary" id="btnIniciarVisita"><i class="ph ph-clipboard-text"></i> Iniciar Visita</button>
           <button class="btn-outline"><i class="ph ph-pencil-simple"></i> Editar Endereço</button>
           <button class="btn-outline danger"><i class="ph ph-trash"></i> Excluir</button>
         </div>
@@ -298,20 +278,7 @@ body {
         <button class="btn-outline" style="padding: 4px 10px; font-size: 11px;"><i class="ph ph-plus"></i> Cidadão</button>
       </div>
 
-      <div id="detalheMembros">
-        <!-- EXEMPLO MOCK -->
-        <div class="citizen-item">
-          <div class="citizen-info">
-            <div class="citizen-name">Maria da Silva (45a) <span class="badge" style="background:#e0f2fe; color:#0ea5e9;">Responsável</span></div>
-            <div class="citizen-cns">CNS: 123456789 | 🫀 HAS</div>
-          </div>
-          <div class="citizen-actions">
-            <button class="btn-icon"><i class="ph ph-pencil-simple"></i></button>
-            <button class="btn-icon danger"><i class="ph ph-trash"></i></button>
-          </div>
-        </div>
-        <!-- FIM DO MOCK -->
-      </div>
+      <div id="detalheMembros"></div>
     </div>
 
   </div>
@@ -322,21 +289,133 @@ body {
 <div class="overlay" id="overlay" onclick="fecharTodosDrawers()"></div>
 
 <script>
-// Lógica simples pra demonstração da Split View (O seu código original de renderização do Supabase vai entrar aqui adaptado)
-function mostrarDetalheFamilia(cardElement) {
-  // 1. Marca o card como selecionado
-  document.querySelectorAll('.family-card').forEach(c => c.classList.remove('selected'));
-  cardElement.classList.add('selected');
+let familiasCache = []; // última lista carregada do Supabase (para filtrar sem refazer a query)
 
-  // 2. Esconde a tela vazia e mostra o painel de detalhes
+function escapeHtml(str) {
+  return String(str ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+function condicoesDe(cidadao) {
+  return (cidadao.condicoes_saude || []).map(c => c.condicao);
+}
+
+async function carregarFamilias() {
+  const grid = document.getElementById('familyGrid');
+  grid.innerHTML = '<p style="padding:20px;color:var(--text-muted);">Carregando famílias...</p>';
+
+  const { data, error } = await db
+    .from('familias')
+    .select('*, cidadaos(*, condicoes_saude(*))')
+    .order('logradouro');
+
+  if (error) {
+    grid.innerHTML = `<p style="padding:20px;color:var(--danger);">Erro ao carregar famílias: ${error.message}</p>`;
+    console.error(error);
+    return;
+  }
+
+  familiasCache = data || [];
+  renderizarLista(familiasCache);
+}
+
+function cartaoFamiliaHtml(f) {
+  const membros = f.cidadaos || [];
+  const endereco = [f.logradouro, f.numero].filter(Boolean).join(', ') || 'Endereço não informado';
+  const responsavel = membros.find(c => c.e_responsavel_familiar)?.nome || membros[0]?.nome || 'Responsável não definido';
+
+  const badges = [`<span class="badge"><i class="ph ph-users"></i> ${membros.length} morador${membros.length === 1 ? '' : 'es'}</span>`];
+  if (membros.some(c => condicoesDe(c).includes('Hipertensão'))) badges.push('<span class="badge">🫀 HAS</span>');
+  if (membros.some(c => condicoesDe(c).includes('Diabetes'))) badges.push('<span class="badge">🍬 DM</span>');
+  if (membros.some(c => condicoesDe(c).includes('Gestante'))) badges.push('<span class="badge">🤰 Gestante</span>');
+  if (membros.some(c => condicoesDe(c).includes('Acamado'))) badges.push('<span class="badge">🛏️ Acamado</span>');
+  if (membros.some(c => !c.cpf || !c.cns)) badges.push('<span class="badge alert"><i class="ph ph-warning"></i> Incompleto</span>');
+
+  return `
+    <div class="family-card" data-id="${f.id}" onclick="mostrarDetalheFamilia('${f.id}')">
+      <div class="family-title">${escapeHtml(endereco)}</div>
+      <div class="family-info">Resp: ${escapeHtml(responsavel)}<br>📍 ${escapeHtml(f.bairro || 'Bairro não informado')}</div>
+      <div class="badges">${badges.join('')}</div>
+    </div>
+  `;
+}
+
+function renderizarLista(lista) {
+  const grid = document.getElementById('familyGrid');
+  grid.innerHTML = lista.length
+    ? lista.map(cartaoFamiliaHtml).join('')
+    : '<p style="padding:20px;color:var(--text-muted);">Nenhuma família encontrada.</p>';
+}
+
+function mostrarDetalheFamilia(id) {
+  const f = familiasCache.find(x => String(x.id) === String(id));
+  if (!f) return;
+
+  document.querySelectorAll('.family-card').forEach(c => c.classList.remove('selected'));
+  document.querySelector(`.family-card[data-id="${id}"]`)?.classList.add('selected');
+
   document.getElementById('detailEmpty').style.display = 'none';
   document.getElementById('detailContent').classList.add('active');
 
-  // No código real, aqui você chama a função que preenche os dados do Supabase na div #detailContent
+  const endereco = [f.logradouro, f.numero].filter(Boolean).join(', ') || 'Endereço não informado';
+  document.getElementById('detalheTitulo').textContent = endereco;
+  document.getElementById('detalheBairro').textContent = [f.bairro, f.cep].filter(Boolean).join(' | ') || 'Bairro não informado';
+  document.getElementById('btnIniciarVisita').onclick = () => { location.href = `nova-visita.html?familia_id=${f.id}`; };
+
+  const membros = f.cidadaos || [];
+  document.getElementById('detalheMembros').innerHTML = membros.length
+    ? membros.map(c => {
+        const idade = calcularIdade(c.data_nascimento);
+        const condicoes = condicoesDe(c);
+        return `
+          <div class="citizen-item">
+            <div class="citizen-info">
+              <div class="citizen-name">${escapeHtml(c.nome)}${idade !== null ? ` (${idade}a)` : ''} ${c.e_responsavel_familiar ? '<span class="badge" style="background:#e0f2fe; color:#0ea5e9;">Responsável</span>' : ''}</div>
+              <div class="citizen-cns">CNS: ${c.cns || 'Não informado'}${condicoes.length ? ' | ' + escapeHtml(condicoes.join(', ')) : ''}</div>
+            </div>
+            <div class="citizen-actions">
+              <button class="btn-icon"><i class="ph ph-pencil-simple"></i></button>
+              <button class="btn-icon danger"><i class="ph ph-trash"></i></button>
+            </div>
+          </div>
+        `;
+      }).join('')
+    : '<p style="color:var(--text-muted);">Nenhum morador cadastrado.</p>';
 }
+
+document.getElementById('searchInput').addEventListener('input', (e) => {
+  const termo = e.target.value.trim().toLowerCase();
+  if (!termo) { renderizarLista(familiasCache); return; }
+  renderizarLista(familiasCache.filter(f => {
+    const enderecoMatch = `${f.logradouro || ''} ${f.numero || ''} ${f.bairro || ''}`.toLowerCase().includes(termo);
+    const membroMatch = (f.cidadaos || []).some(c =>
+      (c.nome || '').toLowerCase().includes(termo) || (c.cns || '').includes(termo) || (c.cpf || '').includes(termo)
+    );
+    return enderecoMatch || membroMatch;
+  }));
+});
+
+document.querySelectorAll('.filter-chip').forEach(chip => {
+  chip.addEventListener('click', () => {
+    document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+    chip.classList.add('active');
+    const filtro = chip.dataset.filtro;
+    if (filtro === 'todas') { renderizarLista(familiasCache); return; }
+    renderizarLista(familiasCache.filter(f => {
+      const membros = f.cidadaos || [];
+      if (filtro === 'hipertensos') return membros.some(c => condicoesDe(c).includes('Hipertensão'));
+      if (filtro === 'diabeticos') return membros.some(c => condicoesDe(c).includes('Diabetes'));
+      if (filtro === 'gestantes') return membros.some(c => condicoesDe(c).includes('Gestante'));
+      if (filtro === 'acamados') return membros.some(c => condicoesDe(c).includes('Acamado'));
+      if (filtro === 'incompleto') return membros.some(c => !c.cpf || !c.cns);
+      return true;
+    }));
+  });
+});
 
 function abrirDrawer(id) { /* Lógica de abrir gavetas laterais para formulários */ }
 function fecharTodosDrawers() { /* ... */ }
+
+carregarFamilias();
 </script>
 
 </body>

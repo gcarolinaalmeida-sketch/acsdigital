@@ -270,43 +270,58 @@ function definirIndicador(prefixo, numerador, denominador) {
 }
 
 async function carregarIndicadores() {
-  // Simulação para carregar a interface (Substituir pela sua chamada original do Supabase)
-  // Utilizando dados simulados para demonstrar o visual funcionando.
-  const dadosMockados = {
-    hasTotal: 40, hasAferidos: 22,
-    dmTotal: 25, dmAferidos: 10,
-    familiasSemVisita: 8,
-    cadastrosIncompletos: 15,
-    familiasSemResponsavel: 3,
-    cobertura: 65
-  };
+  const { data: familias, error: erroFamilias } = await db
+    .from('familias')
+    .select('id, cidadaos(id, cpf, cns, e_responsavel_familiar, condicoes_saude(condicao, data_pressao_arterial, data_hemoglobina_glicada))');
 
-  setTimeout(() => {
-    definirIndicador('Has', dadosMockados.hasAferidos, dadosMockados.hasTotal);
-    definirIndicador('Dm', dadosMockados.dmAferidos, dadosMockados.dmTotal);
-    
-    document.getElementById('opsSemVisita').textContent = dadosMockados.familiasSemVisita;
-    document.getElementById('opsCadastroIncompleto').textContent = dadosMockados.cadastrosIncompletos;
-    document.getElementById('opsSemResponsavel').textContent = dadosMockados.familiasSemResponsavel;
-    document.getElementById('opsCobertura').textContent = dadosMockados.cobertura + '%';
-    
-    document.getElementById('opsCoberturaFeedback').innerHTML = dadosMockados.cobertura > 0 
-      ? '<i class="ph ph-check"></i> Continue assim!' 
-      : '<i class="ph ph-info"></i> Registre visitas para acompanhar.';
-  }, 500); // Simulando delay de rede
-  
-  /* SUA LÓGICA ORIGINAL DO SUPABASE (Descomentar para usar real)[cite: 12]
-  const { data: condicoes, error: erroCondicoes } = await db.from('condicoes_saude').select('*');
-  const { data: familias, error: erroFamilias } = await db.from('familias').select('id, cidadaos(id, cpf, cns, e_responsavel_familiar)');
-  const { data: visitas, error: erroVisitas } = await db.from('visitas').select('familia_id, data_visita');
-  
-  if (erroCondicoes || erroFamilias || erroVisitas) {
-    console.error(erroCondicoes, erroFamilias, erroVisitas);
+  const { data: visitas, error: erroVisitas } = await db
+    .from('visitas')
+    .select('familia_id, data_visita');
+
+  if (erroFamilias || erroVisitas) {
+    console.error(erroFamilias, erroVisitas);
+    document.querySelector('.content-wrapper').insertAdjacentHTML('afterbegin',
+      '<div class="estado-vazio" style="margin-bottom:24px; border:1px dashed var(--danger); color:var(--danger); padding:16px; border-radius:12px;">Não foi possível carregar os indicadores. Verifique sua conexão.</div>');
     return;
   }
-  
-  // ... resto da sua lógica original ...
-  */
+
+  const todosCidadaos = (familias || []).flatMap(f => f.cidadaos || []);
+  const condicoesTodas = todosCidadaos.flatMap(c => c.condicoes_saude || []);
+
+  // Previne Brasil considera "aferido no semestre" = nos últimos 180 dias.
+  const hasTodos = condicoesTodas.filter(c => c.condicao === 'Hipertensão');
+  const hasAferidos = hasTodos.filter(c => { const d = diasDesde(c.data_pressao_arterial); return d !== null && d <= 180; });
+
+  const dmTodos = condicoesTodas.filter(c => c.condicao === 'Diabetes');
+  const dmAferidos = dmTodos.filter(c => { const d = diasDesde(c.data_hemoglobina_glicada); return d !== null && d <= 180; });
+
+  definirIndicador('Has', hasAferidos.length, hasTodos.length);
+  definirIndicador('Dm', dmAferidos.length, dmTodos.length);
+
+  const familiasComVisita = new Set((visitas || []).map(v => v.familia_id));
+  const familiasSemVisita = (familias || []).filter(f => !familiasComVisita.has(f.id)).length;
+  const cadastrosIncompletos = todosCidadaos.filter(c => !c.cpf || !c.cns).length;
+  const familiasSemResponsavel = (familias || []).filter(f => !(f.cidadaos || []).some(c => c.e_responsavel_familiar)).length;
+
+  const inicioMes = new Date();
+  inicioMes.setDate(1);
+  inicioMes.setHours(0, 0, 0, 0);
+  const familiasVisitadasNoMes = new Set(
+    (visitas || [])
+      .filter(v => v.data_visita && new Date(v.data_visita) >= inicioMes)
+      .map(v => v.familia_id)
+  );
+  const totalFamilias = (familias || []).length;
+  const cobertura = totalFamilias > 0 ? Math.round((familiasVisitadasNoMes.size / totalFamilias) * 100) : 0;
+
+  document.getElementById('opsSemVisita').textContent = familiasSemVisita;
+  document.getElementById('opsCadastroIncompleto').textContent = cadastrosIncompletos;
+  document.getElementById('opsSemResponsavel').textContent = familiasSemResponsavel;
+  document.getElementById('opsCobertura').textContent = cobertura + '%';
+
+  document.getElementById('opsCoberturaFeedback').innerHTML = cobertura > 0
+    ? '<i class="ph ph-check"></i> Continue assim!'
+    : '<i class="ph ph-info"></i> Registre visitas para acompanhar.';
 }
 
 carregarIndicadores();
