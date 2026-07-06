@@ -225,7 +225,7 @@ body {
       <div class="search-container">
         <div class="search-box">
           <i class="ph ph-magnifying-glass"></i>
-          <input type="text" class="search-bar" id="searchInput" placeholder="Buscar por nome, rua ou CNS...">
+          <input type="text" class="search-bar" id="campoBuscaFamilias" placeholder="Buscar por nome, rua ou CNS...">
         </div>
         <button class="btn-primary" onclick="abrirDrawer('drawerNovaFamilia')">
           <i class="ph ph-plus"></i> Nova Família
@@ -242,9 +242,9 @@ body {
       </div>
     </div>
 
-    <!-- Container da Lista de Cards (preenchido via JS a partir do Supabase) -->
+    <!-- Container da Lista de Cards (preenchido pelo JS) -->
     <div class="family-list-scroll" id="familyGrid">
-      <p style="padding:20px;color:var(--text-muted);">Carregando famílias...</p>
+      <p class="estado-vazio">Carregando famílias…</p>
     </div>
   </div>
 
@@ -261,24 +261,26 @@ body {
     <!-- Conteúdo que aparece ao clicar num card (Preenchido via JS) -->
     <div class="detail-content" id="detailContent">
       <div class="detail-header">
-        <h2 class="detail-title" id="detalheTitulo">Rua das Flores, 120</h2>
+        <h2 class="detail-title" id="detalheTitulo">—</h2>
         <div class="detail-subtitle">
-          <i class="ph ph-map-pin"></i> <span id="detalheBairro">Centro | CEP 36300-000</span>
+          <i class="ph ph-map-pin"></i> <span id="detalheBairro">—</span>
         </div>
         
         <div class="action-bar">
-          <button class="btn-primary" id="btnIniciarVisita"><i class="ph ph-clipboard-text"></i> Iniciar Visita</button>
-          <button class="btn-outline"><i class="ph ph-pencil-simple"></i> Editar Endereço</button>
-          <button class="btn-outline danger"><i class="ph ph-trash"></i> Excluir</button>
+          <a class="btn-primary" id="detalheBtnVisita" href="#" style="text-decoration:none;"><i class="ph ph-clipboard-text"></i> Iniciar Visita</a>
+          <button class="btn-outline" id="detalheBtnEditar"><i class="ph ph-pencil-simple"></i> Editar Endereço</button>
+          <button class="btn-outline danger" id="detalheBtnExcluir"><i class="ph ph-trash"></i> Excluir</button>
         </div>
       </div>
 
       <div class="section-title">
         Membros da Família
-        <button class="btn-outline" style="padding: 4px 10px; font-size: 11px;"><i class="ph ph-plus"></i> Cidadão</button>
+        <button class="btn-outline" id="detalheBtnAddCidadao" style="padding: 4px 10px; font-size: 11px;"><i class="ph ph-plus"></i> Cidadão</button>
       </div>
 
-      <div id="detalheMembros"></div>
+      <div id="detalheMembros">
+        <p class="estado-vazio">Carregando moradores…</p>
+      </div>
     </div>
 
   </div>
@@ -289,131 +291,165 @@ body {
 <div class="overlay" id="overlay" onclick="fecharTodosDrawers()"></div>
 
 <script>
-let familiasCache = []; // última lista carregada do Supabase (para filtrar sem refazer a query)
+let familiasGlobais = [];
+let filtroAtual = 'todas';
+let termoBusca = '';
 
-function escapeHtml(str) {
-  return String(str ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+function condicoesDe(cidadao) { return (cidadao.condicoes_saude || []).map(c => c.condicao); }
+function escapeHtml(str) { return String(str ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+
+function tagsFamilia(f) {
+  const todasCondicoes = (f.cidadaos || []).flatMap(condicoesDe);
+  const tags = [];
+  const has = todasCondicoes.filter(c => c === 'Hipertensão').length;
+  const dm = todasCondicoes.filter(c => c === 'Diabetes').length;
+  const gestante = todasCondicoes.filter(c => c === 'Gestante').length;
+  const acamado = todasCondicoes.filter(c => c === 'Acamado').length;
+  if (has) tags.push(`🫀 ${has} HAS`);
+  if (dm) tags.push(`🍬 ${dm} DM`);
+  if (gestante) tags.push(`🤰 ${gestante} Gestante${gestante === 1 ? '' : 's'}`);
+  if (acamado) tags.push(`🛏️ ${acamado} Acamado${acamado === 1 ? '' : 's'}`);
+  return tags;
 }
 
-function condicoesDe(cidadao) {
-  return (cidadao.condicoes_saude || []).map(c => c.condicao);
+function familiaIncompleta(f) {
+  return (f.cidadaos || []).length === 0 || !(f.cidadaos || []).some(c => c.e_responsavel_familiar);
+}
+
+function familiaBateFiltro(f) {
+  if (filtroAtual === 'todas') return true;
+  if (filtroAtual === 'incompleto') return familiaIncompleta(f);
+  const todasCondicoes = (f.cidadaos || []).flatMap(condicoesDe);
+  const mapa = { hipertensos: 'Hipertensão', diabeticos: 'Diabetes', gestantes: 'Gestante', acamados: 'Acamado' };
+  return todasCondicoes.includes(mapa[filtroAtual]);
+}
+
+function familiaBateBusca(f) {
+  if (!termoBusca) return true;
+  const t = termoBusca.toLowerCase();
+  const enderecoMatch = (f.logradouro || '').toLowerCase().includes(t) || (f.bairro || '').toLowerCase().includes(t);
+  const cidadaoMatch = (f.cidadaos || []).some(c =>
+    (c.nome || '').toLowerCase().includes(t) || (c.cns || '').includes(t) || (c.cpf || '').includes(t)
+  );
+  return enderecoMatch || cidadaoMatch;
 }
 
 async function carregarFamilias() {
   const grid = document.getElementById('familyGrid');
-  grid.innerHTML = '<p style="padding:20px;color:var(--text-muted);">Carregando famílias...</p>';
-
-  const { data, error } = await db
-    .from('familias')
-    .select('*, cidadaos(*, condicoes_saude(*))')
-    .order('logradouro');
+  const { data, error } = await db.from('familias').select('*, cidadaos(*, condicoes_saude(*))').order('logradouro');
 
   if (error) {
-    grid.innerHTML = `<p style="padding:20px;color:var(--danger);">Erro ao carregar famílias: ${error.message}</p>`;
     console.error(error);
+    grid.innerHTML = '<p class="estado-erro">Não foi possível carregar as famílias. Verifique sua conexão.</p>';
     return;
   }
 
-  familiasCache = data || [];
-  renderizarLista(familiasCache);
+  familiasGlobais = data || [];
+  renderizarLista();
+
+  // Se veio de busca.html?abrir=<id>, abre direto o detalhe daquela família
+  const abrirId = new URLSearchParams(location.search).get('abrir');
+  if (abrirId) {
+    const alvo = familiasGlobais.find(f => String(f.id) === String(abrirId));
+    if (alvo) mostrarDetalheFamilia(alvo);
+  }
 }
 
-function cartaoFamiliaHtml(f) {
-  const membros = f.cidadaos || [];
-  const endereco = [f.logradouro, f.numero].filter(Boolean).join(', ') || 'Endereço não informado';
-  const responsavel = membros.find(c => c.e_responsavel_familiar)?.nome || membros[0]?.nome || 'Responsável não definido';
-
-  const badges = [`<span class="badge"><i class="ph ph-users"></i> ${membros.length} morador${membros.length === 1 ? '' : 'es'}</span>`];
-  if (membros.some(c => condicoesDe(c).includes('Hipertensão'))) badges.push('<span class="badge">🫀 HAS</span>');
-  if (membros.some(c => condicoesDe(c).includes('Diabetes'))) badges.push('<span class="badge">🍬 DM</span>');
-  if (membros.some(c => condicoesDe(c).includes('Gestante'))) badges.push('<span class="badge">🤰 Gestante</span>');
-  if (membros.some(c => condicoesDe(c).includes('Acamado'))) badges.push('<span class="badge">🛏️ Acamado</span>');
-  if (membros.some(c => !c.cpf || !c.cns)) badges.push('<span class="badge alert"><i class="ph ph-warning"></i> Incompleto</span>');
-
-  return `
-    <div class="family-card" data-id="${f.id}" onclick="mostrarDetalheFamilia('${f.id}')">
-      <div class="family-title">${escapeHtml(endereco)}</div>
-      <div class="family-info">Resp: ${escapeHtml(responsavel)}<br>📍 ${escapeHtml(f.bairro || 'Bairro não informado')}</div>
-      <div class="badges">${badges.join('')}</div>
-    </div>
-  `;
-}
-
-function renderizarLista(lista) {
+function renderizarLista() {
   const grid = document.getElementById('familyGrid');
-  grid.innerHTML = lista.length
-    ? lista.map(cartaoFamiliaHtml).join('')
-    : '<p style="padding:20px;color:var(--text-muted);">Nenhuma família encontrada.</p>';
+  const listaFiltrada = familiasGlobais.filter(f => familiaBateFiltro(f) && familiaBateBusca(f));
+
+  if (listaFiltrada.length === 0) {
+    grid.innerHTML = '<p class="estado-vazio">Nenhuma família encontrada.</p>';
+    return;
+  }
+
+  grid.innerHTML = listaFiltrada.map(f => {
+    const endereco = [f.logradouro, f.numero].filter(Boolean).join(', ') || 'Endereço não informado';
+    const responsavel = (f.cidadaos || []).find(c => c.e_responsavel_familiar)?.nome;
+    const qtd = (f.cidadaos || []).length;
+    const tags = tagsFamilia(f);
+    const incompleta = familiaIncompleta(f);
+
+    return `
+      <div class="family-card" data-id="${f.id}">
+        <div class="family-title">${escapeHtml(endereco)}</div>
+        <div class="family-info">${responsavel ? 'Resp: ' + escapeHtml(responsavel) + '<br>' : ''}📍 ${escapeHtml(f.bairro || 'Bairro não informado')}</div>
+        <div class="badges">
+          <span class="badge"><i class="ph ph-users"></i> ${qtd} morador${qtd === 1 ? '' : 'es'}</span>
+          ${tags.map(t => `<span class="badge">${t}</span>`).join('')}
+          ${incompleta ? '<span class="badge alert"><i class="ph ph-warning"></i> Incompleto</span>' : ''}
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  grid.querySelectorAll('.family-card').forEach(card => {
+    card.addEventListener('click', () => {
+      const f = familiasGlobais.find(fam => String(fam.id) === card.dataset.id);
+      if (f) mostrarDetalheFamilia(f);
+    });
+  });
 }
 
-function mostrarDetalheFamilia(id) {
-  const f = familiasCache.find(x => String(x.id) === String(id));
-  if (!f) return;
-
-  document.querySelectorAll('.family-card').forEach(c => c.classList.remove('selected'));
-  document.querySelector(`.family-card[data-id="${id}"]`)?.classList.add('selected');
+function mostrarDetalheFamilia(f) {
+  document.querySelectorAll('.family-card').forEach(c => c.classList.toggle('selected', c.dataset.id === String(f.id)));
 
   document.getElementById('detailEmpty').style.display = 'none';
   document.getElementById('detailContent').classList.add('active');
 
   const endereco = [f.logradouro, f.numero].filter(Boolean).join(', ') || 'Endereço não informado';
   document.getElementById('detalheTitulo').textContent = endereco;
-  document.getElementById('detalheBairro').textContent = [f.bairro, f.cep].filter(Boolean).join(' | ') || 'Bairro não informado';
-  document.getElementById('btnIniciarVisita').onclick = () => { location.href = `nova-visita.html?familia_id=${f.id}`; };
+  document.getElementById('detalheBairro').textContent = f.bairro || 'Bairro não informado';
+  document.getElementById('detalheBtnVisita').href = `nova-visita.html?familia_id=${f.id}`;
 
   const membros = f.cidadaos || [];
-  document.getElementById('detalheMembros').innerHTML = membros.length
-    ? membros.map(c => {
-        const idade = calcularIdade(c.data_nascimento);
-        const condicoes = condicoesDe(c);
-        return `
-          <div class="citizen-item">
-            <div class="citizen-info">
-              <div class="citizen-name">${escapeHtml(c.nome)}${idade !== null ? ` (${idade}a)` : ''} ${c.e_responsavel_familiar ? '<span class="badge" style="background:#e0f2fe; color:#0ea5e9;">Responsável</span>' : ''}</div>
-              <div class="citizen-cns">CNS: ${c.cns || 'Não informado'}${condicoes.length ? ' | ' + escapeHtml(condicoes.join(', ')) : ''}</div>
-            </div>
-            <div class="citizen-actions">
-              <button class="btn-icon"><i class="ph ph-pencil-simple"></i></button>
-              <button class="btn-icon danger"><i class="ph ph-trash"></i></button>
-            </div>
+  const membrosEl = document.getElementById('detalheMembros');
+
+  if (membros.length === 0) {
+    membrosEl.innerHTML = '<p class="estado-vazio">Nenhum morador cadastrado ainda.</p>';
+  } else {
+    membrosEl.innerHTML = membros.map(c => {
+      const idade = calcularIdade(c.data_nascimento);
+      const tags = condicoesDe(c);
+      const tagsTxt = tags.length > 0 ? tags.join(', ') : 'Nenhuma condição registrada';
+      return `
+        <div class="citizen-item">
+          <div class="citizen-info">
+            <div class="citizen-name">${escapeHtml(c.nome)}${idade !== null ? ` (${idade}a)` : ''} ${c.e_responsavel_familiar ? '<span class="badge" style="background:#e0f2fe; color:#0ea5e9;">Responsável</span>' : ''}</div>
+            <div class="citizen-cns">CNS: ${escapeHtml(c.cns || 'Não informado')} | ${escapeHtml(tagsTxt)}</div>
           </div>
-        `;
-      }).join('')
-    : '<p style="color:var(--text-muted);">Nenhum morador cadastrado.</p>';
+          <div class="citizen-actions">
+            <button class="btn-icon" onclick="alert('Edição de cidadão ainda não está disponível nesta tela.')"><i class="ph ph-pencil-simple"></i></button>
+            <button class="btn-icon danger" onclick="alert('Exclusão de cidadão ainda não está disponível nesta tela.')"><i class="ph ph-trash"></i></button>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
 }
 
-document.getElementById('searchInput').addEventListener('input', (e) => {
-  const termo = e.target.value.trim().toLowerCase();
-  if (!termo) { renderizarLista(familiasCache); return; }
-  renderizarLista(familiasCache.filter(f => {
-    const enderecoMatch = `${f.logradouro || ''} ${f.numero || ''} ${f.bairro || ''}`.toLowerCase().includes(termo);
-    const membroMatch = (f.cidadaos || []).some(c =>
-      (c.nome || '').toLowerCase().includes(termo) || (c.cns || '').includes(termo) || (c.cpf || '').includes(termo)
-    );
-    return enderecoMatch || membroMatch;
-  }));
+// Busca e filtros
+document.getElementById('campoBuscaFamilias').addEventListener('input', e => {
+  termoBusca = e.target.value.trim();
+  renderizarLista();
 });
 
 document.querySelectorAll('.filter-chip').forEach(chip => {
   chip.addEventListener('click', () => {
     document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
     chip.classList.add('active');
-    const filtro = chip.dataset.filtro;
-    if (filtro === 'todas') { renderizarLista(familiasCache); return; }
-    renderizarLista(familiasCache.filter(f => {
-      const membros = f.cidadaos || [];
-      if (filtro === 'hipertensos') return membros.some(c => condicoesDe(c).includes('Hipertensão'));
-      if (filtro === 'diabeticos') return membros.some(c => condicoesDe(c).includes('Diabetes'));
-      if (filtro === 'gestantes') return membros.some(c => condicoesDe(c).includes('Gestante'));
-      if (filtro === 'acamados') return membros.some(c => condicoesDe(c).includes('Acamado'));
-      if (filtro === 'incompleto') return membros.some(c => !c.cpf || !c.cns);
-      return true;
-    }));
+    filtroAtual = chip.dataset.filtro;
+    renderizarLista();
   });
 });
 
-function abrirDrawer(id) { /* Lógica de abrir gavetas laterais para formulários */ }
-function fecharTodosDrawers() { /* ... */ }
+document.getElementById('detalheBtnEditar').onclick = () => alert('Edição de endereço ainda não está disponível nesta tela.');
+document.getElementById('detalheBtnExcluir').onclick = () => alert('Exclusão de família ainda não está disponível nesta tela.');
+document.getElementById('detalheBtnAddCidadao').onclick = () => alert('Cadastro de novo morador ainda não está disponível nesta tela.');
+
+function abrirDrawer(id) { alert('Cadastro de nova família ainda não está disponível nesta tela.'); }
+function fecharTodosDrawers() { /* nenhum drawer implementado ainda */ }
 
 carregarFamilias();
 </script>

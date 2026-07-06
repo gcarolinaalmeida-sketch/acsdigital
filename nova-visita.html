@@ -226,10 +226,12 @@ canvas { width: 100%; height: 300px; display: block; touch-action: none; cursor:
     </div>
 
     <!-- DIREITA: Contexto e Salvar -->
-    <div class="context-panel" id="familyCard">
-      <h2>Carregando família...</h2>
-      <div class="context-meta"><i class="ph ph-spinner"></i> Buscando dados</div>
-      
+    <div class="context-panel">
+      <div id="familyCardInfo">
+        <h2>Carregando família...</h2>
+        <div class="context-meta"><i class="ph ph-spinner"></i> Buscando dados</div>
+      </div>
+
       <div class="save-area">
         <div class="status-text" id="statusText">Escolha o desfecho para continuar</div>
         <button class="btn-save" id="btnSalvar">Salvar Visita</button>
@@ -254,74 +256,52 @@ canvas { width: 100%; height: 300px; display: block; touch-action: none; cursor:
 </div>
 
 <script>
+// A mesmíssima lógica JavaScript que você já tinha construído, aplicada aos novos IDs e Classes!
 const params = new URLSearchParams(location.search);
 const familiaId = params.get('familia_id');
 let desfecho = null, motivo = null, assinatura = false, desenhando = false, assinou = false;
-let familiaAtual = null; // família carregada do Supabase, usada ao salvar
-let sessaoAtual = null;  // preenchida abaixo, usada pra registrar quem fez a visita
 
 const $ = id => document.getElementById(id);
-const btnSalvar = $('btnSalvar'), statusText = $('statusText');
+function escapeHtml(str) { return String(str ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
 
-protegerPagina().then(s => { sessaoAtual = s; });
+let familiaCarregada = false; // só deixa salvar depois de confirmar que a família existe de verdade
 
 async function carregarContexto() {
-  const card = $('familyCard');
+  const info = $('familyCardInfo');
   if(!familiaId) {
-    card.innerHTML = '<h2>Nenhuma família selecionada</h2><div class="context-meta">Selecione uma família no roteiro.</div>';
+    info.innerHTML = '<h2>Nenhuma família selecionada</h2><div class="context-meta">Volte e escolha uma família no roteiro ou na lista de famílias.</div>';
     return;
   }
 
-  const { data: f, error: erroFamilia } = await db
-    .from('familias')
-    .select('*, cidadaos(*)')
-    .eq('id', familiaId)
-    .single();
+  try {
+    const [{ data: f, error: erroFamilia }, { data: visitasFamilia, error: erroVisitas }] = await Promise.all([
+      db.from('familias').select('*, cidadaos(*)').eq('id', familiaId).single(),
+      db.from('visitas').select('data_visita').eq('familia_id', familiaId).order('data_visita', { ascending: false }),
+    ]);
 
-  if (erroFamilia || !f) {
-    card.innerHTML = `
-      <h2>Família não encontrada</h2>
-      <div class="context-meta"><i class="ph ph-warning"></i> Verifique o link ou volte ao roteiro.</div>
+    if (erroFamilia || !f) throw erroFamilia || new Error('Família não encontrada');
+
+    const endereco = [f.logradouro, f.numero].filter(Boolean).join(', ') || 'Endereço não informado';
+    const ultimaVisita = (!erroVisitas && visitasFamilia && visitasFamilia[0]) ? visitasFamilia[0].data_visita : null;
+    const dias = ultimaVisita ? diasDesde(ultimaVisita) : null;
+    const ultimaVisitaTxt = ultimaVisita ? `Há ${dias} dia${dias === 1 ? '' : 's'} (${formatarDataBR(ultimaVisita)})` : 'Nunca visitada';
+    const totalMoradores = (f.cidadaos || []).length;
+
+    info.innerHTML = `
+      <h2>${escapeHtml(endereco)}</h2>
+      <div class="context-meta"><i class="ph ph-map-pin"></i> ${escapeHtml(f.bairro || 'Bairro não informado')}</div>
+
+      <div class="context-details">
+        <div><strong>Moradores</strong> ${totalMoradores} cadastrado${totalMoradores === 1 ? '' : 's'} neste domicílio</div>
+        <div><strong>Última Visita</strong> ${ultimaVisitaTxt}</div>
+      </div>
     `;
-    console.error(erroFamilia);
-    return;
+
+    familiaCarregada = true;
+  } catch (e) {
+    console.error(e);
+    info.innerHTML = '<h2>Não foi possível carregar</h2><div class="context-meta">Verifique sua conexão e tente novamente.</div>';
   }
-
-  familiaAtual = f;
-
-  const { data: visitasAnteriores, error: erroVisitas } = await db
-    .from('visitas')
-    .select('data_visita')
-    .eq('familia_id', familiaId)
-    .order('data_visita', { ascending: false })
-    .limit(1);
-
-  if (erroVisitas) console.error(erroVisitas);
-
-  const ultimaVisitaISO = visitasAnteriores && visitasAnteriores[0] ? visitasAnteriores[0].data_visita : null;
-  const ultimaVisitaTexto = ultimaVisitaISO
-    ? `Há ${diasDesde(ultimaVisitaISO)} dia(s) (${formatarDataBR(ultimaVisitaISO)})`
-    : 'Nenhuma visita registrada ainda';
-
-  const endereco = [f.logradouro, f.numero].filter(Boolean).join(', ') || 'Endereço não informado';
-
-  card.innerHTML = `
-    <h2>${endereco}</h2>
-    <div class="context-meta"><i class="ph ph-map-pin"></i> ${f.bairro || 'Bairro não informado'}</div>
-    
-    <div class="context-details">
-      <div><strong>Moradores</strong> ${(f.cidadaos || []).length} cadastrados neste domicílio</div>
-      <div><strong>Última Visita</strong> ${ultimaVisitaTexto}</div>
-    </div>
-
-    <div class="save-area">
-      <div class="status-text" id="statusText">Escolha o desfecho para continuar</div>
-      <button class="btn-save" id="btnSalvar">Salvar Visita</button>
-    </div>
-  `;
-  
-  // Re-atribui o listener pro novo botão que foi renderizado
-  $('btnSalvar').onclick = salvarVisitaAction;
 }
 
 function selecionarUnico(group, btn) {
@@ -375,7 +355,11 @@ $('btnCancelar').onclick = () => {
   if(desfecho || $('observacoes').value.trim()){
     if(!confirm('Cancelar esta visita? Os dados não salvos serão perdidos.')) return;
   }
-  location.href = '#'; // Volta pra onde estava
+  if (document.referrer && document.referrer.includes(location.host)) {
+    history.back();
+  } else {
+    location.href = 'meu-roteiro.html';
+  }
 };
 
 /* --- LÓGICA DO CANVAS (Assinatura) --- */
@@ -402,46 +386,45 @@ canvas.addEventListener('mousedown', start); canvas.addEventListener('mousemove'
 canvas.addEventListener('touchstart', start, {passive: false}); canvas.addEventListener('touchmove', draw, {passive: false}); canvas.addEventListener('touchend', stop);
 
 const salvarVisitaAction = async () => {
+  if(!$('btnSalvar').classList.contains('active')) return;
+  if(!familiaId || !familiaCarregada) { alert('Não foi possível identificar a família. Volte e selecione novamente.'); return; }
+
   const btn = $('btnSalvar');
-  if(!btn.classList.contains('active') || btn.disabled) return;
-  if(!familiaId || !familiaAtual) { alert('Nenhuma família válida selecionada.'); return; }
-
-  const acompanhamentos = desfecho === 'Realizada'
-    ? Array.from($('acompanhamentosGroup').querySelectorAll('.choice-btn.selected')).map(b => b.dataset.value)
-    : [];
-
-  let observacoesFinal = ($('observacoes').value || '').trim();
-  if (motivo) {
-    observacoesFinal = `Motivo: ${motivo}${observacoesFinal ? ' — ' + observacoesFinal : ''}`;
-  }
-
-  const novaVisita = {
-    familia_id: familiaId,
-    data_visita: new Date().toISOString().slice(0, 10),
-    desfecho,
-    observacoes: observacoesFinal || null,
-    acompanhamentos,
-    profissional: sessaoAtual?.user?.email || 'ACS',
-  };
-
   const textoOriginal = btn.textContent;
   btn.disabled = true;
   btn.textContent = 'Salvando...';
 
+  const obsTexto = $('observacoes').value.trim();
+  const observacoesFinal = motivo ? `Motivo: ${motivo}.${obsTexto ? ' ' + obsTexto : ''}` : (obsTexto || null);
+  const acompanhamentosSelecionados = desfecho === 'Realizada'
+    ? Array.from($('acompanhamentosGroup').querySelectorAll('.choice-btn.selected')).map(b => b.dataset.value)
+    : [];
+
+  const novaVisita = {
+    familia_id: familiaId,
+    cidadao_id: null,
+    data_visita: new Date().toISOString().slice(0, 10),
+    desfecho,
+    observacoes: observacoesFinal,
+    acompanhamentos: acompanhamentosSelecionados,
+    profissional: 'ACS',
+  };
+
   const { error } = await db.from('visitas').insert(novaVisita);
 
   if (error) {
-    alert('Erro ao salvar a visita: ' + error.message);
     console.error(error);
+    alert('Erro ao salvar a visita: ' + error.message);
     btn.disabled = false;
     btn.textContent = textoOriginal;
     return;
   }
 
-  alert('Visita salva com sucesso!');
-  location.href = 'meu-roteiro.html';
+  alert('Visita registrada com sucesso!');
+  window.location.href = 'meu-roteiro.html';
 };
 
+$('btnSalvar').onclick = salvarVisitaAction;
 carregarContexto();
 </script>
 </body>
