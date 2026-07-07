@@ -49,6 +49,7 @@ body { background-color: var(--bg-color); color: var(--text-main); display: flex
 .nav-links { list-style: none; display: flex; flex-direction: column; gap: 4px; }
 .nav-links li a { text-decoration: none; color: var(--text-muted); font-size: 14px; padding: 10px 14px; border-radius: var(--radius-sm); display: flex; align-items: center; gap: 12px; transition: 0.2s; font-weight: 500; }
 .nav-links li a:hover, .nav-links li a.active { background: var(--primary-soft); color: var(--primary); font-weight: 600; }
+.nav-divider { height: 1px; background: var(--border); margin: 8px 4px; list-style: none; }
 
 .main-content { flex: 1; display: flex; flex-direction: column; overflow-y: auto; padding-bottom: 90px; }
 .content-wrapper { max-width: 720px; margin: 0 auto; width: 100%; padding: 24px; }
@@ -117,6 +118,19 @@ body { background-color: var(--bg-color); color: var(--text-main); display: flex
 .empty-state h3 { font-size: 18px; font-weight: 700; color: var(--text-main); margin-bottom: 8px; }
 .empty-state p { font-size: 14px; }
 
+/* --- Adicionar família manualmente --- */
+.btn-add-familia { display: flex; align-items: center; gap: 8px; background: var(--surface); border: 1px dashed var(--border); color: var(--primary); font-size: 13px; font-weight: 600; padding: 10px 16px; border-radius: var(--radius-sm); cursor: pointer; margin-bottom: 16px; width: 100%; justify-content: center; }
+.btn-add-familia:hover { background: var(--primary-soft); border-color: var(--primary); }
+.add-familia-panel { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md); box-shadow: var(--shadow-sm); margin-bottom: 16px; overflow: hidden; }
+.add-familia-search { display: flex; align-items: center; gap: 8px; padding: 12px 16px; border-bottom: 1px solid var(--border); color: var(--text-muted); }
+.add-familia-search input { flex: 1; border: none; outline: none; font-size: 14px; font-family: inherit; color: var(--text-main); background: transparent; }
+.add-familia-search button { background: none; border: none; color: var(--text-muted); cursor: pointer; display: flex; padding: 4px; }
+.add-familia-results { max-height: 280px; overflow-y: auto; }
+.add-familia-item { width: 100%; background: none; border: none; border-bottom: 1px solid var(--border); padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; text-align: left; font-family: inherit; color: var(--primary); }
+.add-familia-item:last-child { border-bottom: none; }
+.add-familia-item:hover { background: var(--bg-color); }
+.tag-manual { font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 6px; background: var(--primary-soft); color: var(--primary); margin-left: 6px; }
+
 /* Navegação Mobile */
 .bottom-nav { display: none; }
 
@@ -141,10 +155,14 @@ body { background-color: var(--bg-color); color: var(--text-main); display: flex
   <ul class="nav-links">
     <li><a href="index.html"><i data-lucide="layout-dashboard"></i> Dashboard</a></li>
     <li><a href="meu-roteiro.html" class="active"><i data-lucide="map"></i> Meu Roteiro</a></li>
+    <li><a href="agenda.html"><i data-lucide="calendar"></i> Agenda</a></li>
+    <li><a href="nova-visita.html"><i data-lucide="clipboard-list"></i> Visitas</a></li>
     <li><a href="familias.html"><i data-lucide="users"></i> Famílias</a></li>
     <li><a href="mapa.html"><i data-lucide="map-pin"></i> Mapa</a></li>
+    <li><a href="indicadores.html"><i data-lucide="bar-chart-2"></i> Indicadores</a></li>
     <li class="nav-divider"></li>
     <li><a href="busca.html"><i data-lucide="search"></i> Busca</a></li>
+    <li><a href="configuracoes.html"><i data-lucide="settings"></i> Configurações</a></li>
   </ul>
 </aside>
 
@@ -183,7 +201,20 @@ body { background-color: var(--bg-color); color: var(--text-main); display: flex
     </div>
 
     <div class="section-title" style="margin-top: 16px;">Lista do Roteiro</div>
-    
+
+    <button type="button" class="btn-add-familia" id="btnAdicionarFamilia">
+      <i data-lucide="plus" size="16"></i> Adicionar família ao roteiro de hoje
+    </button>
+
+    <div class="add-familia-panel" id="addFamiliaPanel" style="display:none;">
+      <div class="add-familia-search">
+        <i data-lucide="search" size="16"></i>
+        <input type="text" id="addFamiliaBusca" placeholder="Buscar por endereço, nome ou bairro...">
+        <button type="button" id="btnFecharAddFamilia" aria-label="Fechar"><i data-lucide="x" size="16"></i></button>
+      </div>
+      <div class="add-familia-results" id="addFamiliaResultados"></div>
+    </div>
+
     <div class="filters-scroll" id="filters">
       <div class="filter-chip active" data-filter="todos">Todos</div>
       <div class="filter-chip" data-filter="urgentes">Urgentes</div>
@@ -213,6 +244,7 @@ lucide.createIcons();
 let roteiroGlobal = [];
 let pendentesGlobais = [];
 let concluidasGlobais = [];
+let todasFamiliasGlobais = [];
 
 // Funções utilitárias de roteiro.js já garantem os cálculos.
 async function carregarPagina() {
@@ -228,6 +260,7 @@ async function carregarPagina() {
 
   try {
     const { familiasEnriquecidas } = await carregarFamiliasEnriquecidas();
+    todasFamiliasGlobais = familiasEnriquecidas;
     roteiroGlobal = calcularRoteiroDoDia(familiasEnriquecidas, cfg.capacidadeDiaria);
     
     pendentesGlobais = roteiroGlobal.filter(f => !f.visitouHoje);
@@ -345,7 +378,7 @@ function renderizarLista(filtro) {
         <div class="list-item-left">
           <div class="status-icon ${iconClass}">${icon}</div>
           <div>
-            <div class="list-name">${escapeHtml(nomePrincipalDe(f))}</div>
+            <div class="list-name">${escapeHtml(nomePrincipalDe(f))}${f._adicionadaManual ? '<span class="tag-manual">Adicionada</span>' : ''}</div>
             <div class="list-meta">${tagEmoji} ${escapeHtml(f.prio.tipoPrincipal.label)} • ${f.visitouHoje ? 'Concluída' : pseudoDistancia(f.id)}</div>
           </div>
         </div>
@@ -367,6 +400,88 @@ document.getElementById('filters').addEventListener('click', (e) => {
     renderizarLista(e.target.dataset.filter);
   }
 });
+
+// --- Adicionar família manualmente ao roteiro de hoje ---
+// Útil pra quando não dá pra seguir a ordem sugerida (família ausente, rua
+// interditada, imprevisto etc.) e a ACS precisa visitar outra família da
+// área que não entrou na priorização automática.
+document.getElementById('btnAdicionarFamilia').onclick = () => {
+  const painel = document.getElementById('addFamiliaPanel');
+  const vaiAbrir = painel.style.display === 'none';
+  painel.style.display = vaiAbrir ? 'block' : 'none';
+  if (vaiAbrir) {
+    const campo = document.getElementById('addFamiliaBusca');
+    campo.value = '';
+    campo.focus();
+    renderizarResultadosAddFamilia('');
+  }
+};
+
+document.getElementById('btnFecharAddFamilia').onclick = () => {
+  document.getElementById('addFamiliaPanel').style.display = 'none';
+};
+
+document.getElementById('addFamiliaBusca').addEventListener('input', (e) => {
+  renderizarResultadosAddFamilia(e.target.value);
+});
+
+function renderizarResultadosAddFamilia(termo) {
+  const idsNoRoteiro = new Set(roteiroGlobal.map(f => f.id));
+  const t = termo.trim().toLowerCase();
+
+  let candidatas = todasFamiliasGlobais.filter(f => !idsNoRoteiro.has(f.id));
+  if (t) {
+    candidatas = candidatas.filter(f =>
+      enderecoDe(f).toLowerCase().includes(t) ||
+      nomePrincipalDe(f).toLowerCase().includes(t) ||
+      (f.bairro || '').toLowerCase().includes(t)
+    );
+  }
+  candidatas = candidatas.slice(0, 20);
+
+  const container = document.getElementById('addFamiliaResultados');
+
+  if (candidatas.length === 0) {
+    container.innerHTML = `<p style="padding:16px; font-size:13px; color: var(--text-muted);">Nenhuma família encontrada${t ? ' para "' + escapeHtml(termo) + '"' : ''}.</p>`;
+    return;
+  }
+
+  container.innerHTML = candidatas.map(f => `
+    <button type="button" class="add-familia-item" data-id="${f.id}">
+      <div>
+        <div class="list-name" style="color: var(--text-main);">${escapeHtml(nomePrincipalDe(f))}</div>
+        <div class="list-meta">${escapeHtml(enderecoDe(f))}${f.bairro ? ' • ' + escapeHtml(f.bairro) : ''}</div>
+      </div>
+      <i data-lucide="plus-circle" size="18"></i>
+    </button>
+  `).join('');
+  lucide.createIcons();
+
+  container.querySelectorAll('.add-familia-item').forEach(btn => {
+    btn.onclick = () => adicionarFamiliaAoRoteiro(btn.dataset.id);
+  });
+}
+
+function adicionarFamiliaAoRoteiro(id) {
+  const f = todasFamiliasGlobais.find(fam => String(fam.id) === String(id));
+  if (!f) return;
+
+  const comPrio = { ...f, prio: f.prio || calcularPrioridade(f), _adicionadaManual: true };
+  roteiroGlobal.push(comPrio);
+  if (comPrio.visitouHoje) {
+    concluidasGlobais.push(comPrio);
+  } else {
+    pendentesGlobais.push(comPrio);
+  }
+
+  document.getElementById('addFamiliaPanel').style.display = 'none';
+
+  const cfg = obterConfiguracaoLocal();
+  atualizarResumo(cfg.tempoMedioVisita);
+  renderizarProximaVisita();
+  const filtroAtivo = document.querySelector('.filter-chip.active')?.dataset.filter || 'todos';
+  renderizarLista(filtroAtivo);
+}
 
 carregarPagina();
 </script>
