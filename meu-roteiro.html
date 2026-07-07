@@ -5,7 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Meu Roteiro - ACS Digital</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<!-- Lucide Icons para uma iconografia limpa e moderna -->
 <script src="https://unpkg.com/lucide@latest"></script>
 <script src="config.js"></script>
 <script src="auth.js"></script>
@@ -14,476 +13,815 @@
 <script src="roteiro.js"></script>
 
 <style>
-/* Tokens Base - Estética Clean e Minimalista */
+/* ============================================================================
+   Tokens - inspirado em Notion / Linear / Apple Health: muito branco,
+   bordas finas, quase nenhuma sombra, cor só onde ela significa algo
+   (prioridade, status). Tipografia é o que cria a hierarquia, não caixas.
+============================================================================ */
 :root {
-  --bg-color: #F8FAFC;
+  --bg-color: #FAFAF9;
   --surface: #FFFFFF;
-  --text-main: #0F172A;
-  --text-muted: #64748B;
-  --border: #E2E8F0;
-  --primary: #0A84FF; /* Azul Apple */
-  --primary-soft: #EFF6FF;
-  --danger: #EF4444;
-  --danger-soft: #FEF2F2;
-  --success: #22C55E;
-  --success-soft: #F0FDF4;
-  --warning: #F59E0B;
-  --radius-sm: 12px;
-  --radius-md: 16px;
-  --radius-lg: 24px;
-  --shadow-sm: 0 4px 12px rgba(0,0,0,0.03);
-  --shadow-md: 0 12px 32px rgba(10, 132, 255, 0.12);
+  --text-main: #171717;
+  --text-muted: #8A8A85;
+  --text-faint: #B4B4AE;
+  --border: #EBEBE8;
+  --border-strong: #DEDEDA;
+  --primary: #2563EB;
+  --primary-soft: #EFF4FF;
+  --danger: #DC4C3E;
+  --danger-soft: #FDEEEC;
+  --warning: #C9820A;
+  --warning-soft: #FBF2E3;
+  --success: #2F9E63;
+  --success-soft: #EAF6EF;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
 }
 
 * { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif; -webkit-tap-highlight-color: transparent; }
-
-body { background-color: var(--bg-color); color: var(--text-main); display: flex; min-height: 100vh; }
-
-/* Ocultar scrollbar, mas permitir scroll */
+body { background-color: var(--bg-color); color: var(--text-main); display: flex; min-height: 100vh; -webkit-font-smoothing: antialiased; }
 ::-webkit-scrollbar { display: none; }
 
-/* --- Layout Principal --- */
-.sidebar { width: 260px; background: var(--surface); border-right: 1px solid var(--border); padding: 24px 16px; display: flex; flex-direction: column; gap: 24px; }
-.sidebar-header h2 { font-size: 15px; font-weight: 700; }
-.sidebar-header span { font-size: 13px; color: var(--text-muted); }
-.nav-links { list-style: none; display: flex; flex-direction: column; gap: 4px; }
-.nav-links li a { text-decoration: none; color: var(--text-muted); font-size: 14px; padding: 10px 14px; border-radius: var(--radius-sm); display: flex; align-items: center; gap: 12px; transition: 0.2s; font-weight: 500; }
-.nav-links li a:hover, .nav-links li a.active { background: var(--primary-soft); color: var(--primary); font-weight: 600; }
-.nav-divider { height: 1px; background: var(--border); margin: 8px 4px; list-style: none; }
+/* --- Sidebar (mesma estrutura das outras páginas, só mais discreta) --- */
+.sidebar { width: 240px; background: var(--surface); border-right: 1px solid var(--border); padding: 24px 14px; display: flex; flex-direction: column; gap: 24px; flex-shrink: 0; }
+.sidebar-header h2 { font-size: 14px; font-weight: 600; }
+.sidebar-header span { font-size: 12px; color: var(--text-muted); }
+.nav-links { list-style: none; display: flex; flex-direction: column; gap: 2px; }
+.nav-links li a { text-decoration: none; color: var(--text-muted); font-size: 14px; padding: 8px 12px; border-radius: var(--radius-sm); display: flex; align-items: center; gap: 10px; transition: 0.15s; font-weight: 500; }
+.nav-links li a svg { width: 16px; height: 16px; }
+.nav-links li a:hover { background: var(--bg-color); color: var(--text-main); }
+.nav-links li a.active { background: var(--primary-soft); color: var(--primary); font-weight: 600; }
+.nav-divider { height: 1px; background: var(--border); margin: 8px 4px; }
 
 .main-content { flex: 1; display: flex; flex-direction: column; overflow-y: auto; padding-bottom: 90px; }
-.content-wrapper { max-width: 720px; margin: 0 auto; width: 100%; padding: 24px; }
+.content-wrapper { max-width: 680px; margin: 0 auto; width: 100%; padding: 40px 24px; }
 
-/* --- Cabeçalho e Resumo --- */
-.header { margin-bottom: 24px; }
-.header-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
-.back-btn { display: flex; align-items: center; gap: 8px; color: var(--text-muted); text-decoration: none; font-size: 14px; font-weight: 500; }
-.header h1 { font-size: 28px; font-weight: 800; letter-spacing: -0.5px; margin-bottom: 4px; }
-.header-meta { font-size: 14px; color: var(--text-muted); font-weight: 500; }
+/* --- Cabeçalho: "Bom dia, Gabriela" --- */
+.page-header { margin-bottom: 32px; }
+.greeting { font-size: 26px; font-weight: 700; letter-spacing: -0.3px; margin-bottom: 6px; }
+.header-sub { font-size: 14px; color: var(--text-muted); display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.header-sub .dot { width: 3px; height: 3px; border-radius: 50%; background: var(--text-faint); }
 
-.summary-card { background: var(--surface); border-radius: var(--radius-md); padding: 20px; border: 1px solid var(--border); box-shadow: var(--shadow-sm); margin-bottom: 32px; }
-.summary-stats { display: flex; justify-content: space-between; margin-bottom: 16px; align-items: baseline; }
-.stat-main { font-size: 20px; font-weight: 700; }
-.stat-sub { font-size: 13px; color: var(--text-muted); font-weight: 500; }
-.progress-container { width: 100%; height: 8px; background: var(--border); border-radius: 4px; overflow: hidden; margin-bottom: 12px; }
-.progress-bar { height: 100%; background: var(--primary); border-radius: 4px; transition: width 0.4s ease; }
-.progress-labels { display: flex; justify-content: space-between; font-size: 13px; font-weight: 600; color: var(--text-muted); }
+/* --- Progresso: uma linha de texto + barra fina, sem card --- */
+.progress-row { margin-bottom: 40px; }
+.progress-text { font-size: 13px; color: var(--text-muted); font-weight: 500; margin-bottom: 8px; display: flex; justify-content: space-between; }
+.progress-text strong { color: var(--text-main); font-weight: 600; }
+.progress-track { width: 100%; height: 4px; background: var(--border); border-radius: 2px; overflow: hidden; }
+.progress-fill { height: 100%; background: var(--text-main); border-radius: 2px; transition: width 0.4s ease; }
 
-/* --- Próxima Visita (O Destaque) --- */
-.section-title { font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 700; color: var(--text-muted); margin-bottom: 16px; }
+/* --- Próxima visita: o maior elemento da tela --- */
+.section-label { font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; font-weight: 600; color: var(--text-faint); margin-bottom: 14px; }
 
-.next-visit-card { background: var(--surface); border-radius: var(--radius-lg); padding: 24px; border: 1px solid var(--border); box-shadow: var(--shadow-sm); margin-bottom: 32px; position: relative; overflow: hidden; }
-.next-visit-card::before { content: ''; position: absolute; top: 0; left: 0; bottom: 0; width: 4px; background: var(--primary); }
-.next-visit-card.urgente::before { background: var(--danger); }
+.next-visit-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 28px; margin-bottom: 40px; }
+.nv-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 20px; }
+.nv-name { font-size: 22px; font-weight: 700; letter-spacing: -0.2px; margin-bottom: 6px; }
+.nv-address { font-size: 14px; color: var(--text-muted); display: flex; align-items: center; gap: 6px; }
+.nv-address svg { width: 14px; height: 14px; flex-shrink: 0; }
 
-.nv-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px; }
-.nv-name { font-size: 24px; font-weight: 800; color: var(--text-main); line-height: 1.2; margin-bottom: 6px; display: flex; align-items: center; gap: 8px; }
-.nv-address { font-size: 15px; color: var(--text-muted); display: flex; align-items: center; gap: 6px; }
-.nv-distance { font-size: 13px; font-weight: 600; background: var(--bg-color); padding: 4px 10px; border-radius: 20px; color: var(--text-main); display: flex; align-items: center; gap: 4px; }
+.nv-badges { display: flex; flex-wrap: wrap; gap: 6px; }
+.badge { font-size: 12px; font-weight: 600; padding: 4px 10px; border-radius: 20px; display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; }
+.badge.motivo { background: var(--bg-color); color: var(--text-muted); }
+.badge.prio-alta { background: var(--danger-soft); color: var(--danger); }
+.badge.prio-media { background: var(--warning-soft); color: var(--warning); }
+.badge.prio-baixa { background: var(--bg-color); color: var(--text-muted); }
+.badge.status-pendente { background: var(--bg-color); color: var(--text-muted); }
+.badge.status-concluida { background: var(--success-soft); color: var(--success); }
 
-.nv-meta { display: flex; flex-direction: column; gap: 8px; margin-bottom: 24px; padding-top: 16px; border-top: 1px solid var(--bg-color); }
-.nv-meta-item { font-size: 14px; font-weight: 500; color: var(--text-muted); display: flex; align-items: center; gap: 8px; }
-.nv-meta-item strong { color: var(--text-main); font-weight: 600; }
+.nv-meta { font-size: 13px; color: var(--text-muted); margin: 18px 0 22px; padding-top: 18px; border-top: 1px solid var(--border); display: flex; flex-direction: column; gap: 6px; }
+.nv-meta-item { display: flex; align-items: center; gap: 8px; }
+.nv-meta-item svg { width: 14px; height: 14px; color: var(--text-faint); flex-shrink: 0; }
 
-.nv-tags { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 24px; }
-.tag { font-size: 12px; font-weight: 700; padding: 6px 12px; border-radius: 8px; display: flex; align-items: center; gap: 6px; }
-.tag.urgente { background: var(--danger-soft); color: var(--danger); }
-.tag.atencao { background: #FFFBEB; color: var(--warning); }
-.tag.info { background: var(--primary-soft); color: var(--primary); }
+.btn-iniciar { width: 100%; background: var(--text-main); color: white; border: none; padding: 18px; border-radius: var(--radius-md); font-size: 16px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; text-decoration: none; transition: opacity 0.15s; }
+.btn-iniciar:hover { opacity: 0.88; }
+.btn-iniciar.urgente { background: var(--danger); }
+.btn-iniciar svg { width: 17px; height: 17px; }
 
-.btn-primary { width: 100%; background: var(--primary); color: white; border: none; padding: 18px; border-radius: var(--radius-md); font-size: 16px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; box-shadow: var(--shadow-md); transition: transform 0.1s; text-decoration: none; }
-.btn-primary:active { transform: scale(0.98); }
-.btn-primary.urgente { background: var(--danger); box-shadow: 0 12px 32px rgba(239, 68, 68, 0.15); }
+/* --- Cabeçalho da lista + botão adicionar --- */
+.list-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+.list-header .section-label { margin-bottom: 0; }
+.list-actions { display: flex; align-items: center; gap: 14px; }
+.btn-ghost { background: none; border: none; font-size: 13px; font-weight: 600; color: var(--text-muted); cursor: pointer; display: flex; align-items: center; gap: 5px; padding: 6px 8px; border-radius: var(--radius-sm); transition: 0.15s; }
+.btn-ghost:hover { background: var(--bg-color); color: var(--text-main); }
+.btn-ghost svg { width: 14px; height: 14px; }
+.btn-add { background: var(--surface); border: 1px solid var(--border-strong); font-size: 13px; font-weight: 600; color: var(--text-main); cursor: pointer; display: flex; align-items: center; gap: 6px; padding: 7px 12px; border-radius: 20px; transition: 0.15s; }
+.btn-add:hover { border-color: var(--text-main); }
+.route-list { display: flex; flex-direction: column; gap: 2px; }
+.list-item { background: var(--surface); border: 1px solid transparent; border-radius: var(--radius-sm); padding: 12px 8px; display: flex; align-items: center; gap: 10px; transition: background 0.12s, border-color 0.12s; position: relative; }
+.list-item:hover { background: var(--bg-color); }
+.list-item.dragging { opacity: 0.4; }
+.list-item.concluida { opacity: 0.55; }
 
-/* --- Filtros --- */
-.filters-scroll { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; margin-bottom: 20px; scroll-behavior: smooth; }
-.filter-chip { padding: 10px 16px; background: var(--surface); border: 1px solid var(--border); border-radius: 20px; font-size: 14px; font-weight: 600; color: var(--text-muted); white-space: nowrap; cursor: pointer; transition: 0.2s; }
-.filter-chip.active { background: var(--text-main); color: var(--surface); border-color: var(--text-main); }
+.drag-handle { color: var(--text-faint); cursor: grab; display: flex; align-items: center; justify-content: center; width: 20px; height: 28px; flex-shrink: 0; touch-action: none; }
+.drag-handle svg { width: 15px; height: 15px; }
 
-/* --- Lista Clean --- */
-.route-list { display: flex; flex-direction: column; gap: 12px; }
-.list-item { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 16px; display: flex; justify-content: space-between; align-items: center; text-decoration: none; color: inherit; transition: border-color 0.2s; }
-.list-item:active { background: var(--bg-color); }
-.list-item-left { display: flex; align-items: center; gap: 12px; }
-.status-icon { width: 24px; height: 24px; border-radius: 50%; border: 2px solid var(--border); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-.status-icon.done { background: var(--success); border-color: var(--success); color: white; }
-.status-icon.pending { border-color: var(--primary); }
-.list-name { font-size: 15px; font-weight: 600; color: var(--text-main); }
-.list-meta { font-size: 13px; color: var(--text-muted); margin-top: 2px; display: flex; align-items: center; gap: 6px; }
-.list-right { display: flex; align-items: center; gap: 12px; }
+.list-item-link { flex: 1; display: flex; align-items: center; gap: 12px; text-decoration: none; color: inherit; min-width: 0; cursor: pointer; }
+.status-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--text-faint); flex-shrink: 0; }
+.status-dot.concluida { background: var(--success); }
+.status-dot.alta { background: var(--danger); }
+.status-dot.media { background: var(--warning); }
 
-/* Estado Vazio */
-.empty-state { text-align: center; padding: 40px 20px; color: var(--text-muted); }
-.empty-state i { margin-bottom: 16px; color: var(--border); }
-.empty-state h3 { font-size: 18px; font-weight: 700; color: var(--text-main); margin-bottom: 8px; }
-.empty-state p { font-size: 14px; }
+.list-item-body { min-width: 0; flex: 1; }
+.list-name { font-size: 14.5px; font-weight: 600; color: var(--text-main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.list-meta { font-size: 12.5px; color: var(--text-muted); margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-/* --- Adicionar família manualmente --- */
-.btn-add-familia { display: flex; align-items: center; gap: 8px; background: var(--surface); border: 1px dashed var(--border); color: var(--primary); font-size: 13px; font-weight: 600; padding: 10px 16px; border-radius: var(--radius-sm); cursor: pointer; margin-bottom: 16px; width: 100%; justify-content: center; }
-.btn-add-familia:hover { background: var(--primary-soft); border-color: var(--primary); }
-.add-familia-panel { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md); box-shadow: var(--shadow-sm); margin-bottom: 16px; overflow: hidden; }
-.add-familia-search { display: flex; align-items: center; gap: 8px; padding: 12px 16px; border-bottom: 1px solid var(--border); color: var(--text-muted); }
-.add-familia-search input { flex: 1; border: none; outline: none; font-size: 14px; font-family: inherit; color: var(--text-main); background: transparent; }
-.add-familia-search button { background: none; border: none; color: var(--text-muted); cursor: pointer; display: flex; padding: 4px; }
-.add-familia-results { max-height: 280px; overflow-y: auto; }
-.add-familia-item { width: 100%; background: none; border: none; border-bottom: 1px solid var(--border); padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; text-align: left; font-family: inherit; color: var(--primary); }
-.add-familia-item:last-child { border-bottom: none; }
-.add-familia-item:hover { background: var(--bg-color); }
-.tag-manual { font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 6px; background: var(--primary-soft); color: var(--primary); margin-left: 6px; }
+.list-item-right { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
 
-/* Navegação Mobile */
+.kebab-btn { background: none; border: none; color: var(--text-faint); cursor: pointer; width: 28px; height: 28px; border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center; }
+.kebab-btn:hover { background: var(--border); color: var(--text-main); }
+.kebab-btn svg { width: 16px; height: 16px; }
+
+.kebab-menu { position: absolute; right: 8px; top: 40px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md); box-shadow: 0 4px 20px rgba(0,0,0,0.08); padding: 6px; z-index: 30; min-width: 190px; display: none; }
+.kebab-menu.show { display: block; }
+.kebab-menu button { width: 100%; text-align: left; background: none; border: none; font-size: 13.5px; color: var(--text-main); padding: 9px 10px; border-radius: var(--radius-sm); cursor: pointer; display: flex; align-items: center; gap: 9px; font-weight: 500; }
+.kebab-menu button:hover { background: var(--bg-color); }
+.kebab-menu button.danger { color: var(--danger); }
+.kebab-menu button svg { width: 15px; height: 15px; flex-shrink: 0; }
+
+/* Estado vazio */
+.empty-state { text-align: center; padding: 48px 20px; color: var(--text-muted); }
+.empty-state svg { width: 40px; height: 40px; color: var(--border-strong); margin-bottom: 14px; }
+.empty-state h3 { font-size: 16px; font-weight: 600; color: var(--text-main); margin-bottom: 6px; }
+.empty-state p { font-size: 13.5px; }
+
+/* ============================================================================
+   Drawer "Adicionar família" - wizard de 4 passos
+============================================================================ */
+.overlay { position: fixed; inset: 0; background: rgba(23,23,23,0.28); opacity: 0; pointer-events: none; transition: opacity 0.2s; z-index: 40; }
+.overlay.show { opacity: 1; pointer-events: auto; }
+.drawer { position: fixed; top: 0; right: -100%; width: 100%; max-width: 420px; height: 100vh; background: var(--surface); z-index: 50; transition: right 0.25s ease; display: flex; flex-direction: column; box-shadow: -8px 0 30px rgba(0,0,0,0.06); }
+.drawer.show { right: 0; }
+.drawer-header { padding: 20px 24px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
+.drawer-header h3 { font-size: 15px; font-weight: 700; }
+.drawer-close { background: none; border: none; color: var(--text-muted); cursor: pointer; width: 30px; height: 30px; border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center; }
+.drawer-close:hover { background: var(--bg-color); }
+.drawer-steps { display: flex; gap: 4px; padding: 14px 24px 0; flex-shrink: 0; }
+.drawer-step-dot { flex: 1; height: 3px; border-radius: 2px; background: var(--border); }
+.drawer-step-dot.active { background: var(--text-main); }
+.drawer-body { padding: 20px 24px; overflow-y: auto; flex: 1; }
+.drawer-footer { padding: 16px 24px; border-top: 1px solid var(--border); flex-shrink: 0; display: flex; gap: 10px; }
+
+.search-input { width: 100%; padding: 11px 14px; border: 1px solid var(--border-strong); border-radius: var(--radius-sm); font-size: 14px; outline: none; margin-bottom: 16px; background: var(--bg-color); }
+.search-input:focus { border-color: var(--text-main); background: var(--surface); }
+
+.search-result-item { padding: 12px; border: 1px solid var(--border); border-radius: var(--radius-sm); margin-bottom: 8px; cursor: pointer; transition: 0.12s; }
+.search-result-item:hover { border-color: var(--text-main); background: var(--bg-color); }
+.search-result-item .sr-name { font-size: 14px; font-weight: 600; }
+.search-result-item .sr-sub { font-size: 12.5px; color: var(--text-muted); margin-top: 2px; }
+
+.choice-list { display: flex; flex-direction: column; gap: 8px; }
+.choice-row { padding: 12px 14px; border: 1px solid var(--border); border-radius: var(--radius-sm); cursor: pointer; font-size: 14px; font-weight: 500; display: flex; align-items: center; gap: 10px; transition: 0.12s; }
+.choice-row:hover { border-color: var(--text-faint); }
+.choice-row.selected { border-color: var(--text-main); background: var(--bg-color); font-weight: 600; }
+
+.prio-grid { display: flex; gap: 8px; }
+.prio-chip { flex: 1; padding: 12px; text-align: center; border: 1px solid var(--border); border-radius: var(--radius-sm); cursor: pointer; font-size: 13.5px; font-weight: 600; transition: 0.12s; }
+.prio-chip.selected.alta { border-color: var(--danger); background: var(--danger-soft); color: var(--danger); }
+.prio-chip.selected.media { border-color: var(--warning); background: var(--warning-soft); color: var(--warning); }
+.prio-chip.selected.baixa { border-color: var(--text-main); background: var(--bg-color); }
+
+.obs-textarea { width: 100%; min-height: 90px; border: 1px solid var(--border-strong); border-radius: var(--radius-sm); padding: 12px; font-size: 14px; resize: vertical; outline: none; background: var(--bg-color); font-family: inherit; }
+.obs-textarea:focus { border-color: var(--text-main); background: var(--surface); }
+
+.selected-family-recap { padding: 12px 14px; background: var(--bg-color); border-radius: var(--radius-sm); margin-bottom: 16px; font-size: 13.5px; }
+.selected-family-recap strong { display: block; font-size: 14.5px; margin-bottom: 2px; }
+
+.btn-outline-full { flex: 1; background: var(--surface); border: 1px solid var(--border-strong); color: var(--text-main); padding: 12px; border-radius: var(--radius-md); font-size: 14px; font-weight: 600; cursor: pointer; }
+.btn-outline-full:hover { border-color: var(--text-main); }
+.btn-solid-full { flex: 2; background: var(--text-main); color: white; border: none; padding: 12px; border-radius: var(--radius-md); font-size: 14px; font-weight: 600; cursor: pointer; }
+.btn-solid-full:disabled { background: var(--border-strong); cursor: not-allowed; }
+
 .bottom-nav { display: none; }
 
 @media (max-width: 768px) {
   .sidebar { display: none; }
-  .content-wrapper { padding: 20px 20px 100px; }
-  .header h1 { font-size: 24px; }
-  
-  .bottom-nav { display: flex; position: fixed; bottom: 0; left: 0; right: 0; background: rgba(255,255,255,0.9); backdrop-filter: blur(10px); border-top: 1px solid var(--border); z-index: 50; padding: 8px 16px calc(env(safe-area-inset-bottom, 0px) + 8px); justify-content: space-around; }
-  .bottom-nav a { display: flex; flex-direction: column; align-items: center; gap: 4px; text-decoration: none; color: var(--text-muted); font-size: 11px; font-weight: 500; padding: 4px 0; }
+  .content-wrapper { padding: 24px 18px 100px; }
+  .bottom-nav { display: flex; position: fixed; bottom: 0; left: 0; right: 0; background: rgba(255,255,255,0.94); backdrop-filter: blur(10px); border-top: 1px solid var(--border); z-index: 45; padding: 8px 16px calc(env(safe-area-inset-bottom, 0px) + 8px); justify-content: space-around; }
+  .bottom-nav a { display: flex; flex-direction: column; align-items: center; gap: 4px; text-decoration: none; color: var(--text-muted); font-size: 11px; font-weight: 500; }
+  .bottom-nav a svg { width: 20px; height: 20px; }
   .bottom-nav a.active { color: var(--primary); }
 }
 </style>
 </head>
 <body>
 
-<aside class="sidebar">
-  <div class="sidebar-header">
-    <h2 id="sideUbs">UBS Guarda-Mor</h2>
-    <span id="sideArea">Micro-área 03</span>
-  </div>
-  <ul class="nav-links">
-    <li><a href="index.html"><i data-lucide="layout-dashboard"></i> Dashboard</a></li>
-    <li><a href="meu-roteiro.html" class="active"><i data-lucide="map"></i> Meu Roteiro</a></li>
-    <li><a href="agenda.html"><i data-lucide="calendar"></i> Agenda</a></li>
-    <li><a href="nova-visita.html"><i data-lucide="clipboard-list"></i> Visitas</a></li>
-    <li><a href="familias.html"><i data-lucide="users"></i> Famílias</a></li>
-    <li><a href="mapa.html"><i data-lucide="map-pin"></i> Mapa</a></li>
-    <li><a href="indicadores.html"><i data-lucide="bar-chart-2"></i> Indicadores</a></li>
-    <li class="nav-divider"></li>
-    <li><a href="busca.html"><i data-lucide="search"></i> Busca</a></li>
-    <li><a href="configuracoes.html"><i data-lucide="settings"></i> Configurações</a></li>
-  </ul>
-</aside>
-
-<main class="main-content">
-  <div class="content-wrapper">
-    
-    <div class="header">
-      <div class="header-top">
-        <a href="index.html" class="back-btn"><i data-lucide="chevron-left" size="18"></i> Início</a>
-        <div class="header-meta" id="headerDate">--</div>
-      </div>
-      <h1>Meu Roteiro</h1>
-      <div class="header-meta" id="headerMicroarea">Microárea --</div>
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <h2>UBS Guarda-Mor</h2>
+      <span>Micro-área 03</span>
     </div>
+    <ul class="nav-links">
+      <li><a href="index.html"><i data-lucide="layout-grid"></i> Dashboard</a></li>
+      <li><a href="meu-roteiro.html" class="active"><i data-lucide="map-pin"></i> Meu Roteiro</a></li>
+      <li><a href="agenda.html"><i data-lucide="calendar"></i> Agenda</a></li>
+      <li><a href="busca.html"><i data-lucide="clipboard-list"></i> Visitas</a></li>
+      <li><a href="familias.html"><i data-lucide="users"></i> Famílias</a></li>
+      <li><a href="mapa.html"><i data-lucide="map"></i> Mapa</a></li>
+      <li><a href="indicadores.html"><i data-lucide="bar-chart-2"></i> Indicadores</a></li>
+      <li class="nav-divider"></li>
+      <li><a href="busca.html"><i data-lucide="search"></i> Busca</a></li>
+      <li><a href="configuracoes.html"><i data-lucide="settings"></i> Configurações</a></li>
+    </ul>
+  </aside>
 
-    <!-- Resumo Compacto -->
-    <div class="summary-card">
-      <div class="summary-stats">
-        <div>
-          <div class="stat-main" id="statVisitas">-- visitas hoje</div>
-          <div class="stat-sub" id="statTempo">Tempo estimado: --h</div>
+  <main class="main-content">
+    <div class="content-wrapper">
+
+      <div class="page-header">
+        <div class="greeting" id="saudacao">Bom dia 👋</div>
+        <div class="header-sub" id="headerSub">Carregando...</div>
+      </div>
+
+      <div class="progress-row" id="progressRow" style="display:none;">
+        <div class="progress-text">
+          <span><strong id="progressAtual">0</strong> de <span id="progressTotal">0</span> visitas concluídas</span>
+          <span id="progressPct">0%</span>
         </div>
-        <div style="text-align: right;">
-          <div class="stat-main" id="statConcluidas">-- / --</div>
-          <div class="stat-sub">concluídas</div>
+        <div class="progress-track"><div class="progress-fill" id="progressFill" style="width:0%;"></div></div>
+      </div>
+
+      <div id="proximaVisitaZone"></div>
+
+      <div class="list-header">
+        <div class="section-label">Roteiro do dia</div>
+        <div class="list-actions">
+          <button class="btn-ghost" id="btnRecalcular"><i data-lucide="refresh-cw"></i> Recalcular ordem</button>
+          <button class="btn-add" id="btnAdicionarFamilia"><i data-lucide="plus"></i> Adicionar família</button>
         </div>
       </div>
-      <div class="progress-container">
-        <div class="progress-bar" id="progressBar" style="width: 0%"></div>
-      </div>
+
+      <div class="route-list" id="routeList"></div>
+
     </div>
+  </main>
 
-    <div id="nextVisitContainer">
-      <!-- Injetado via JS -->
-      <div class="empty-state">Carregando roteiro...</div>
+  <nav class="bottom-nav">
+    <a href="index.html"><i data-lucide="layout-grid"></i> Início</a>
+    <a href="meu-roteiro.html" class="active"><i data-lucide="map-pin"></i> Roteiro</a>
+    <a href="agenda.html"><i data-lucide="calendar"></i> Agenda</a>
+    <a href="familias.html"><i data-lucide="users"></i> Famílias</a>
+  </nav>
+
+  <!-- ======================= Drawer: Adicionar família ======================= -->
+  <div class="overlay" id="overlay"></div>
+  <div class="drawer" id="drawer">
+    <div class="drawer-header">
+      <h3 id="drawerTitulo">Buscar família</h3>
+      <button class="drawer-close" id="btnFecharDrawer"><i data-lucide="x"></i></button>
     </div>
-
-    <div class="section-title" style="margin-top: 16px;">Lista do Roteiro</div>
-
-    <button type="button" class="btn-add-familia" id="btnAdicionarFamilia">
-      <i data-lucide="plus" size="16"></i> Adicionar família ao roteiro de hoje
-    </button>
-
-    <div class="add-familia-panel" id="addFamiliaPanel" style="display:none;">
-      <div class="add-familia-search">
-        <i data-lucide="search" size="16"></i>
-        <input type="text" id="addFamiliaBusca" placeholder="Buscar por endereço, nome ou bairro...">
-        <button type="button" id="btnFecharAddFamilia" aria-label="Fechar"><i data-lucide="x" size="16"></i></button>
-      </div>
-      <div class="add-familia-results" id="addFamiliaResultados"></div>
+    <div class="drawer-steps">
+      <div class="drawer-step-dot" data-step="1"></div>
+      <div class="drawer-step-dot" data-step="2"></div>
+      <div class="drawer-step-dot" data-step="3"></div>
+      <div class="drawer-step-dot" data-step="4"></div>
     </div>
-
-    <div class="filters-scroll" id="filters">
-      <div class="filter-chip active" data-filter="todos">Todos</div>
-      <div class="filter-chip" data-filter="urgentes">Urgentes</div>
-      <div class="filter-chip" data-filter="criancas">Crianças</div>
-      <div class="filter-chip" data-filter="gestantes">Gestantes</div>
-      <div class="filter-chip" data-filter="cronicos">Hipertensos/Diabéticos</div>
-    </div>
-
-    <div class="route-list" id="routeList">
-      <!-- Injetado via JS -->
-    </div>
-
+    <div class="drawer-body" id="drawerBody"></div>
+    <div class="drawer-footer" id="drawerFooter"></div>
   </div>
-</main>
 
-<nav class="bottom-nav">
-  <a href="index.html"><i data-lucide="layout-dashboard"></i><span>Início</span></a>
-  <a href="meu-roteiro.html" class="active"><i data-lucide="map"></i><span>Roteiro</span></a>
-  <a href="familias.html"><i data-lucide="users"></i><span>Famílias</span></a>
-  <a href="busca.html"><i data-lucide="search"></i><span>Busca</span></a>
-</nav>
+  <script>
+  /* ==========================================================================
+     Meu Roteiro - lógica real
+     - itensRoteiro vem da tabela roteiro_dia (persistida), não é recalculada
+       do zero a cada carregamento: só na primeira vez do dia (semente pela
+       heurística de prioridade já existente em roteiro.js).
+     - "Próxima visita" é sempre o primeiro item pendente por ordem.
+     - Reordenar (arrastar, mover pro topo/fim) grava a nova ordem na tabela.
+  ========================================================================== */
 
-<script>
-// Inicializa ícones Lucide
-lucide.createIcons();
+  const hoje = hojeISO();
 
-let roteiroGlobal = [];
-let pendentesGlobais = [];
-let concluidasGlobais = [];
-let todasFamiliasGlobais = [];
+  const MOTIVOS = [
+    '🏠 Visita de rotina', '🤝 Visita compartilhada', '💊 Entrega de receita',
+    '🧪 Entrega de exame', '📅 Consulta', '🔎 Busca ativa',
+    '💉 Vacinação', '↩️ Retorno', '✏️ Outro',
+  ];
 
-// Funções utilitárias de roteiro.js já garantem os cálculos.
-async function carregarPagina() {
-  // Aplicar branding local
-  const cfg = obterConfiguracaoLocal();
-  document.getElementById('sideUbs').textContent = cfg.nomeUbs;
-  document.getElementById('sideArea').textContent = cfg.microarea;
-  document.getElementById('headerMicroarea').textContent = cfg.microarea;
-  
-  // Data atual formatada
-  const options = { day: 'numeric', month: 'long' };
-  document.getElementById('headerDate').textContent = new Date().toLocaleDateString('pt-BR', options);
+  let sessaoAtual = null;
+  let cfg = null;
+  let familiasEnriquecidas = [];
+  let familiasPorId = new Map();
+  let itensRoteiro = []; // [{ id, familia_id, data, ordem, motivo, prioridade, observacao, familia }]
 
-  try {
-    const { familiasEnriquecidas } = await carregarFamiliasEnriquecidas();
-    todasFamiliasGlobais = familiasEnriquecidas;
-    roteiroGlobal = calcularRoteiroDoDia(familiasEnriquecidas, cfg.capacidadeDiaria);
-    
-    pendentesGlobais = roteiroGlobal.filter(f => !f.visitouHoje);
-    concluidasGlobais = roteiroGlobal.filter(f => f.visitouHoje);
-    
-    atualizarResumo(cfg.tempoMedioVisita);
+  let wizardState = { step: 1, familiaSelecionada: null, motivo: null, prioridade: null, observacao: '' };
+
+  function capitalizar(s) { return s ? s.charAt(0).toUpperCase() + s.slice(1) : s; }
+
+  function saudacaoPorHorario() {
+    const h = new Date().getHours();
+    if (h < 12) return 'Bom dia';
+    if (h < 18) return 'Boa tarde';
+    return 'Boa noite';
+  }
+
+  function nomeDoUsuario() {
+    const meta = sessaoAtual?.user?.user_metadata;
+    if (meta?.nome) return meta.nome.split(' ')[0];
+    const email = sessaoAtual?.user?.email || '';
+    const prefixo = email.split('@')[0].split(/[._-]/)[0];
+    return prefixo ? capitalizar(prefixo) : 'ACS';
+  }
+
+  function mapNivelParaPrioridade(nivel) {
+    if (nivel === 'urgente') return 'Alta';
+    if (nivel === 'atencao') return 'Média';
+    return 'Baixa';
+  }
+
+  function pendentes() { return itensRoteiro.filter(i => !i.familia.visitouHoje); }
+  function concluidas() { return itensRoteiro.filter(i => i.familia.visitouHoje); }
+
+  // ---------------------------------------------------------------------
+  // Carregamento inicial
+  // ---------------------------------------------------------------------
+  async function carregarPagina() {
+    sessaoAtual = await protegerPagina();
+    cfg = obterConfiguracaoLocal();
+
+    document.getElementById('saudacao').textContent = `${saudacaoPorHorario()}, ${nomeDoUsuario()} 👋`;
+
+    try {
+      const resultado = await carregarFamiliasEnriquecidas();
+      familiasEnriquecidas = resultado.familiasEnriquecidas;
+      familiasEnriquecidas.forEach(f => { f.prio = calcularPrioridade(f); });
+      familiasPorId = new Map(familiasEnriquecidas.map(f => [f.id, f]));
+
+      const { data: roteiroSalvo, error: erroRoteiro } = await db
+        .from('roteiro_dia')
+        .select('*')
+        .eq('data', hoje)
+        .order('ordem');
+
+      if (erroRoteiro) throw erroRoteiro;
+
+      let linhas = roteiroSalvo || [];
+
+      // Primeira vez que a página é aberta hoje: semeia o roteiro com a
+      // heurística de prioridade existente, pra já vir com algo.
+      if (linhas.length === 0 && familiasEnriquecidas.length > 0) {
+        const heuristica = calcularRoteiroDoDia(familiasEnriquecidas, cfg.capacidadeDiaria);
+        const novasLinhas = heuristica.map((f, i) => ({
+          familia_id: f.id,
+          data: hoje,
+          ordem: i,
+          motivo: null,
+          prioridade: mapNivelParaPrioridade(f.prio.nivel),
+        }));
+        const { data: inseridas, error: erroSeed } = await db.from('roteiro_dia').insert(novasLinhas).select();
+        if (erroSeed) throw erroSeed;
+        linhas = inseridas || [];
+      }
+
+      itensRoteiro = linhas
+        .map(r => ({ ...r, familia: familiasPorId.get(r.familia_id) }))
+        .filter(it => it.familia) // ignora linhas cuja família tenha sido excluída
+        .sort((a, b) => a.ordem - b.ordem);
+
+      renderizarTudo();
+    } catch (e) {
+      console.error(e);
+      document.getElementById('proximaVisitaZone').innerHTML =
+        `<div class="empty-state"><p>Não foi possível carregar o roteiro. Verifique sua conexão.</p></div>`;
+    }
+  }
+
+  // ---------------------------------------------------------------------
+  // Render
+  // ---------------------------------------------------------------------
+  function renderizarTudo() {
+    renderizarHeaderSub();
+    renderizarProgresso();
     renderizarProximaVisita();
-    renderizarLista('todos');
-    
-  } catch (e) {
-    console.error(e);
-    document.getElementById('nextVisitContainer').innerHTML = `<div class="empty-state">Erro ao carregar o roteiro.</div>`;
-  }
-}
-
-function atualizarResumo(tempoMedio) {
-  const total = roteiroGlobal.length;
-  const concluidas = concluidasGlobais.length;
-  const pendentes = pendentesGlobais.length;
-  
-  const minutosTotais = pendentes * tempoMedio;
-  const horas = Math.floor(minutosTotais / 60);
-  const min = minutosTotais % 60;
-  const tempoStr = horas > 0 ? `${horas}h${min > 0 ? min+'m' : ''}` : `${min}m`;
-  
-  const pct = total === 0 ? 0 : Math.round((concluidas / total) * 100);
-  
-  document.getElementById('statVisitas').textContent = `${total} visitas hoje`;
-  document.getElementById('statTempo').textContent = `Tempo estimado: ${tempoStr}`;
-  document.getElementById('statConcluidas').textContent = `${concluidas} de ${total}`;
-  document.getElementById('progressBar').style.width = `${pct}%`;
-}
-
-// Pseudo-distância determinística para visualização
-function pseudoDistancia(id) {
-  let hash = 0;
-  for (let i = 0; i < id.length; i++) hash = (hash * 31 + id.charCodeAt(i)) % 1000;
-  return (hash + 50) + ' metros';
-}
-
-function renderizarProximaVisita() {
-  const container = document.getElementById('nextVisitContainer');
-  
-  if (pendentesGlobais.length === 0) {
-    container.innerHTML = `
-      <div class="empty-state">
-        <i data-lucide="check-circle-2" style="width: 48px; height: 48px; color: var(--success);"></i>
-        <h3>Roteiro Concluído!</h3>
-        <p>Você não possui mais visitas programadas para hoje.</p>
-      </div>`;
+    renderizarLista();
     lucide.createIcons();
-    return;
-  }
-  
-  const f = pendentesGlobais[0];
-  const isUrgente = f.prio.nivel === 'urgente';
-  const nome = escapeHtml(nomePrincipalDe(f));
-  const endereco = escapeHtml(enderecoDe(f));
-  
-  let tagsHtml = `<span class="tag ${f.prio.nivel}">${f.prio.tipoPrincipal.emoji} ${f.prio.tipoPrincipal.label}</span>`;
-  if (f.temCriancaMenor2 && f.prio.tipoPrincipal.label !== 'Criança < 2 anos') tagsHtml += `<span class="tag info">👶 Criança</span>`;
-  if (f.temGestante && f.prio.tipoPrincipal.label !== 'Gestante') tagsHtml += `<span class="tag info">🤰 Gestante</span>`;
-  
-  const ultimaVisita = f.ultimaVisita ? `${f.diasDesdeUltimaVisita} dias sem visita` : 'Nunca visitada';
-
-  container.innerHTML = `
-    <div class="section-title">Próxima Visita</div>
-    <div class="next-visit-card ${isUrgente ? 'urgente' : ''}">
-      <div class="nv-header">
-        <div>
-          <div class="nv-name">${nome}</div>
-          <div class="nv-address"><i data-lucide="map-pin" size="14"></i> ${endereco}</div>
-        </div>
-        <div class="nv-distance"><i data-lucide="navigation" size="12"></i> ${pseudoDistancia(f.id)}</div>
-      </div>
-      
-      <div class="nv-meta">
-        <div class="nv-meta-item"><i data-lucide="clock" size="16"></i> <strong>Tempo:</strong> ${ultimaVisita}</div>
-        <div class="nv-meta-item"><i data-lucide="users" size="16"></i> <strong>Domicílio:</strong> ${f.membros.length} moradores</div>
-      </div>
-      
-      <div class="nv-tags">${tagsHtml}</div>
-      
-      <a href="nova-visita.html?familia_id=${f.id}" class="btn-primary ${isUrgente ? 'urgente' : ''}">
-        ${isUrgente ? 'Iniciar visita urgente' : 'Iniciar roteiro'} <i data-lucide="arrow-right"></i>
-      </a>
-    </div>
-  `;
-  lucide.createIcons();
-}
-
-function renderizarLista(filtro) {
-  const container = document.getElementById('routeList');
-  
-  // Ignora o primeiro item pendente (já está no card principal)
-  let listaParaExibir = [...pendentesGlobais.slice(1), ...concluidasGlobais];
-  
-  if (filtro === 'urgentes') listaParaExibir = listaParaExibir.filter(f => f.prio.nivel === 'urgente');
-  if (filtro === 'criancas') listaParaExibir = listaParaExibir.filter(f => f.temCriancaMenor2);
-  if (filtro === 'gestantes') listaParaExibir = listaParaExibir.filter(f => f.temGestante);
-  if (filtro === 'cronicos') listaParaExibir = listaParaExibir.filter(f => f.temHas || f.temDm);
-
-  if (listaParaExibir.length === 0) {
-    container.innerHTML = `<div class="empty-state" style="padding: 20px;"><p>Nenhuma visita restante neste filtro.</p></div>`;
-    return;
+    ativarDragEDrop();
   }
 
-  container.innerHTML = listaParaExibir.map(f => {
-    const iconClass = f.visitouHoje ? 'done' : 'pending';
-    const icon = f.visitouHoje ? '<i data-lucide="check" size="14"></i>' : '<div style="width: 8px; height: 8px; border-radius: 50%; background: var(--primary);"></div>';
-    const tagEmoji = f.prio.tipoPrincipal.emoji;
-    
-    return `
-      <a href="${f.visitouHoje ? '#' : `nova-visita.html?familia_id=${f.id}`}" class="list-item" style="${f.visitouHoje ? 'opacity: 0.6;' : ''}">
-        <div class="list-item-left">
-          <div class="status-icon ${iconClass}">${icon}</div>
+  function renderizarHeaderSub() {
+    const dataFormatada = capitalizar(new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' }));
+    document.getElementById('headerSub').innerHTML =
+      `${escapeHtml(dataFormatada)} <span class="dot"></span> ${escapeHtml(cfg.microarea)} <span class="dot"></span> ${itensRoteiro.length} visita${itensRoteiro.length === 1 ? '' : 's'} hoje`;
+  }
+
+  function renderizarProgresso() {
+    const total = itensRoteiro.length;
+    const row = document.getElementById('progressRow');
+    if (total === 0) { row.style.display = 'none'; return; }
+    const c = concluidas().length;
+    const pct = Math.round((c / total) * 100);
+    row.style.display = '';
+    document.getElementById('progressAtual').textContent = c;
+    document.getElementById('progressTotal').textContent = total;
+    document.getElementById('progressPct').textContent = pct + '%';
+    document.getElementById('progressFill').style.width = pct + '%';
+  }
+
+  function renderizarProximaVisita() {
+    const zone = document.getElementById('proximaVisitaZone');
+
+    if (itensRoteiro.length === 0) {
+      zone.innerHTML = `
+        <div class="empty-state">
+          <i data-lucide="map-pin"></i>
+          <h3>Nenhuma família no roteiro hoje</h3>
+          <p>Use "Adicionar família" abaixo para começar o seu dia.</p>
+        </div>`;
+      return;
+    }
+
+    const p = pendentes();
+    if (p.length === 0) {
+      zone.innerHTML = `
+        <div class="empty-state">
+          <i data-lucide="check-circle-2" style="color: var(--success);"></i>
+          <h3>Roteiro concluído!</h3>
+          <p>Todas as visitas de hoje foram registradas.</p>
+        </div>`;
+      return;
+    }
+
+    const item = p[0];
+    const f = item.familia;
+    const isUrgente = item.prioridade === 'Alta';
+    const nome = escapeHtml(nomePrincipalDe(f));
+    const endereco = escapeHtml(enderecoDe(f));
+    const motivoTexto = item.motivo || `${f.prio.tipoPrincipal.emoji} ${f.prio.tipoPrincipal.label}`;
+    const prioClasse = item.prioridade === 'Alta' ? 'prio-alta' : item.prioridade === 'Média' ? 'prio-media' : 'prio-baixa';
+    const ultimaVisitaTexto = f.ultimaVisita ? `${f.diasDesdeUltimaVisita} dia(s) sem visita` : 'Nunca visitada';
+
+    zone.innerHTML = `
+      <div class="section-label">Próxima visita</div>
+      <div class="next-visit-card">
+        <div class="nv-top">
           <div>
-            <div class="list-name">${escapeHtml(nomePrincipalDe(f))}${f._adicionadaManual ? '<span class="tag-manual">Adicionada</span>' : ''}</div>
-            <div class="list-meta">${tagEmoji} ${escapeHtml(f.prio.tipoPrincipal.label)} • ${f.visitouHoje ? 'Concluída' : pseudoDistancia(f.id)}</div>
+            <div class="nv-name">${nome}</div>
+            <div class="nv-address"><i data-lucide="map-pin"></i> ${endereco}</div>
           </div>
         </div>
-        <div class="list-right">
-          ${!f.visitouHoje ? '<i data-lucide="chevron-right" size="18" color="var(--border)"></i>' : ''}
+        <div class="nv-badges">
+          <span class="badge motivo">${escapeHtml(motivoTexto)}</span>
+          <span class="badge ${prioClasse}">Prioridade ${item.prioridade || 'Baixa'}</span>
         </div>
-      </a>
-    `;
-  }).join('');
-  
-  lucide.createIcons();
-}
-
-// Lógica dos filtros
-document.getElementById('filters').addEventListener('click', (e) => {
-  if (e.target.classList.contains('filter-chip')) {
-    document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
-    e.target.classList.add('active');
-    renderizarLista(e.target.dataset.filter);
-  }
-});
-
-// --- Adicionar família manualmente ao roteiro de hoje ---
-// Útil pra quando não dá pra seguir a ordem sugerida (família ausente, rua
-// interditada, imprevisto etc.) e a ACS precisa visitar outra família da
-// área que não entrou na priorização automática.
-document.getElementById('btnAdicionarFamilia').onclick = () => {
-  const painel = document.getElementById('addFamiliaPanel');
-  const vaiAbrir = painel.style.display === 'none';
-  painel.style.display = vaiAbrir ? 'block' : 'none';
-  if (vaiAbrir) {
-    const campo = document.getElementById('addFamiliaBusca');
-    campo.value = '';
-    campo.focus();
-    renderizarResultadosAddFamilia('');
-  }
-};
-
-document.getElementById('btnFecharAddFamilia').onclick = () => {
-  document.getElementById('addFamiliaPanel').style.display = 'none';
-};
-
-document.getElementById('addFamiliaBusca').addEventListener('input', (e) => {
-  renderizarResultadosAddFamilia(e.target.value);
-});
-
-function renderizarResultadosAddFamilia(termo) {
-  const idsNoRoteiro = new Set(roteiroGlobal.map(f => f.id));
-  const t = termo.trim().toLowerCase();
-
-  let candidatas = todasFamiliasGlobais.filter(f => !idsNoRoteiro.has(f.id));
-  if (t) {
-    candidatas = candidatas.filter(f =>
-      enderecoDe(f).toLowerCase().includes(t) ||
-      nomePrincipalDe(f).toLowerCase().includes(t) ||
-      (f.bairro || '').toLowerCase().includes(t)
-    );
-  }
-  candidatas = candidatas.slice(0, 20);
-
-  const container = document.getElementById('addFamiliaResultados');
-
-  if (candidatas.length === 0) {
-    container.innerHTML = `<p style="padding:16px; font-size:13px; color: var(--text-muted);">Nenhuma família encontrada${t ? ' para "' + escapeHtml(termo) + '"' : ''}.</p>`;
-    return;
+        <div class="nv-meta">
+          <div class="nv-meta-item"><i data-lucide="history"></i> ${escapeHtml(ultimaVisitaTexto)}</div>
+          <div class="nv-meta-item"><i data-lucide="users"></i> ${f.membros.length} morador${f.membros.length === 1 ? '' : 'es'}</div>
+        </div>
+        <a href="nova-visita.html?familia_id=${f.id}" class="btn-iniciar ${isUrgente ? 'urgente' : ''}">
+          <i data-lucide="play"></i> Iniciar visita
+        </a>
+      </div>`;
   }
 
-  container.innerHTML = candidatas.map(f => `
-    <button type="button" class="add-familia-item" data-id="${f.id}">
-      <div>
-        <div class="list-name" style="color: var(--text-main);">${escapeHtml(nomePrincipalDe(f))}</div>
-        <div class="list-meta">${escapeHtml(enderecoDe(f))}${f.bairro ? ' • ' + escapeHtml(f.bairro) : ''}</div>
-      </div>
-      <i data-lucide="plus-circle" size="18"></i>
-    </button>
-  `).join('');
-  lucide.createIcons();
+  function itemHtml(item) {
+    const f = item.familia;
+    const done = f.visitouHoje;
+    const dotClasse = done ? 'concluida' : (item.prioridade === 'Alta' ? 'alta' : item.prioridade === 'Média' ? 'media' : '');
+    const motivoTexto = item.motivo || `${f.prio.tipoPrincipal.emoji} ${f.prio.tipoPrincipal.label}`;
+    const endereco = escapeHtml(enderecoDe(f));
+    const nome = escapeHtml(nomePrincipalDe(f));
+    const corpo = `
+      <span class="status-dot ${dotClasse}"></span>
+      <div class="list-item-body">
+        <div class="list-name">${nome}</div>
+        <div class="list-meta">${escapeHtml(motivoTexto)} · ${endereco}</div>
+      </div>`;
 
-  container.querySelectorAll('.add-familia-item').forEach(btn => {
-    btn.onclick = () => adicionarFamiliaAoRoteiro(btn.dataset.id);
+    return `
+      <div class="list-item" data-id="${item.id}">
+        <div class="drag-handle"><i data-lucide="grip-vertical"></i></div>
+        ${done
+          ? `<div class="list-item-link" style="cursor:default;">${corpo}</div>`
+          : `<a href="nova-visita.html?familia_id=${f.id}" class="list-item-link">${corpo}</a>`}
+        <div class="list-item-right">
+          <span class="badge ${done ? 'status-concluida' : 'status-pendente'}">${done ? 'Concluída' : 'Pendente'}</span>
+          <button class="kebab-btn" data-kebab="${item.id}"><i data-lucide="more-vertical"></i></button>
+          <div class="kebab-menu" data-menu="${item.id}">
+            <button data-acao="topo" data-id="${item.id}"><i data-lucide="arrow-up-to-line"></i> Mover para o início</button>
+            <button data-acao="fim" data-id="${item.id}"><i data-lucide="arrow-down-to-line"></i> Mover para o fim</button>
+            ${!done ? `<button data-acao="concluir" data-id="${item.id}"><i data-lucide="check"></i> Marcar como concluída</button>` : ''}
+            <button data-acao="remover" data-id="${item.id}" class="danger"><i data-lucide="trash-2"></i> Remover do roteiro</button>
+          </div>
+        </div>
+      </div>`;
+  }
+
+  function renderizarLista() {
+    const container = document.getElementById('routeList');
+    const p = pendentes();
+    const c = concluidas();
+    const resto = [...p.slice(1), ...c];
+
+    if (resto.length === 0) {
+      container.innerHTML = itensRoteiro.length <= 1 ? '' :
+        `<div class="empty-state" style="padding:24px;"><p>Sem mais visitas no roteiro de hoje.</p></div>`;
+      return;
+    }
+
+    container.innerHTML = resto.map(itemHtml).join('');
+  }
+
+  // ---------------------------------------------------------------------
+  // Ações (kebab menu)
+  // ---------------------------------------------------------------------
+  document.getElementById('routeList').addEventListener('click', (e) => {
+    const kebabBtn = e.target.closest('.kebab-btn');
+    if (kebabBtn) {
+      e.preventDefault();
+      const id = kebabBtn.dataset.kebab;
+      document.querySelectorAll('.kebab-menu').forEach(m => { if (m.dataset.menu !== id) m.classList.remove('show'); });
+      document.querySelector(`.kebab-menu[data-menu="${id}"]`)?.classList.toggle('show');
+      return;
+    }
+    const acaoBtn = e.target.closest('[data-acao]');
+    if (acaoBtn) {
+      e.preventDefault();
+      const { acao, id } = acaoBtn.dataset;
+      document.querySelectorAll('.kebab-menu').forEach(m => m.classList.remove('show'));
+      if (acao === 'topo') moverParaTopo(id);
+      if (acao === 'fim') moverParaFim(id);
+      if (acao === 'concluir') concluirRapido(id);
+      if (acao === 'remover') removerDoRoteiro(id);
+    }
   });
-}
 
-function adicionarFamiliaAoRoteiro(id) {
-  const f = todasFamiliasGlobais.find(fam => String(fam.id) === String(id));
-  if (!f) return;
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('.kebab-btn')) {
+      document.querySelectorAll('.kebab-menu').forEach(m => m.classList.remove('show'));
+    }
+  });
 
-  const comPrio = { ...f, prio: f.prio || calcularPrioridade(f), _adicionadaManual: true };
-  roteiroGlobal.push(comPrio);
-  if (comPrio.visitouHoje) {
-    concluidasGlobais.push(comPrio);
-  } else {
-    pendentesGlobais.push(comPrio);
+  function moverParaTopo(id) {
+    const idx = itensRoteiro.findIndex(i => i.id === id);
+    if (idx <= 0) return;
+    const [item] = itensRoteiro.splice(idx, 1);
+    itensRoteiro.unshift(item);
+    persistirOrdem();
+    renderizarTudo();
   }
 
-  document.getElementById('addFamiliaPanel').style.display = 'none';
+  function moverParaFim(id) {
+    const idx = itensRoteiro.findIndex(i => i.id === id);
+    if (idx === -1 || idx === itensRoteiro.length - 1) return;
+    const [item] = itensRoteiro.splice(idx, 1);
+    itensRoteiro.push(item);
+    persistirOrdem();
+    renderizarTudo();
+  }
 
-  const cfg = obterConfiguracaoLocal();
-  atualizarResumo(cfg.tempoMedioVisita);
-  renderizarProximaVisita();
-  const filtroAtivo = document.querySelector('.filter-chip.active')?.dataset.filter || 'todos';
-  renderizarLista(filtroAtivo);
-}
+  async function persistirOrdem() {
+    const atualizacoes = itensRoteiro
+      .map((item, idx) => ({ item, novaOrdem: idx }))
+      .filter(({ item, novaOrdem }) => item.ordem !== novaOrdem);
 
-carregarPagina();
-</script>
+    atualizacoes.forEach(({ item, novaOrdem }) => { item.ordem = novaOrdem; });
+
+    try {
+      await Promise.all(atualizacoes.map(({ item }) =>
+        db.from('roteiro_dia').update({ ordem: item.ordem }).eq('id', item.id)
+      ));
+    } catch (e) {
+      console.error('Erro ao salvar a nova ordem do roteiro:', e);
+    }
+  }
+
+  async function concluirRapido(id) {
+    const item = itensRoteiro.find(i => i.id === id);
+    if (!item) return;
+
+    const { error } = await db.from('visitas').insert({
+      familia_id: item.familia_id,
+      data_visita: hoje,
+      desfecho: 'Realizada',
+      profissional: sessaoAtual?.user?.email || 'ACS',
+    });
+
+    if (error) { alert('Erro ao concluir a visita: ' + error.message); return; }
+
+    item.familia.visitouHoje = true;
+    item.familia.ultimaVisita = hoje;
+    item.familia.diasDesdeUltimaVisita = 0;
+    item.familia.totalVisitas = (item.familia.totalVisitas || 0) + 1;
+    renderizarTudo();
+  }
+
+  async function removerDoRoteiro(id) {
+    if (!confirm('Remover esta família do roteiro de hoje? Isso não apaga o cadastro dela, só tira do roteiro.')) return;
+    const { error } = await db.from('roteiro_dia').delete().eq('id', id);
+    if (error) { alert('Erro ao remover: ' + error.message); return; }
+    itensRoteiro = itensRoteiro.filter(i => i.id !== id);
+    persistirOrdem();
+    renderizarTudo();
+  }
+
+  document.getElementById('btnRecalcular').addEventListener('click', () => {
+    const p = pendentes();
+    const c = concluidas();
+    if (p.length === 0) return;
+    const reordenadas = calcularRoteiroDoDia(p.map(i => i.familia), p.length);
+    const ordemPorFamilia = new Map(reordenadas.map((f, idx) => [f.id, idx]));
+    p.sort((a, b) => (ordemPorFamilia.get(a.familia.id) ?? 0) - (ordemPorFamilia.get(b.familia.id) ?? 0));
+    itensRoteiro = [...p, ...c];
+    persistirOrdem();
+    renderizarTudo();
+  });
+
+  // ---------------------------------------------------------------------
+  // Arrastar para reordenar (Pointer Events - funciona com mouse e touch/iPad)
+  // ---------------------------------------------------------------------
+  function ativarDragEDrop() {
+    document.querySelectorAll('.drag-handle').forEach(handle => {
+      handle.onpointerdown = (e) => {
+        e.preventDefault();
+        const row = handle.closest('.list-item');
+        const list = document.getElementById('routeList');
+        const pointerId = e.pointerId;
+        row.setPointerCapture(pointerId);
+        row.classList.add('dragging');
+
+        const onMove = (ev) => {
+          const y = ev.clientY;
+          const siblings = Array.from(list.querySelectorAll('.list-item')).filter(el => el !== row);
+          for (const sib of siblings) {
+            const rect = sib.getBoundingClientRect();
+            if (y > rect.top && y < rect.bottom) {
+              if (y < rect.top + rect.height / 2) list.insertBefore(row, sib);
+              else list.insertBefore(row, sib.nextSibling);
+              break;
+            }
+          }
+        };
+
+        const onUp = () => {
+          row.classList.remove('dragging');
+          row.removeEventListener('pointermove', onMove);
+          row.removeEventListener('pointerup', onUp);
+          try { row.releasePointerCapture(pointerId); } catch (err) { /* ignora */ }
+          sincronizarOrdemComDOM();
+        };
+
+        row.addEventListener('pointermove', onMove);
+        row.addEventListener('pointerup', onUp);
+      };
+    });
+  }
+
+  function sincronizarOrdemComDOM() {
+    const idsNaOrdemDOM = Array.from(document.querySelectorAll('#routeList .list-item')).map(el => el.dataset.id);
+    const primeiroPendente = pendentes()[0]; // fica fixo como "próxima visita"
+    const restoOrdenado = idsNaOrdemDOM.map(id => itensRoteiro.find(i => i.id === id)).filter(Boolean);
+    itensRoteiro = primeiroPendente ? [primeiroPendente, ...restoOrdenado] : restoOrdenado;
+    persistirOrdem();
+  }
+
+  // ---------------------------------------------------------------------
+  // Drawer "Adicionar família" (wizard de 4 passos)
+  // ---------------------------------------------------------------------
+  document.getElementById('btnAdicionarFamilia').addEventListener('click', abrirDrawer);
+  document.getElementById('btnFecharDrawer').addEventListener('click', fecharDrawer);
+  document.getElementById('overlay').addEventListener('click', fecharDrawer);
+
+  function abrirDrawer() {
+    wizardState = { step: 1, familiaSelecionada: null, motivo: null, prioridade: null, observacao: '' };
+    document.getElementById('overlay').classList.add('show');
+    document.getElementById('drawer').classList.add('show');
+    renderizarWizard();
+  }
+
+  function fecharDrawer() {
+    document.getElementById('overlay').classList.remove('show');
+    document.getElementById('drawer').classList.remove('show');
+  }
+
+  function renderizarWizard() {
+    document.querySelectorAll('.drawer-step-dot').forEach(dot => {
+      dot.classList.toggle('active', Number(dot.dataset.step) <= wizardState.step);
+    });
+
+    const titulos = { 1: 'Buscar família', 2: 'Motivo da visita', 3: 'Prioridade', 4: 'Confirmar' };
+    document.getElementById('drawerTitulo').textContent = titulos[wizardState.step];
+
+    const body = document.getElementById('drawerBody');
+    const footer = document.getElementById('drawerFooter');
+
+    if (wizardState.step === 1) {
+      body.innerHTML = `
+        <input type="text" class="search-input" id="buscaFamiliaInput" placeholder="Buscar por nome, rua ou CNS...">
+        <div id="resultadosBusca"><p style="font-size:13px; color:var(--text-muted);">Digite para buscar uma família.</p></div>`;
+      footer.innerHTML = `<button class="btn-outline-full" id="btnCancelarWizard">Cancelar</button>`;
+      document.getElementById('btnCancelarWizard').onclick = fecharDrawer;
+      document.getElementById('buscaFamiliaInput').oninput = (e) => buscarFamilias(e.target.value);
+      document.getElementById('buscaFamiliaInput').focus();
+    }
+
+    if (wizardState.step === 2) {
+      body.innerHTML = `
+        <div class="selected-family-recap"><strong>${escapeHtml(nomePrincipalDe(wizardState.familiaSelecionada))}</strong>${escapeHtml(enderecoDe(wizardState.familiaSelecionada))}</div>
+        <div class="choice-list">${MOTIVOS.map(m => `<div class="choice-row" data-motivo="${escapeHtml(m)}">${escapeHtml(m)}</div>`).join('')}</div>`;
+      footer.innerHTML = `<button class="btn-outline-full" id="btnVoltarWizard">Voltar</button>`;
+      document.getElementById('btnVoltarWizard').onclick = () => { wizardState.step = 1; renderizarWizard(); };
+      body.querySelectorAll('.choice-row').forEach(row => {
+        row.onclick = () => { wizardState.motivo = row.dataset.motivo; wizardState.step = 3; renderizarWizard(); };
+      });
+    }
+
+    if (wizardState.step === 3) {
+      body.innerHTML = `
+        <div class="selected-family-recap"><strong>${escapeHtml(nomePrincipalDe(wizardState.familiaSelecionada))}</strong>${escapeHtml(wizardState.motivo)}</div>
+        <div class="prio-grid">
+          <div class="prio-chip" data-prio="Alta">Alta</div>
+          <div class="prio-chip" data-prio="Média">Média</div>
+          <div class="prio-chip" data-prio="Baixa">Baixa</div>
+        </div>`;
+      footer.innerHTML = `<button class="btn-outline-full" id="btnVoltarWizard">Voltar</button>`;
+      document.getElementById('btnVoltarWizard').onclick = () => { wizardState.step = 2; renderizarWizard(); };
+      body.querySelectorAll('.prio-chip').forEach(chip => {
+        chip.onclick = () => { wizardState.prioridade = chip.dataset.prio; wizardState.step = 4; renderizarWizard(); };
+      });
+    }
+
+    if (wizardState.step === 4) {
+      const prioClasse = wizardState.prioridade === 'Alta' ? 'prio-alta' : wizardState.prioridade === 'Média' ? 'prio-media' : 'prio-baixa';
+      body.innerHTML = `
+        <div class="selected-family-recap">
+          <strong>${escapeHtml(nomePrincipalDe(wizardState.familiaSelecionada))}</strong>
+          ${escapeHtml(enderecoDe(wizardState.familiaSelecionada))}
+        </div>
+        <div class="nv-badges" style="margin-bottom:16px;">
+          <span class="badge motivo">${escapeHtml(wizardState.motivo)}</span>
+          <span class="badge ${prioClasse}">Prioridade ${wizardState.prioridade}</span>
+        </div>
+        <textarea class="obs-textarea" id="obsInput" placeholder="Observação (opcional)">${escapeHtml(wizardState.observacao)}</textarea>`;
+      footer.innerHTML = `
+        <button class="btn-outline-full" id="btnVoltarWizard">Voltar</button>
+        <button class="btn-solid-full" id="btnConfirmarWizard">Adicionar ao roteiro</button>`;
+      document.getElementById('btnVoltarWizard').onclick = () => { wizardState.step = 3; renderizarWizard(); };
+      document.getElementById('obsInput').oninput = (e) => { wizardState.observacao = e.target.value; };
+      document.getElementById('btnConfirmarWizard').onclick = confirmarAdicaoFamilia;
+    }
+  }
+
+  function buscarFamilias(termo) {
+    const box = document.getElementById('resultadosBusca');
+    const t = termo.trim().toLowerCase();
+    if (!t) { box.innerHTML = `<p style="font-size:13px; color:var(--text-muted);">Digite para buscar uma família.</p>`; return; }
+
+    const jaNoRoteiro = new Set(itensRoteiro.map(i => i.familia_id));
+    const resultados = familiasEnriquecidas.filter(f => {
+      if (jaNoRoteiro.has(f.id)) return false;
+      const alvo = `${f.logradouro || ''} ${f.numero || ''} ${f.bairro || ''} ${(f.membros || []).map(m => m.nome).join(' ')}`.toLowerCase();
+      return alvo.includes(t);
+    }).slice(0, 20);
+
+    if (resultados.length === 0) { box.innerHTML = `<p style="font-size:13px; color:var(--text-muted);">Nenhuma família encontrada (ou ela já está no roteiro de hoje).</p>`; return; }
+
+    box.innerHTML = resultados.map(f => `
+      <div class="search-result-item" data-id="${f.id}">
+        <div class="sr-name">${escapeHtml(nomePrincipalDe(f))}</div>
+        <div class="sr-sub">${escapeHtml(enderecoDe(f))}</div>
+      </div>`).join('');
+
+    box.querySelectorAll('.search-result-item').forEach(el => {
+      el.onclick = () => {
+        wizardState.familiaSelecionada = familiasPorId.get(el.dataset.id);
+        wizardState.step = 2;
+        renderizarWizard();
+      };
+    });
+  }
+
+  async function confirmarAdicaoFamilia() {
+    const f = wizardState.familiaSelecionada;
+    if (!f || !wizardState.motivo || !wizardState.prioridade) return;
+
+    const btn = document.getElementById('btnConfirmarWizard');
+    btn.disabled = true;
+    btn.textContent = 'Adicionando...';
+
+    const proximaOrdem = itensRoteiro.length ? Math.max(...itensRoteiro.map(i => i.ordem)) + 1 : 0;
+
+    const { data, error } = await db.from('roteiro_dia').insert({
+      familia_id: f.id,
+      data: hoje,
+      ordem: proximaOrdem,
+      motivo: wizardState.motivo,
+      prioridade: wizardState.prioridade,
+      observacao: wizardState.observacao || null,
+    }).select().single();
+
+    if (error) {
+      alert('Erro ao adicionar família ao roteiro: ' + error.message);
+      btn.disabled = false;
+      btn.textContent = 'Adicionar ao roteiro';
+      return;
+    }
+
+    itensRoteiro.push({ ...data, familia: f });
+    fecharDrawer();
+    renderizarTudo();
+  }
+
+  lucide.createIcons();
+  carregarPagina();
+  </script>
 </body>
 </html>
