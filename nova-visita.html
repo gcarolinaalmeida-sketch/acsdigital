@@ -131,6 +131,32 @@ textarea:focus { border-color: var(--primary); background: var(--bg-card); box-s
 .context-details div { margin-bottom: 12px; }
 
 .save-area { margin-top: 24px; }
+
+.estado-vazio, .estado-erro { font-size: 13px; color: var(--text-muted); text-align: center; }
+.estado-erro { color: var(--danger, #ef4444); }
+
+.familia-picker { margin-top: 16px; }
+.familia-picker-search {
+  display: flex; align-items: center; gap: 8px; border: 1px solid var(--border); border-radius: 10px;
+  padding: 10px 12px; color: var(--text-muted); margin-bottom: 8px;
+}
+.familia-picker-search input { flex: 1; border: none; outline: none; font-size: 14px; font-family: inherit; color: var(--text-main); background: transparent; }
+.familia-picker-item {
+  width: 100%; background: none; border: 1px solid var(--border); border-radius: 10px; margin-bottom: 6px;
+  padding: 10px 12px; display: flex; justify-content: space-between; align-items: center; cursor: pointer;
+  text-align: left; font-family: inherit; color: var(--primary);
+}
+.familia-picker-item:hover { background: var(--bg-app, #f9fafb); border-color: var(--primary); }
+.familia-picker-nome { font-size: 13px; font-weight: 600; color: var(--text-main); }
+.familia-picker-sub { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+
+.btn-trocar-familia {
+  width: 100%; margin-top: 16px; background: var(--bg-app, #f9fafb); border: 1px solid var(--border); border-radius: 10px;
+  padding: 10px; font-size: 13px; font-weight: 600; color: var(--text-muted); cursor: pointer; display: flex;
+  align-items: center; justify-content: center; gap: 6px; transition: 0.2s;
+}
+.btn-trocar-familia:hover { border-color: var(--primary); color: var(--primary); }
+
 .btn-save {
   width: 100%; background: var(--primary); color: white; border: none; padding: 16px;
   border-radius: 12px; font-size: 16px; font-weight: 600; cursor: pointer; transition: 0.2s; opacity: 0.5; pointer-events: none;
@@ -167,7 +193,6 @@ canvas { width: 100%; height: 300px; display: block; touch-action: none; cursor:
     <li><a href="familias.html"><i class="ph ph-users"></i> Famílias</a></li>
     <li><a href="mapa.html"><i class="ph ph-map-trifold"></i> Mapa</a></li>
     <li><a href="indicadores.html"><i class="ph ph-chart-line-up"></i> Indicadores</a></li>
-    <li><a href="receitas.html"><i class="ph ph-pill"></i> Receitas</a></li>
     <li class="nav-divider"></li>
     <li><a href="busca.html"><i class="ph ph-magnifying-glass"></i> Busca</a></li>
     <li><a href="configuracoes.html"><i class="ph ph-gear"></i> Configurações</a></li>
@@ -259,7 +284,7 @@ canvas { width: 100%; height: 300px; display: block; touch-action: none; cursor:
 <script>
 // A mesmíssima lógica JavaScript que você já tinha construído, aplicada aos novos IDs e Classes!
 const params = new URLSearchParams(location.search);
-const familiaId = params.get('familia_id');
+let familiaId = params.get('familia_id');
 let desfecho = null, motivo = null, assinatura = false, desenhando = false, assinou = false;
 
 const $ = id => document.getElementById(id);
@@ -269,10 +294,25 @@ let familiaCarregada = false; // só deixa salvar depois de confirmar que a fam�
 
 async function carregarContexto() {
   const info = $('familyCardInfo');
-  if(!familiaId) {
-    info.innerHTML = '<h2>Nenhuma família selecionada</h2><div class="context-meta">Volte e escolha uma família no roteiro ou na lista de famílias.</div>';
+
+  if (!familiaId) {
+    info.innerHTML = `
+      <h2>Nenhuma família selecionada</h2>
+      <div class="context-meta">Busque abaixo ou volte e escolha uma família no roteiro.</div>
+      <div class="familia-picker">
+        <div class="familia-picker-search">
+          <i class="ph ph-magnifying-glass"></i>
+          <input type="text" id="campoBuscaFamiliaVisita" placeholder="Buscar por endereço, nome ou bairro...">
+        </div>
+        <div id="resultadosBuscaFamiliaVisita"></div>
+      </div>
+    `;
+    $('campoBuscaFamiliaVisita').addEventListener('input', e => buscarFamiliaParaVisita(e.target.value));
+    $('campoBuscaFamiliaVisita').focus();
     return;
   }
+
+  info.innerHTML = '<h2>Carregando família...</h2><div class="context-meta"><i class="ph ph-spinner"></i> Buscando dados</div>';
 
   try {
     const [{ data: f, error: erroFamilia }, { data: visitasFamilia, error: erroVisitas }] = await Promise.all([
@@ -296,13 +336,80 @@ async function carregarContexto() {
         <div><strong>Moradores</strong> ${totalMoradores} cadastrado${totalMoradores === 1 ? '' : 's'} neste domicílio</div>
         <div><strong>Última Visita</strong> ${ultimaVisitaTxt}</div>
       </div>
+
+      <button type="button" class="btn-trocar-familia" id="btnTrocarFamilia"><i class="ph ph-arrows-clockwise"></i> Trocar família</button>
     `;
+    $('btnTrocarFamilia').onclick = () => {
+      familiaId = null;
+      familiaCarregada = false;
+      history.replaceState(null, '', location.pathname);
+      carregarContexto();
+    };
 
     familiaCarregada = true;
   } catch (e) {
     console.error(e);
     info.innerHTML = '<h2>Não foi possível carregar</h2><div class="context-meta">Verifique sua conexão e tente novamente.</div>';
   }
+}
+
+let buscaFamiliaTimeout = null;
+async function buscarFamiliaParaVisita(termo) {
+  clearTimeout(buscaFamiliaTimeout);
+  const container = $('resultadosBuscaFamiliaVisita');
+  const t = termo.trim();
+
+  if (t.length < 2) {
+    container.innerHTML = '';
+    return;
+  }
+
+  container.innerHTML = '<p class="estado-vazio" style="padding:12px;">Buscando…</p>';
+
+  buscaFamiliaTimeout = setTimeout(async () => {
+    const { data, error } = await db.from('familias').select('*, cidadaos(nome, e_responsavel_familiar)').order('logradouro');
+    if (error) {
+      container.innerHTML = '<p class="estado-erro">Não foi possível buscar. Verifique sua conexão.</p>';
+      return;
+    }
+
+    const termoBusca = t.toLowerCase();
+    const resultados = (data || []).filter(f => {
+      const endereco = [f.logradouro, f.numero].filter(Boolean).join(', ');
+      const responsavel = (f.cidadaos || []).find(c => c.e_responsavel_familiar)?.nome || '';
+      return endereco.toLowerCase().includes(termoBusca) ||
+        (f.bairro || '').toLowerCase().includes(termoBusca) ||
+        responsavel.toLowerCase().includes(termoBusca) ||
+        (f.cidadaos || []).some(c => (c.nome || '').toLowerCase().includes(termoBusca));
+    }).slice(0, 15);
+
+    if (resultados.length === 0) {
+      container.innerHTML = '<p class="estado-vazio" style="padding:12px;">Nenhuma família encontrada.</p>';
+      return;
+    }
+
+    container.innerHTML = resultados.map(f => {
+      const endereco = [f.logradouro, f.numero].filter(Boolean).join(', ') || 'Endereço não informado';
+      const responsavel = (f.cidadaos || []).find(c => c.e_responsavel_familiar)?.nome;
+      return `
+        <button type="button" class="familia-picker-item" data-id="${f.id}">
+          <div>
+            <div class="familia-picker-nome">${escapeHtml(endereco)}</div>
+            <div class="familia-picker-sub">${responsavel ? 'Resp: ' + escapeHtml(responsavel) + ' • ' : ''}${escapeHtml(f.bairro || '')}</div>
+          </div>
+          <i class="ph ph-caret-right"></i>
+        </button>
+      `;
+    }).join('');
+
+    container.querySelectorAll('.familia-picker-item').forEach(btn => {
+      btn.onclick = () => {
+        familiaId = btn.dataset.id;
+        history.replaceState(null, '', `${location.pathname}?familia_id=${familiaId}`);
+        carregarContexto();
+      };
+    });
+  }, 300);
 }
 
 function selecionarUnico(group, btn) {

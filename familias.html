@@ -208,7 +208,6 @@ body {
     <li><a href="familias.html" class="active"><i class="ph ph-users"></i> Famílias</a></li>
     <li><a href="mapa.html"><i class="ph ph-map-trifold"></i> Mapa</a></li>
     <li><a href="indicadores.html"><i class="ph ph-chart-line-up"></i> Indicadores</a></li>
-    <li><a href="receitas.html"><i class="ph ph-pill"></i> Receitas</a></li>
     <li class="nav-divider"></li>
     <li><a href="busca.html"><i class="ph ph-magnifying-glass"></i> Busca</a></li>
     <li><a href="configuracoes.html"><i class="ph ph-gear"></i> Configurações</a></li>
@@ -416,41 +415,18 @@ function mostrarDetalheFamilia(f) {
       const tagsTxt = tags.length > 0 ? tags.join(', ') : 'Nenhuma condição registrada';
       return `
         <div class="citizen-item">
-          <div class="citizen-info" style="cursor:pointer;" onclick="location.href='prontuario.html?id=${c.id}'">
+          <div class="citizen-info">
             <div class="citizen-name">${escapeHtml(c.nome)}${idade !== null ? ` (${idade}a)` : ''} ${c.e_responsavel_familiar ? '<span class="badge" style="background:#e0f2fe; color:#0ea5e9;">Responsável</span>' : ''}</div>
             <div class="citizen-cns">CNS: ${escapeHtml(c.cns || 'Não informado')} | ${escapeHtml(tagsTxt)}</div>
           </div>
           <div class="citizen-actions">
-            <button class="btn-icon" title="Abrir prontuário" onclick="location.href='prontuario.html?id=${c.id}'"><i class="ph ph-folder-user"></i></button>
-            <button class="btn-icon danger" title="Excluir cidadão" onclick="excluirCidadao(${c.id}, '${escapeHtml(c.nome).replace(/'/g, "\\'")}')"><i class="ph ph-trash"></i></button>
+            <button class="btn-icon" onclick="alert('Edição de cidadão ainda não está disponível nesta tela.')"><i class="ph ph-pencil-simple"></i></button>
+            <button class="btn-icon danger" onclick="alert('Exclusão de cidadão ainda não está disponível nesta tela.')"><i class="ph ph-trash"></i></button>
           </div>
         </div>
       `;
     }).join('');
   }
-}
-
-async function excluirCidadao(cidadaoId, nome) {
-  if (!confirm(`Tem certeza que deseja excluir ${nome}? Essa ação não pode ser desfeita.`)) return;
-
-  const { error } = await db.from('cidadaos').delete().eq('id', cidadaoId);
-  if (error) {
-    if (String(error.message || '').toLowerCase().includes('foreign key') || error.code === '23503') {
-      alert('Não foi possível excluir: existem visitas, receitas ou outros registros vinculados a este cidadão. Se quiser mesmo excluir, esses registros precisam ser apagados primeiro (ou o banco precisa permitir exclusão em cascata).');
-    } else {
-      alert('Erro ao excluir cidadão: ' + error.message);
-    }
-    console.error(error);
-    return;
-  }
-
-  // Atualiza os dados em memória e re-renderiza lista e detalhe sem recarregar a página
-  const familia = familiasGlobais.find(f => (f.cidadaos || []).some(c => c.id === cidadaoId));
-  if (familia) {
-    familia.cidadaos = (familia.cidadaos || []).filter(c => c.id !== cidadaoId);
-  }
-  renderizarLista();
-  if (familia) mostrarDetalheFamilia(familia);
 }
 
 // Busca e filtros
