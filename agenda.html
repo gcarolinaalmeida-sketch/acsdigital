@@ -105,6 +105,29 @@ body {
 .day-cell.selecionado .day-dot { background: white; }
 .day-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--success); }
 .day-cell.futuro { color: var(--text-muted); }
+.day-cell.recepcao { background: #fef3c7; }
+.day-cell.feriado { background: #f3f4f6; color: #9ca3af; text-decoration: line-through; }
+.day-cell.recepcao.selecionado, .day-cell.feriado.selecionado { color: white; text-decoration: none; }
+
+.planning-card {
+  margin: 0 40px 40px; background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 20px 24px; box-shadow: 0 1px 2px rgba(0,0,0,0.02);
+}
+.planning-title { font-size: 13px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 14px; }
+.planning-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 12px; }
+.planning-stat .val { font-size: 22px; font-weight: 700; }
+.planning-stat .lbl { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+.planning-note { font-size: 12px; color: var(--text-muted); }
+.planning-note a { color: var(--primary); text-decoration: none; font-weight: 600; }
+
+.day-type-actions { display: flex; gap: 8px; margin-top: 16px; }
+.btn-day-type {
+  flex: 1; background: var(--bg-app); border: 1px solid var(--border); border-radius: 10px;
+  padding: 10px; font-size: 12px; font-weight: 600; color: var(--text-muted); cursor: pointer; transition: 0.2s;
+}
+.btn-day-type:hover { border-color: var(--primary); color: var(--primary); }
+.btn-day-type.active.recepcao { background: #fef3c7; border-color: #f59e0b; color: #92600a; }
+.btn-day-type.active.feriado { background: #f3f4f6; border-color: #9ca3af; color: #374151; }
 
 .legend-row { display: flex; gap: 16px; margin-top: 24px; font-size: 12px; color: var(--text-muted); justify-content: center;}
 .legend-row span { display: flex; align-items: center; gap: 6px; }
@@ -185,7 +208,28 @@ body {
       <div class="legend-row">
         <span><span class="legend-dot" style="background: var(--success);"></span> Com visitas</span>
         <span><span class="legend-dot" style="background: var(--primary); border: 2px solid var(--primary-light);"></span> Hoje</span>
+        <span><span class="legend-dot" style="background: #fef3c7; border: 1px solid #f59e0b;"></span> Recepção</span>
+        <span><span class="legend-dot" style="background: #f3f4f6; border: 1px solid #9ca3af;"></span> Feriado</span>
       </div>
+    </div>
+
+    <div class="planning-card">
+      <div class="planning-title"><i class="ph ph-calculator"></i> Planejamento do mês exibido</div>
+      <div class="planning-grid">
+        <div class="planning-stat">
+          <div class="val" id="planDiasUteis">—</div>
+          <div class="lbl">Dias úteis no mês</div>
+        </div>
+        <div class="planning-stat">
+          <div class="val" id="planMeta">—</div>
+          <div class="lbl">Meta de visitas no mês</div>
+        </div>
+        <div class="planning-stat">
+          <div class="val" id="planPorDia">—</div>
+          <div class="lbl">Visitas por dia útil</div>
+        </div>
+      </div>
+      <div class="planning-note">Clique num dia do calendário para marcá-lo como recepção ou feriado. Meta mensal ajustável em <a href="configuracoes.html">Configurações</a>.</div>
     </div>
   </div>
 
@@ -201,6 +245,38 @@ let dataReferencia = new Date();
 let diaSelecionadoISO = hojeISO();
 let familiasPorId = new Map();
 let visitasPorDia = new Map(); // 'YYYY-MM-DD' -> [visita, ...]
+
+function ehFimDeSemana(iso) {
+  const dia = new Date(iso + 'T00:00:00').getDay();
+  return dia === 0 || dia === 6;
+}
+
+function calcularDiasUteisDoMes(ano, mes, cfg) {
+  const totalDiasMes = new Date(ano, mes + 1, 0).getDate();
+  const feriados = new Set(cfg.feriados || []);
+  const recepcao = new Set(cfg.diasRecepcao || []);
+  let uteis = 0;
+  for (let d = 1; d <= totalDiasMes; d++) {
+    const iso = `${ano}-${String(mes + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+    if (ehFimDeSemana(iso)) continue;
+    if (feriados.has(iso) || recepcao.has(iso)) continue;
+    uteis++;
+  }
+  return uteis;
+}
+
+function renderizarPlanejamentoMes() {
+  const cfg = obterConfiguracaoLocal();
+  const ano = dataReferencia.getFullYear();
+  const mes = dataReferencia.getMonth();
+  const diasUteis = calcularDiasUteisDoMes(ano, mes, cfg);
+  const meta = cfg.metaMensalVisitas || 0;
+  const porDia = diasUteis > 0 ? Math.ceil(meta / diasUteis) : 0;
+
+  document.getElementById('planDiasUteis').textContent = diasUteis;
+  document.getElementById('planMeta').textContent = meta;
+  document.getElementById('planPorDia').textContent = diasUteis > 0 ? porDia : '—';
+}
 
 async function carregarAgenda() {
   try {
@@ -224,6 +300,9 @@ function renderizarCalendario() {
   const ano = dataReferencia.getFullYear();
   const mes = dataReferencia.getMonth();
   const hoje = hojeISO();
+  const cfg = obterConfiguracaoLocal();
+  const feriados = new Set(cfg.feriados || []);
+  const recepcao = new Set(cfg.diasRecepcao || []);
 
   document.getElementById('mesLabel').textContent = dataReferencia.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
 
@@ -243,6 +322,8 @@ function renderizarCalendario() {
     if (c.iso === hoje) classes.push('hoje');
     if (c.iso === diaSelecionadoISO) classes.push('selecionado');
     if (c.iso > hoje) classes.push('futuro');
+    if (feriados.has(c.iso)) classes.push('feriado');
+    else if (recepcao.has(c.iso)) classes.push('recepcao');
     const temVisita = (visitasPorDia.get(c.iso) || []).length > 0;
     return `
       <div class="${classes.join(' ')}" onclick="selecionarDia('${c.iso}')">
@@ -251,6 +332,8 @@ function renderizarCalendario() {
       </div>
     `;
   }).join('');
+
+  renderizarPlanejamentoMes();
 }
 
 function selecionarDia(iso) {
@@ -264,6 +347,20 @@ function renderizarPainelDia(iso) {
   const hoje = hojeISO();
   const dataObj = new Date(iso + 'T00:00:00');
   const labelData = dataObj.toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long' });
+  const cfg = obterConfiguracaoLocal();
+  const ehRecepcao = (cfg.diasRecepcao || []).includes(iso);
+  const ehFeriado = (cfg.feriados || []).includes(iso);
+
+  const botoesTipoDia = `
+    <div class="day-type-actions">
+      <button type="button" class="btn-day-type recepcao ${ehRecepcao ? 'active' : ''}" onclick="alternarTipoDia('${iso}', 'recepcao')">
+        <i class="ph ph-desk"></i> ${ehRecepcao ? 'Remover recepção' : 'Marcar recepção'}
+      </button>
+      <button type="button" class="btn-day-type feriado ${ehFeriado ? 'active' : ''}" onclick="alternarTipoDia('${iso}', 'feriado')">
+        <i class="ph ph-flag"></i> ${ehFeriado ? 'Remover feriado' : 'Marcar feriado'}
+      </button>
+    </div>
+  `;
 
   if (iso > hoje) {
     panel.innerHTML = `
@@ -272,6 +369,7 @@ function renderizarPainelDia(iso) {
         <div class="day-panel-sub">Data futura</div>
       </div>
       <p class="estado-vazio-futuro">Ainda não existe um sistema de agendamento por data — o roteiro do dia é montado por prioridade clínica em "Meu Roteiro".</p>
+      ${botoesTipoDia}
     `;
     return;
   }
@@ -283,6 +381,7 @@ function renderizarPainelDia(iso) {
       <div class="day-panel-title">${labelData}</div>
       <div class="day-panel-sub">${visitasDoDia.length} visita${visitasDoDia.length === 1 ? '' : 's'} registrada${visitasDoDia.length === 1 ? '' : 's'}</div>
     </div>
+    ${botoesTipoDia}
   `;
 
   if (visitasDoDia.length === 0) {
@@ -307,6 +406,24 @@ function renderizarPainelDia(iso) {
   }
 
   panel.innerHTML = html;
+}
+
+function alternarTipoDia(iso, tipo) {
+  const cfg = obterConfiguracaoLocal();
+  const feriados = new Set(cfg.feriados || []);
+  const recepcao = new Set(cfg.diasRecepcao || []);
+
+  if (tipo === 'feriado') {
+    if (feriados.has(iso)) feriados.delete(iso);
+    else { feriados.add(iso); recepcao.delete(iso); }
+  } else {
+    if (recepcao.has(iso)) recepcao.delete(iso);
+    else { recepcao.add(iso); feriados.delete(iso); }
+  }
+
+  salvarConfiguracaoLocal({ feriados: [...feriados], diasRecepcao: [...recepcao] });
+  renderizarCalendario();
+  renderizarPainelDia(iso);
 }
 
 document.getElementById('btnMesAnterior').onclick = () => { dataReferencia.setMonth(dataReferencia.getMonth() - 1); renderizarCalendario(); };

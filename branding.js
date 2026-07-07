@@ -20,6 +20,8 @@ const CONFIG_LOCAL_PADRAO = {
   capacidadeDiaria: 12,
   tempoMedioVisita: 20,
   metaMensalVisitas: 150,
+  diasRecepcao: [],  // datas ISO ('YYYY-MM-DD') em que a ACS fica na recepção, sem visitas
+  feriados: [],      // datas ISO ('YYYY-MM-DD') marcadas como feriado/ponto facultativo
 };
 
 function obterConfiguracaoLocal() {
