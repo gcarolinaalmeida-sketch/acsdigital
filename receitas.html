@@ -168,6 +168,45 @@ let termoBusca = '';
 
 function escapeHtml(str) { return String(str ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
 
+// As 4 funções abaixo eram chamadas mas não existiam em lugar nenhum do
+// código (nem aqui, nem em config.js/roteiro.js) — a página quebrava com
+// "function is not defined" assim que tentava carregar as receitas.
+
+// Soma o intervalo do tipo de receita à data da última renovação.
+function calcularProximaRenovacao(dataUltimaRenovacaoISO, tipo) {
+  const d = new Date(dataUltimaRenovacaoISO + 'T00:00:00');
+  if (tipo === '30_dias') d.setDate(d.getDate() + 30);
+  else if (tipo === '60_dias') d.setDate(d.getDate() + 60);
+  else if (tipo === '6_meses') d.setMonth(d.getMonth() + 6);
+  return d.toISOString().slice(0, 10);
+}
+
+// Quantos dias faltam (negativo = já passou) até a data informada.
+function diasParaData(dataISO) {
+  const hoje = new Date();
+  hoje.setHours(0, 0, 0, 0);
+  const alvo = new Date(dataISO + 'T00:00:00');
+  return Math.round((alvo - hoje) / 86400000);
+}
+
+// Domingo a sábado da semana atual, em ISO (comparável direto com outras datas ISO).
+function limitesSemanaAtual() {
+  const hoje = new Date();
+  hoje.setHours(0, 0, 0, 0);
+  const inicio = new Date(hoje);
+  inicio.setDate(hoje.getDate() - hoje.getDay());
+  const fim = new Date(inicio);
+  fim.setDate(inicio.getDate() + 6);
+  return { inicio: inicio.toISOString().slice(0, 10), fim: fim.toISOString().slice(0, 10) };
+}
+
+function labelTipoReceita(tipo) {
+  if (tipo === '30_dias') return 'Renovação a cada 30 dias';
+  if (tipo === '60_dias') return 'Renovação a cada 60 dias';
+  if (tipo === '6_meses') return 'Renovação a cada 6 meses';
+  return 'Uso contínuo';
+}
+
 async function carregarReceitas() {
   const lista = document.getElementById('receitasList');
   const { data, error } = await db.from('receitas')

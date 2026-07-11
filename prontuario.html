@@ -163,6 +163,33 @@ body {
   background: var(--bg-card); border: 1px solid var(--border); font-size: 12px; 
   padding: 6px 10px; border-radius: 8px; font-weight: 600; color: var(--text-muted); 
 }
+
+/* Receitas Ativas (nova seção) */
+.section-title.com-acao { justify-content: space-between; }
+.btn-nova-receita { background: var(--primary-light); color: var(--primary); border: none; font-size: 12.5px; font-weight: 700; padding: 8px 12px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; gap: 6px; }
+.btn-nova-receita:hover { background: var(--primary); color: white; }
+
+.receita-form { background: var(--bg-app); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; margin-bottom: 20px; }
+.form-row { margin-bottom: 14px; }
+.form-row label { display: block; font-size: 12.5px; font-weight: 600; color: var(--text-muted); margin-bottom: 6px; }
+.form-row input, .form-row select, .form-row textarea { width: 100%; border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; font-size: 14px; font-family: inherit; outline: none; background: var(--bg-card); }
+.form-row input:focus, .form-row select:focus, .form-row textarea:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(14,165,233,0.1); }
+.form-row textarea { resize: vertical; }
+.form-row-split { display: flex; gap: 12px; }
+.form-row-split > div { flex: 1; }
+.form-actions { display: flex; justify-content: flex-end; gap: 10px; }
+.btn-cancelar-receita { background: none; border: 1px solid var(--border); color: var(--text-muted); padding: 10px 16px; border-radius: 10px; font-weight: 600; font-size: 13px; cursor: pointer; }
+.btn-cancelar-receita:hover { background: #f3f4f6; }
+.btn-salvar-receita { background: var(--primary); color: white; border: none; padding: 10px 16px; border-radius: 10px; font-weight: 600; font-size: 13px; cursor: pointer; }
+.btn-salvar-receita:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.receita-mini { background: var(--bg-app); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+.receita-mini-nome { font-size: 14px; font-weight: 700; }
+.receita-mini-meta { font-size: 12.5px; color: var(--text-muted); margin-top: 2px; }
+.receita-mini-status { font-size: 11.5px; font-weight: 700; padding: 4px 8px; border-radius: 6px; white-space: nowrap; }
+.receita-mini-status.atrasada { background: var(--danger-light); color: var(--danger); }
+.receita-mini-status.em-breve { background: var(--warning-light); color: #b45309; }
+.receita-mini-status.ok { background: var(--success-light); color: #047857; }
 </style>
 </head>
 <body>
@@ -180,6 +207,7 @@ body {
     <li><a href="familias.html" class="active"><i class="ph ph-users"></i> Famílias</a></li>
     <li><a href="mapa.html"><i class="ph ph-map-trifold"></i> Mapa</a></li>
     <li><a href="indicadores.html"><i class="ph ph-chart-line-up"></i> Indicadores</a></li>
+    <li><a href="receitas.html"><i class="ph ph-pill"></i> Receitas</a></li>
     <li class="nav-divider"></li>
     <li><a href="busca.html"><i class="ph ph-magnifying-glass"></i> Busca</a></li>
     <li><a href="configuracoes.html"><i class="ph ph-gear"></i> Configurações</a></li>
@@ -218,6 +246,48 @@ body {
 
   <!-- PAINEL DIREITO: Timeline -->
   <div class="timeline-panel">
+    <div class="section-title com-acao">
+      <span><i class="ph ph-pill"></i> Receitas Ativas</span>
+      <button class="btn-nova-receita" id="btnNovaReceita"><i class="ph ph-plus"></i> Nova Receita</button>
+    </div>
+
+    <div class="receita-form" id="receitaForm" style="display:none;">
+      <div class="form-row">
+        <label>Medicamento</label>
+        <input type="text" id="campoMedicamento" placeholder="Ex: Losartana 50mg">
+      </div>
+      <div class="form-row">
+        <label>Posologia</label>
+        <input type="text" id="campoPosologia" placeholder="Ex: 1 comprimido ao dia">
+      </div>
+      <div class="form-row form-row-split">
+        <div>
+          <label>Renovar a cada</label>
+          <select id="campoTipoReceita">
+            <option value="30_dias">30 dias</option>
+            <option value="60_dias">60 dias</option>
+            <option value="6_meses">6 meses</option>
+          </select>
+        </div>
+        <div>
+          <label>Última renovação</label>
+          <input type="date" id="campoDataRenovacao">
+        </div>
+      </div>
+      <div class="form-row">
+        <label>Observações (opcional)</label>
+        <textarea id="campoObsReceita" rows="2"></textarea>
+      </div>
+      <div class="form-actions">
+        <button class="btn-cancelar-receita" id="btnCancelarReceita">Cancelar</button>
+        <button class="btn-salvar-receita" id="btnSalvarReceita">Salvar receita</button>
+      </div>
+    </div>
+
+    <div id="receitasCidadaoList" style="margin-bottom: 32px;">
+      <p style="color: var(--text-muted); font-size: 14px;">Carregando receitas...</p>
+    </div>
+
     <div class="section-title"><i class="ph ph-clock-counter-clockwise"></i> Histórico Clínico e Territorial</div>
     <div class="timeline" id="timelineList">
       <p style="color: var(--text-muted);">Carregando histórico...</p>
@@ -234,6 +304,119 @@ const aiTextArea = document.getElementById('aiTextArea');
 const btnSave = document.getElementById('btnSave');
 const timelineList = document.getElementById('timelineList');
 let cidadaoAtual = null;
+
+function escapeHtml(str) { return String(str ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+
+function calcularProximaRenovacao(dataUltimaRenovacaoISO, tipo) {
+  const d = new Date(dataUltimaRenovacaoISO + 'T00:00:00');
+  if (tipo === '30_dias') d.setDate(d.getDate() + 30);
+  else if (tipo === '60_dias') d.setDate(d.getDate() + 60);
+  else if (tipo === '6_meses') d.setMonth(d.getMonth() + 6);
+  return d.toISOString().slice(0, 10);
+}
+
+function diasParaData(dataISO) {
+  const hoje = new Date();
+  hoje.setHours(0, 0, 0, 0);
+  const alvo = new Date(dataISO + 'T00:00:00');
+  return Math.round((alvo - hoje) / 86400000);
+}
+
+function labelTipoReceita(tipo) {
+  if (tipo === '30_dias') return 'a cada 30 dias';
+  if (tipo === '60_dias') return 'a cada 60 dias';
+  if (tipo === '6_meses') return 'a cada 6 meses';
+  return 'uso contínuo';
+}
+
+async function carregarReceitasCidadao(cidadaoId) {
+  const box = document.getElementById('receitasCidadaoList');
+
+  const { data, error } = await db
+    .from('receitas')
+    .select('*')
+    .eq('cidadao_id', cidadaoId)
+    .eq('ativa', true)
+    .order('data_ultima_renovacao', { ascending: false });
+
+  if (error) {
+    box.innerHTML = `<p style="color: var(--danger); font-size: 14px;">Não foi possível carregar as receitas.</p>`;
+    console.error(error);
+    return;
+  }
+
+  if (!data || data.length === 0) {
+    box.innerHTML = `<p style="color: var(--text-muted); font-size: 14px;">Nenhuma receita de uso contínuo cadastrada.</p>`;
+    return;
+  }
+
+  box.innerHTML = data.map(r => {
+    const proxima = calcularProximaRenovacao(r.data_ultima_renovacao, r.tipo);
+    const dias = diasParaData(proxima);
+    let statusClasse = 'ok', statusTexto = `em ${dias}d`;
+    if (dias < 0) { statusClasse = 'atrasada'; statusTexto = `atrasada ${Math.abs(dias)}d`; }
+    else if (dias <= 7) { statusClasse = 'em-breve'; statusTexto = dias === 0 ? 'hoje' : `em ${dias}d`; }
+
+    return `
+      <div class="receita-mini">
+        <div>
+          <div class="receita-mini-nome">${escapeHtml(r.medicamento)}${r.posologia ? ' — ' + escapeHtml(r.posologia) : ''}</div>
+          <div class="receita-mini-meta">Renovação ${labelTipoReceita(r.tipo)} · próxima: ${formatarDataBR(proxima)}</div>
+        </div>
+        <span class="receita-mini-status ${statusClasse}">${statusTexto}</span>
+      </div>
+    `;
+  }).join('');
+}
+
+const btnNovaReceita = document.getElementById('btnNovaReceita');
+const receitaForm = document.getElementById('receitaForm');
+const btnCancelarReceita = document.getElementById('btnCancelarReceita');
+const btnSalvarReceita = document.getElementById('btnSalvarReceita');
+
+btnNovaReceita.onclick = () => {
+  const abrindo = receitaForm.style.display === 'none';
+  receitaForm.style.display = abrindo ? 'block' : 'none';
+  if (abrindo) document.getElementById('campoDataRenovacao').value = new Date().toISOString().slice(0, 10);
+};
+
+btnCancelarReceita.onclick = () => {
+  receitaForm.style.display = 'none';
+  document.getElementById('campoMedicamento').value = '';
+  document.getElementById('campoPosologia').value = '';
+  document.getElementById('campoObsReceita').value = '';
+};
+
+btnSalvarReceita.onclick = async () => {
+  if (!cidadaoAtual) { alert('Não é possível salvar uma receita sem um cidadão carregado.'); return; }
+
+  const medicamento = document.getElementById('campoMedicamento').value.trim();
+  const dataRenovacao = document.getElementById('campoDataRenovacao').value;
+  if (!medicamento) { alert('Informe o nome do medicamento.'); return; }
+  if (!dataRenovacao) { alert('Informe a data da última renovação.'); return; }
+
+  btnSalvarReceita.disabled = true;
+  btnSalvarReceita.textContent = 'Salvando...';
+
+  const novaReceita = {
+    cidadao_id: cidadaoAtual.id,
+    medicamento,
+    posologia: document.getElementById('campoPosologia').value.trim() || null,
+    tipo: document.getElementById('campoTipoReceita').value,
+    data_ultima_renovacao: dataRenovacao,
+    observacoes: document.getElementById('campoObsReceita').value.trim() || null,
+  };
+
+  const { error } = await db.from('receitas').insert(novaReceita);
+
+  btnSalvarReceita.disabled = false;
+  btnSalvarReceita.textContent = 'Salvar receita';
+
+  if (error) { alert('Erro ao salvar a receita: ' + error.message); console.error(error); return; }
+
+  btnCancelarReceita.onclick();
+  await carregarReceitasCidadao(cidadaoAtual.id);
+};
 
 async function carregarProntuario() {
   if (!cidadaoId) {
@@ -280,6 +463,9 @@ async function carregarProntuario() {
         </div>
       </div>
     `;
+
+    document.getElementById('receitasCidadaoList').innerHTML =
+      `<p style="color: var(--text-muted); font-size: 14px;">Sem cidadão carregado (modo de demonstração) — abra esta página a partir de "Famílias" para ver receitas reais.</p>`;
     return;
   }
 
@@ -299,6 +485,7 @@ async function carregarProntuario() {
   cidadaoAtual = cidadao;
   renderizarPatientCard(cidadao);
   renderizarAlertas(cidadao);
+  await carregarReceitasCidadao(cidadao.id);
   await renderizarTimeline(cidadao.id);
 }
 
