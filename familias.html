@@ -415,14 +415,14 @@ function mostrarDetalheFamilia(f) {
       const tags = condicoesDe(c);
       const tagsTxt = tags.length > 0 ? tags.join(', ') : 'Nenhuma condição registrada';
       return `
-        <div class="citizen-item">
+        <div class="citizen-item" onclick="location.href='prontuario.html?id=${c.id}'" style="cursor:pointer;">
           <div class="citizen-info">
             <div class="citizen-name">${escapeHtml(c.nome)}${idade !== null ? ` (${idade}a)` : ''} ${c.e_responsavel_familiar ? '<span class="badge" style="background:#e0f2fe; color:#0ea5e9;">Responsável</span>' : ''}</div>
             <div class="citizen-cns">CNS: ${escapeHtml(c.cns || 'Não informado')} | ${escapeHtml(tagsTxt)}</div>
           </div>
           <div class="citizen-actions">
-            <button class="btn-icon" onclick="alert('Edição de cidadão ainda não está disponível nesta tela.')"><i class="ph ph-pencil-simple"></i></button>
-            <button class="btn-icon danger" onclick="alert('Exclusão de cidadão ainda não está disponível nesta tela.')"><i class="ph ph-trash"></i></button>
+            <button class="btn-icon" onclick="event.stopPropagation(); alert('Edição de cidadão ainda não está disponível nesta tela.')"><i class="ph ph-pencil-simple"></i></button>
+            <button class="btn-icon danger" onclick="event.stopPropagation(); alert('Exclusão de cidadão ainda não está disponível nesta tela.')"><i class="ph ph-trash"></i></button>
           </div>
         </div>
       `;

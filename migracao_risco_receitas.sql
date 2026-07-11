@@ -14,7 +14,7 @@ alter table cidadaos
 -- ============================================================================
 create table if not exists receitas (
     id bigint generated always as identity primary key,
-    cidadao_id bigint not null references cidadaos(id) on delete cascade,
+    cidadao_id uuid not null references cidadaos(id) on delete cascade,
     medicamento text not null,
     posologia text,
     tipo text not null check (tipo in ('30_dias', '60_dias', '6_meses')),
@@ -31,10 +31,11 @@ alter table receitas enable row level security;
 
 -- Se você AINDA NÃO rodou o rls_restringir_autenticados.sql (ou seja, o banco
 -- ainda está com leitura/escrita pública para "anon"), rode esta política:
-create policy if not exists "leitura publica temporaria" on receitas
+drop policy if exists "leitura publica temporaria" on receitas;
+create policy "leitura publica temporaria" on receitas
   for all using (true) with check (true);
 
 -- Se você JÁ rodou o rls_restringir_autenticados.sql (banco exige login),
--- comente a política acima e descomente esta:
+-- comente as duas linhas acima e descomente esta:
 -- create policy "acesso total para autenticados" on receitas
 --   for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');

@@ -6,11 +6,6 @@
 -- prioridade/observação escolhidos ao adicionar. Sem essa tabela, o roteiro
 -- era só calculado na hora (calcularRoteiroDoDia, em roteiro.js) e não podia
 -- ser reordenado nem editado.
---
--- IMPORTANTE - antes de rodar, confira o tipo da coluna "id" na sua tabela
--- "familias" (Table Editor > familias > coluna id). Se for "uuid", pode rodar
--- direto. Se for "bigint"/"int8", troque a linha "familia_id uuid ..." abaixo
--- para "familia_id bigint not null references familias(id) on delete cascade".
 -- ============================================================================
 
 create table if not exists roteiro_dia (
