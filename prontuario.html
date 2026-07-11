@@ -93,6 +93,14 @@ body {
 .patient-name { font-size: 24px; font-weight: 700; margin-bottom: 6px; letter-spacing: -0.02em;}
 .patient-info { font-size: 14px; color: var(--text-muted); line-height: 1.5; }
 .badges { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 16px; }
+.info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 16px; font-size: 13.5px; color: var(--text-muted); margin: 16px 0; padding: 14px 0; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+.info-grid strong { color: var(--text-main); font-weight: 600; }
+.badge.risco-alto { background: var(--danger-light); color: var(--danger); }
+.badge.risco-intermediario { background: var(--warning-light); color: #b45309; }
+.badge.risco-habitual { background: var(--success-light); color: #047857; }
+.badge.vulnerabilidade { background: #f3e8ff; color: #7e22ce; }
+.obs-risco-box { background: var(--bg-app); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; margin-top: 16px; font-size: 13.5px; color: var(--text-main); line-height: 1.5; }
+.obs-risco-box strong { display: block; font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); margin-bottom: 6px; font-weight: 700; }
 .badge { 
   padding: 6px 12px; border-radius: 8px; font-size: 12px; font-weight: 600; 
   background: var(--primary-light); color: var(--primary); display: flex; align-items: center; gap: 4px;
@@ -494,19 +502,35 @@ function renderizarPatientCard(c) {
   const condicoes = c.condicoes_saude || [];
   const badgesHtml = condicoes.map(cond => {
     let icon = cond.condicao === 'Hipertensão' ? '<i class="ph ph-heartbeat"></i>' : cond.condicao === 'Diabetes' ? '<i class="ph ph-drop"></i>' : '<i class="ph ph-tag"></i>';
-    return `<span class="badge">${icon} ${cond.condicao}</span>`;
+    return `<span class="badge">${icon} ${escapeHtml(cond.condicao)}</span>`;
   }).join('');
+
+  const riscoClasse = c.classificacao_risco === 'Alto Risco' ? 'risco-alto' : c.classificacao_risco === 'Intermediário' ? 'risco-intermediario' : c.classificacao_risco === 'Habitual' ? 'risco-habitual' : '';
+  const riscoBadge = c.classificacao_risco ? `<span class="badge ${riscoClasse}"><i class="ph ph-shield-warning"></i> ${escapeHtml(c.classificacao_risco)}</span>` : '';
+
+  const vulnerabilidadesHtml = (c.vulnerabilidade || [])
+    .map(v => `<span class="badge vulnerabilidade"><i class="ph ph-warning-circle"></i> ${escapeHtml(v)}</span>`)
+    .join('');
+
+  const sexoTexto = c.sexo === 'FEMININO' ? 'Feminino' : c.sexo === 'MASCULINO' ? 'Masculino' : c.sexo;
+  const enderecoCompleto = c.familias ? [c.familias.logradouro, c.familias.numero].filter(Boolean).join(', ') + (c.familias.bairro ? ' - ' + c.familias.bairro : '') : '';
 
   document.getElementById('patientCard').innerHTML = `
     <div class="patient-avatar"><i class="ph ph-user"></i></div>
-    <div class="patient-name">${c.nome}</div>
+    <div class="patient-name">${escapeHtml(c.nome)}</div>
     <div class="patient-info">
-      ${idade !== null ? idade + ' anos' : 'idade não informada'} 
-      ${c.data_nascimento ? '(Nasc: ' + formatarDataBR(c.data_nascimento) + ')' : ''} <br>
-      CNS: ${c.cns || 'não informado'}
-      ${c.familias ? ' | 📍 ' + [c.familias.logradouro, c.familias.numero].filter(Boolean).join(', ') : ''}
+      ${idade !== null ? idade + ' anos' : 'idade não informada'}
+      ${c.data_nascimento ? '(Nasc: ' + formatarDataBR(c.data_nascimento) + ')' : ''}
+      ${sexoTexto ? ' · ' + escapeHtml(sexoTexto) : ''}
+      ${enderecoCompleto ? '<br>📍 ' + escapeHtml(enderecoCompleto) : ''}
     </div>
-    <div class="badges">${badgesHtml}</div>
+    <div class="info-grid">
+      <div>CNS: <strong>${escapeHtml(c.cns || 'não informado')}</strong></div>
+      <div>CPF: <strong>${escapeHtml(c.cpf || 'não informado')}</strong></div>
+      <div>Responsável familiar: <strong>${c.e_responsavel_familiar ? 'Sim' : 'Não'}</strong></div>
+    </div>
+    <div class="badges">${riscoBadge}${badgesHtml}${vulnerabilidadesHtml}</div>
+    ${c.obs_risco_vulnerabilidade ? `<div class="obs-risco-box"><strong>Observações de risco e vulnerabilidade</strong>${escapeHtml(c.obs_risco_vulnerabilidade)}</div>` : ''}
   `;
 }
 
