@@ -11,6 +11,7 @@
 <script>protegerPagina();</script>
 <script src="branding.js"></script>
 <script src="roteiro.js"></script>
+<script src="offline.js"></script>
 
 <style>
 /* ============================================================================
@@ -219,6 +220,7 @@ body { background-color: var(--bg-color); color: var(--text-main); display: flex
       <li><a href="mapa.html"><i data-lucide="map"></i> Mapa</a></li>
       <li><a href="indicadores.html"><i data-lucide="bar-chart-2"></i> Indicadores</a></li>
       <li><a href="receitas.html"><i data-lucide="pill"></i> Receitas</a></li>
+      <li><a href="relatorio-visitas.html"><i data-lucide="file-text"></i> Relatório de Visitas</a></li>
       <li class="nav-divider"></li>
       <li><a href="busca.html"><i data-lucide="search"></i> Busca</a></li>
       <li><a href="configuracoes.html"><i data-lucide="settings"></i> Configurações</a></li>
@@ -335,11 +337,30 @@ body { background-color: var(--bg-color); color: var(--text-main); display: flex
   // ---------------------------------------------------------------------
   // Carregamento inicial
   // ---------------------------------------------------------------------
+  const ROTEIRO_CACHE_KEY = 'acs_roteiro_dia_cache_v1';
+
+  function salvarRoteiroDiaCache(linhas) {
+    try { localStorage.setItem(ROTEIRO_CACHE_KEY, JSON.stringify({ data: hoje, linhas, ts: Date.now() })); }
+    catch (e) { /* segue sem cache */ }
+  }
+
+  function lerRoteiroDiaCache() {
+    try {
+      const raw = localStorage.getItem(ROTEIRO_CACHE_KEY);
+      if (!raw) return null;
+      const parsed = JSON.parse(raw);
+      if (parsed.data !== hoje) return null; // cache de outro dia não serve
+      return parsed.linhas;
+    } catch (e) { return null; }
+  }
+
   async function carregarPagina() {
     sessaoAtual = await protegerPagina();
     cfg = obterConfiguracaoLocal();
 
     document.getElementById('saudacao').textContent = `${saudacaoPorHorario()}, ${nomeDoUsuario()} 👋`;
+
+    let modoSomenteLeitura = false;
 
     try {
       const resultado = await carregarFamiliasEnriquecidas();
@@ -347,36 +368,72 @@ body { background-color: var(--bg-color); color: var(--text-main); display: flex
       familiasEnriquecidas.forEach(f => { f.prio = calcularPrioridade(f); });
       familiasPorId = new Map(familiasEnriquecidas.map(f => [f.id, f]));
 
-      const { data: roteiroSalvo, error: erroRoteiro } = await db
-        .from('roteiro_dia')
-        .select('*')
-        .eq('data', hoje)
-        .order('ordem');
+      let linhas = [];
 
-      if (erroRoteiro) throw erroRoteiro;
+      try {
+        const promiseRoteiro = db.from('roteiro_dia').select('*').eq('data', hoje).order('ordem');
+        const promiseTimeout = new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 8000));
+        const { data: roteiroSalvo, error: erroRoteiro } = await Promise.race([promiseRoteiro, promiseTimeout]);
+        if (erroRoteiro) throw erroRoteiro;
 
-      let linhas = roteiroSalvo || [];
+        linhas = roteiroSalvo || [];
 
-      // Primeira vez que a página é aberta hoje: semeia o roteiro com a
-      // heurística de prioridade existente, pra já vir com algo.
-      if (linhas.length === 0 && familiasEnriquecidas.length > 0) {
-        const heuristica = calcularRoteiroDoDia(familiasEnriquecidas, cfg.capacidadeDiaria);
-        const novasLinhas = heuristica.map((f, i) => ({
-          familia_id: f.id,
-          data: hoje,
-          ordem: i,
-          motivo: null,
-          prioridade: mapNivelParaPrioridade(f.prio.nivel),
-        }));
-        const { data: inseridas, error: erroSeed } = await db.from('roteiro_dia').insert(novasLinhas).select();
-        if (erroSeed) throw erroSeed;
-        linhas = inseridas || [];
+        // Primeira vez que a página é aberta hoje: semeia o roteiro com a
+        // heurística de prioridade existente, pra já vir com algo.
+        if (linhas.length === 0 && familiasEnriquecidas.length > 0) {
+          const heuristica = calcularRoteiroDoDia(familiasEnriquecidas, cfg.capacidadeDiaria);
+          const novasLinhas = heuristica.map((f, i) => ({
+            familia_id: f.id,
+            data: hoje,
+            ordem: i,
+            motivo: null,
+            prioridade: mapNivelParaPrioridade(f.prio.nivel),
+          }));
+          const { data: inseridas, error: erroSeed } = await db.from('roteiro_dia').insert(novasLinhas).select();
+          if (erroSeed) throw erroSeed;
+          linhas = inseridas || [];
+        }
+
+        salvarRoteiroDiaCache(linhas);
+      } catch (eRoteiro) {
+        console.error('Falha ao carregar/gravar roteiro_dia, tentando modo offline:', eRoteiro);
+        const cacheLinhas = lerRoteiroDiaCache();
+
+        if (cacheLinhas && cacheLinhas.length > 0) {
+          linhas = cacheLinhas;
+          modoSomenteLeitura = true;
+        } else if (familiasEnriquecidas.length > 0) {
+          // Sem cache do roteiro salvo ainda: mostra pelo menos a ordem por
+          // prioridade, calculada na hora, sem tentar gravar nada.
+          const heuristica = calcularRoteiroDoDia(familiasEnriquecidas, cfg.capacidadeDiaria);
+          linhas = heuristica.map((f, i) => ({
+            id: `offline_${f.id}`,
+            familia_id: f.id,
+            data: hoje,
+            ordem: i,
+            motivo: null,
+            prioridade: mapNivelParaPrioridade(f.prio.nivel),
+          }));
+          modoSomenteLeitura = true;
+        }
       }
 
       itensRoteiro = linhas
         .map(r => ({ ...r, familia: familiasPorId.get(r.familia_id) }))
         .filter(it => it.familia) // ignora linhas cuja família tenha sido excluída
         .sort((a, b) => a.ordem - b.ordem);
+
+      if (modoSomenteLeitura) {
+        document.getElementById('proximaVisitaZone').insertAdjacentHTML('beforebegin', `
+          <div id="avisoRoteiroOffline" style="background:#FBF1DF; color:#8A5A0F; border-radius:12px; padding:10px 14px; font-size:13px; margin-bottom:20px; display:flex; align-items:center; gap:8px;">
+            <i data-lucide="wifi-off"></i> Sem internet — mostrando o roteiro salvo neste aparelho. Reordenar e adicionar família ficam disponíveis quando a conexão voltar.
+          </div>
+        `);
+        document.getElementById('btnRecalcular').disabled = true;
+        document.getElementById('btnAdicionarFamilia').disabled = true;
+        document.getElementById('btnRecalcular').style.opacity = '0.5';
+        document.getElementById('btnAdicionarFamilia').style.opacity = '0.5';
+      }
 
       renderizarTudo();
     } catch (e) {

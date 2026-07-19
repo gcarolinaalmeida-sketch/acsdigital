@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Relatório de Visitas - ACS Digital</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
+<script src="auth.js"></script>
+<script>protegerPagina();</script>
+<script src="branding.js"></script>
+<script src="https://unpkg.com/@phosphor-icons/web"></script>
+
+<style>
+:root {
+  --bg-app: #FAFAF9; --bg-card: #FFFFFF; --text-main: #1A1A18; --text-muted: #78766F; --text-faint: #B0AEA6;
+  --border: #EAE8E3; --border-strong: #DAD7D0; --primary: #2563EB; --primary-light: #EAF1FF;
+  --success: #1F9D63; --success-light: #E7F7EE; --danger: #DC4C3E; --danger-light: #FDECEA;
+  --radius-sm: 10px; --radius-md: 14px; --radius-lg: 20px;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+body { background: var(--bg-app); color: var(--text-main); display: flex; min-height: 100vh; }
+
+.sidebar { width: 250px; background: var(--bg-card); border-right: 1px solid var(--border); padding: 28px 18px; flex-shrink: 0; }
+.sidebar h2 { font-size: 15px; font-weight: 700; }
+.sidebar span { font-size: 12.5px; color: var(--text-muted); display: block; margin-top: 2px; }
+.nav-links { margin-top: 26px; display: flex; flex-direction: column; gap: 2px; list-style: none; }
+.nav-links a { text-decoration: none; font-size: 13.5px; font-weight: 500; color: var(--text-muted); padding: 9px 12px; border-radius: var(--radius-sm); display: flex; align-items: center; gap: 11px; }
+.nav-links a i { font-size: 18px; }
+.nav-links a:hover { background: var(--bg-app); color: var(--text-main); }
+.nav-links a.active { background: var(--primary-light); color: var(--primary); font-weight: 600; }
+.nav-divider { height: 1px; background: var(--border); margin: 8px 4px; list-style: none; }
+
+.main-content { flex: 1; padding: 32px; max-width: 980px; }
+.page-title { font-size: 22px; font-weight: 700; margin-bottom: 4px; }
+.page-sub { font-size: 13.5px; color: var(--text-muted); margin-bottom: 24px; }
+
+.filters-bar { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 16px; display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap; margin-bottom: 20px; }
+.filter-field label { display: block; font-size: 11.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-bottom: 6px; }
+.filter-field input, .filter-field select { border: 1px solid var(--border-strong); border-radius: var(--radius-sm); padding: 9px 12px; font-size: 13.5px; outline: none; font-family: inherit; }
+.filter-field input:focus, .filter-field select:focus { border-color: var(--primary); }
+.btn-filtrar { background: var(--text-main); color: white; border: none; padding: 10px 18px; border-radius: var(--radius-sm); font-weight: 600; font-size: 13.5px; cursor: pointer; }
+.btn-imprimir { background: var(--bg-card); border: 1px solid var(--border-strong); color: var(--text-main); padding: 10px 18px; border-radius: var(--radius-sm); font-weight: 600; font-size: 13.5px; cursor: pointer; display: flex; align-items: center; gap: 7px; margin-left: auto; }
+.btn-imprimir:hover { border-color: var(--primary); color: var(--primary); }
+
+.summary-row { display: flex; gap: 10px; margin-bottom: 20px; }
+.summary-pill { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 14px 18px; flex: 1; }
+.summary-pill .num { font-size: 20px; font-weight: 700; }
+.summary-pill .lbl { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+
+.visit-row { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 16px 18px; margin-bottom: 10px; display: flex; gap: 16px; align-items: center; }
+.visit-info { flex: 1; min-width: 0; }
+.visit-family { font-size: 14.5px; font-weight: 700; }
+.visit-meta { font-size: 12.5px; color: var(--text-muted); margin-top: 3px; }
+.visit-obs { font-size: 12.5px; color: var(--text-muted); margin-top: 6px; font-style: italic; }
+.visit-sig-box { flex-shrink: 0; text-align: center; width: 150px; }
+.visit-sig-box img { width: 100%; height: 60px; object-fit: contain; border: 1px solid var(--border); border-radius: 8px; background: white; }
+.visit-sig-label { font-size: 10.5px; color: var(--text-muted); margin-top: 4px; }
+.badge-sem-assinatura { background: var(--bg-app); border: 1px solid var(--border); color: var(--text-faint); font-size: 11px; font-weight: 600; padding: 6px 10px; border-radius: 8px; display: inline-block; }
+
+.empty-state { text-align: center; padding: 60px 20px; color: var(--text-muted); }
+
+@media (max-width: 860px) {
+  .sidebar { display: none; }
+  .main-content { padding: 20px; }
+  .visit-row { flex-direction: column; align-items: stretch; }
+  .visit-sig-box { width: 100%; }
+}
+
+@media print {
+  .sidebar, .filters-bar, .btn-imprimir { display: none !important; }
+  .main-content { max-width: 100%; padding: 0; }
+  .visit-row { break-inside: avoid; border: 1px solid #ccc; }
+  body { background: white; }
+}
+</style>
+</head>
+<body>
+
+<aside class="sidebar">
+  <div class="sidebar-header">
+    <h2>ACS Digital</h2>
+    <span>Microárea 03</span>
+  </div>
+  <ul class="nav-links">
+    <li><a href="index.html"><i class="ph ph-squares-four"></i> Dashboard</a></li>
+    <li><a href="meu-roteiro.html"><i class="ph ph-map-pin-line"></i> Meu Roteiro</a></li>
+    <li><a href="agenda.html"><i class="ph ph-calendar-blank"></i> Agenda</a></li>
+    <li><a href="nova-visita.html"><i class="ph ph-clipboard-text"></i> Visitas</a></li>
+    <li><a href="familias.html"><i class="ph ph-users"></i> Famílias</a></li>
+    <li><a href="mapa.html"><i class="ph ph-map-trifold"></i> Mapa</a></li>
+    <li><a href="indicadores.html"><i class="ph ph-chart-line-up"></i> Indicadores</a></li>
+    <li><a href="receitas.html"><i class="ph ph-pill"></i> Receitas</a></li>
+    <li><a href="relatorio-visitas.html" class="active"><i class="ph ph-file-text"></i> Relatório de Visitas</a></li>
+    <li class="nav-divider"></li>
+    <li><a href="busca.html"><i class="ph ph-magnifying-glass"></i> Busca</a></li>
+    <li><a href="configuracoes.html"><i class="ph ph-gear"></i> Configurações</a></li>
+  </ul>
+</aside>
+
+<main class="main-content">
+  <div class="page-title">Relatório de Visitas</div>
+  <div class="page-sub">Use para comprovar as visitas realizadas — inclui a assinatura do paciente quando coletada.</div>
+
+  <div class="filters-bar">
+    <div class="filter-field">
+      <label>De</label>
+      <input type="date" id="filtroInicio">
+    </div>
+    <div class="filter-field">
+      <label>Até</label>
+      <input type="date" id="filtroFim">
+    </div>
+    <div class="filter-field">
+      <label>Assinatura</label>
+      <select id="filtroAssinatura">
+        <option value="todas">Todas as visitas</option>
+        <option value="com">Só com assinatura</option>
+        <option value="sem">Só sem assinatura</option>
+      </select>
+    </div>
+    <button class="btn-filtrar" id="btnFiltrar">Filtrar</button>
+    <button class="btn-imprimir" id="btnImprimir"><i class="ph ph-printer"></i> Imprimir / Salvar PDF</button>
+  </div>
+
+  <div class="summary-row" id="summaryRow"></div>
+
+  <div id="listaVisitas"><p style="color:var(--text-muted); padding:20px;">Carregando visitas...</p></div>
+</main>
+
+<script>
+function escapeHtml(str) { return String(str ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+
+function inicioDoMesISO() {
+  const d = new Date(); d.setDate(1); d.setHours(0,0,0,0);
+  return d.toISOString().slice(0, 10);
+}
+function hojeISO() { return new Date().toISOString().slice(0, 10); }
+
+document.getElementById('filtroInicio').value = inicioDoMesISO();
+document.getElementById('filtroFim').value = hojeISO();
+
+document.getElementById('btnFiltrar').onclick = carregarRelatorio;
+document.getElementById('btnImprimir').onclick = () => window.print();
+
+async function carregarRelatorio() {
+  const lista = document.getElementById('listaVisitas');
+  lista.innerHTML = '<p style="color:var(--text-muted); padding:20px;">Carregando visitas...</p>';
+
+  const inicio = document.getElementById('filtroInicio').value;
+  const fim = document.getElementById('filtroFim').value;
+  const filtroAssinatura = document.getElementById('filtroAssinatura').value;
+
+  const { data, error } = await db
+    .from('visitas')
+    .select('*, familias(logradouro, numero, bairro)')
+    .gte('data_visita', inicio)
+    .lte('data_visita', fim)
+    .order('data_visita', { ascending: false });
+
+  if (error) {
+    lista.innerHTML = `<p style="color:var(--danger); padding:20px;">Erro ao carregar: ${error.message}</p>`;
+    console.error(error);
+    return;
+  }
+
+  let visitas = data || [];
+  if (filtroAssinatura === 'com') visitas = visitas.filter(v => v.assinatura_base64);
+  if (filtroAssinatura === 'sem') visitas = visitas.filter(v => !v.assinatura_base64);
+
+  const comAssinatura = visitas.filter(v => v.assinatura_base64).length;
+
+  document.getElementById('summaryRow').innerHTML = `
+    <div class="summary-pill"><div class="num">${visitas.length}</div><div class="lbl">Visitas no período</div></div>
+    <div class="summary-pill"><div class="num">${comAssinatura}</div><div class="lbl">Com assinatura</div></div>
+    <div class="summary-pill"><div class="num">${visitas.length - comAssinatura}</div><div class="lbl">Sem assinatura</div></div>
+  `;
+
+  if (visitas.length === 0) {
+    lista.innerHTML = `<div class="empty-state"><p>Nenhuma visita encontrada nesse período.</p></div>`;
+    return;
+  }
+
+  lista.innerHTML = visitas.map(v => {
+    const endereco = v.familias ? [v.familias.logradouro, v.familias.numero].filter(Boolean).join(', ') + (v.familias.bairro ? ' - ' + v.familias.bairro : '') : 'Família não encontrada';
+    const dataFormatada = new Date(v.data_visita + 'T00:00:00').toLocaleDateString('pt-BR');
+
+    const assinaturaHtml = v.assinatura_base64
+      ? `<div class="visit-sig-box"><img src="${v.assinatura_base64}" alt="Assinatura"><div class="visit-sig-label">Assinado</div></div>`
+      : `<div class="visit-sig-box"><span class="badge-sem-assinatura">Sem assinatura</span>${v.assinatura_ausente_motivo ? `<div class="visit-sig-label">${escapeHtml(v.assinatura_ausente_motivo)}</div>` : ''}</div>`;
+
+    return `
+      <div class="visit-row">
+        <div class="visit-info">
+          <div class="visit-family">${escapeHtml(endereco)}</div>
+          <div class="visit-meta">${dataFormatada} · ${escapeHtml(v.desfecho || 'Sem desfecho')}${v.profissional ? ' · ' + escapeHtml(v.profissional) : ''}</div>
+          ${v.observacoes ? `<div class="visit-obs">${escapeHtml(v.observacoes)}</div>` : ''}
+        </div>
+        ${assinaturaHtml}
+      </div>
+    `;
+  }).join('');
+}
+
+carregarRelatorio();
+</script>
+</body>
+</html>

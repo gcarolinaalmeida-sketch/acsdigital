@@ -190,6 +190,20 @@ body {
 .drawer-header { padding: 20px 30px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
 .drawer-body { padding: 30px; overflow-y: auto; flex: 1; }
 
+.drawer-footer { padding: 18px 30px; border-top: 1px solid var(--border); display: flex; gap: 10px; flex-shrink: 0; }
+.form-row { margin-bottom: 16px; }
+.form-row label { display: block; font-size: 12px; font-weight: 700; color: var(--text-muted); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.02em; }
+.form-row input, .form-row select, .form-row textarea { width: 100%; border: 1px solid var(--border-strong, var(--border)); border-radius: 10px; padding: 10px 12px; font-size: 14px; font-family: inherit; outline: none; }
+.form-row input:focus, .form-row select:focus, .form-row textarea:focus { border-color: var(--primary); }
+.form-row-split { display: flex; gap: 12px; }
+.form-row-split > .form-row { flex: 1; }
+.btn-outline-full { flex: 1; background: var(--bg-card); border: 1px solid var(--border-strong, var(--border)); color: var(--text-main); padding: 12px; border-radius: 10px; font-size: 14px; font-weight: 600; cursor: pointer; }
+.btn-outline-full:hover { border-color: var(--text-main); }
+.btn-solid-full { flex: 2; background: var(--text-main, #111827); color: white; border: none; padding: 12px; border-radius: 10px; font-size: 14px; font-weight: 600; cursor: pointer; }
+.btn-solid-full:disabled { opacity: 0.6; cursor: not-allowed; }
+.chip-checkbox { display: flex; align-items: center; gap: 6px; border: 1px solid var(--border); border-radius: 20px; padding: 7px 12px; font-size: 12.5px; font-weight: 600; cursor: pointer; }
+.chip-checkbox input { width: auto; }
+
 </style>
 </head>
 <body>
@@ -209,6 +223,7 @@ body {
     <li><a href="mapa.html"><i class="ph ph-map-trifold"></i> Mapa</a></li>
     <li><a href="indicadores.html"><i class="ph ph-chart-line-up"></i> Indicadores</a></li>
     <li><a href="receitas.html"><i class="ph ph-pill"></i> Receitas</a></li>
+    <li><a href="relatorio-visitas.html"><i class="ph ph-file-text"></i> Relatório de Visitas</a></li>
     <li class="nav-divider"></li>
     <li><a href="busca.html"><i class="ph ph-magnifying-glass"></i> Busca</a></li>
     <li><a href="configuracoes.html"><i class="ph ph-gear"></i> Configurações</a></li>
@@ -290,6 +305,109 @@ body {
 
 <!-- OVERLAYS E DRAWERS (Você pode manter os seus formulários originais aqui, só apliquei a classe overlay pra modernizar a chamada) -->
 <div class="overlay" id="overlay" onclick="fecharTodosDrawers()"></div>
+
+<!-- DRAWER: Nova Família -->
+<div class="drawer" id="drawerNovaFamilia">
+  <div class="drawer-header">
+    <h3><i class="ph ph-house"></i> Nova Família</h3>
+    <button class="btn-icon" onclick="fecharTodosDrawers()"><i class="ph ph-x"></i></button>
+  </div>
+  <div class="drawer-body">
+    <div class="form-row"><label>Logradouro *</label><input type="text" id="nfLogradouro" placeholder="Ex: Rua das Flores"></div>
+    <div class="form-row-split">
+      <div class="form-row"><label>Número</label><input type="text" id="nfNumero" placeholder="Ex: 120"></div>
+      <div class="form-row"><label>Complemento</label><input type="text" id="nfComplemento" placeholder="Ex: Casa 2, Fundos"></div>
+    </div>
+    <div class="form-row-split">
+      <div class="form-row"><label>Bairro *</label><input type="text" id="nfBairro" placeholder="Ex: Centro"></div>
+      <div class="form-row"><label>CEP</label><input type="text" id="nfCep" placeholder="00000-000"></div>
+    </div>
+    <div class="form-row"><label>Tipo de imóvel</label>
+      <select id="nfTipoImovel"><option value="">Não informado</option><option>Casa</option><option>Apartamento</option><option>Barraco</option><option>Outro</option></select>
+    </div>
+    <div class="form-row"><label>Abastecimento de água</label>
+      <select id="nfAgua"><option value="">Não informado</option><option>Rede pública</option><option>Poço</option><option>Cisterna</option><option>Outro</option></select>
+    </div>
+    <div class="form-row"><label>Destino do lixo</label>
+      <select id="nfLixo"><option value="">Não informado</option><option>Coleta pública</option><option>Queimado</option><option>Enterrado</option><option>Céu aberto</option></select>
+    </div>
+  </div>
+  <div class="drawer-footer">
+    <button class="btn-outline-full" onclick="fecharTodosDrawers()">Cancelar</button>
+    <button class="btn-solid-full" id="btnSalvarNovaFamilia">Criar Família</button>
+  </div>
+</div>
+
+<!-- DRAWER: Editar Família -->
+<div class="drawer" id="drawerEditarFamilia">
+  <div class="drawer-header">
+    <h3><i class="ph ph-pencil-simple"></i> Editar Endereço</h3>
+    <button class="btn-icon" onclick="fecharTodosDrawers()"><i class="ph ph-x"></i></button>
+  </div>
+  <div class="drawer-body">
+    <div class="form-row"><label>Logradouro *</label><input type="text" id="efLogradouro"></div>
+    <div class="form-row-split">
+      <div class="form-row"><label>Número</label><input type="text" id="efNumero"></div>
+      <div class="form-row"><label>Complemento</label><input type="text" id="efComplemento"></div>
+    </div>
+    <div class="form-row-split">
+      <div class="form-row"><label>Bairro *</label><input type="text" id="efBairro"></div>
+      <div class="form-row"><label>CEP</label><input type="text" id="efCep"></div>
+    </div>
+    <div class="form-row"><label>Tipo de imóvel</label>
+      <select id="efTipoImovel"><option value="">Não informado</option><option>Casa</option><option>Apartamento</option><option>Barraco</option><option>Outro</option></select>
+    </div>
+    <div class="form-row"><label>Abastecimento de água</label>
+      <select id="efAgua"><option value="">Não informado</option><option>Rede pública</option><option>Poço</option><option>Cisterna</option><option>Outro</option></select>
+    </div>
+    <div class="form-row"><label>Destino do lixo</label>
+      <select id="efLixo"><option value="">Não informado</option><option>Coleta pública</option><option>Queimado</option><option>Enterrado</option><option>Céu aberto</option></select>
+    </div>
+  </div>
+  <div class="drawer-footer">
+    <button class="btn-outline-full" onclick="fecharTodosDrawers()">Cancelar</button>
+    <button class="btn-solid-full" id="btnSalvarEdicaoFamilia">Salvar Alterações</button>
+  </div>
+</div>
+
+<!-- DRAWER: Novo Cidadão -->
+<div class="drawer" id="drawerNovoCidadao">
+  <div class="drawer-header">
+    <h3><i class="ph ph-user-plus"></i> Novo Morador</h3>
+    <button class="btn-icon" onclick="fecharTodosDrawers()"><i class="ph ph-x"></i></button>
+  </div>
+  <div class="drawer-body">
+    <div class="form-row"><label>Nome completo *</label><input type="text" id="ncNome"></div>
+    <div class="form-row-split">
+      <div class="form-row"><label>Data de nascimento</label><input type="date" id="ncNascimento"></div>
+      <div class="form-row"><label>Sexo</label>
+        <select id="ncSexo"><option value="">Não informado</option><option value="FEMININO">Feminino</option><option value="MASCULINO">Masculino</option></select>
+      </div>
+    </div>
+    <div class="form-row-split">
+      <div class="form-row"><label>CPF</label><input type="text" id="ncCpf"></div>
+      <div class="form-row"><label>CNS</label><input type="text" id="ncCns"></div>
+    </div>
+    <div class="form-row">
+      <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+        <input type="checkbox" id="ncResponsavel" style="width:auto;"> É o responsável familiar
+      </label>
+    </div>
+    <div class="form-row">
+      <label>Condições de saúde</label>
+      <div style="display:flex; flex-wrap:wrap; gap:8px;">
+        <label class="chip-checkbox"><input type="checkbox" value="Hipertensão"> 🫀 Hipertensão</label>
+        <label class="chip-checkbox"><input type="checkbox" value="Diabetes"> 🍬 Diabetes</label>
+        <label class="chip-checkbox"><input type="checkbox" value="Gestante"> 🤰 Gestante</label>
+        <label class="chip-checkbox"><input type="checkbox" value="Acamado"> 🛏️ Acamado</label>
+      </div>
+    </div>
+  </div>
+  <div class="drawer-footer">
+    <button class="btn-outline-full" onclick="fecharTodosDrawers()">Cancelar</button>
+    <button class="btn-solid-full" id="btnSalvarNovoCidadao">Adicionar Morador</button>
+  </div>
+</div>
 
 <script>
 let familiasGlobais = [];
@@ -394,6 +512,7 @@ function renderizarLista() {
 }
 
 function mostrarDetalheFamilia(f) {
+  familiaSelecionadaAtual = f;
   document.querySelectorAll('.family-card').forEach(c => c.classList.toggle('selected', c.dataset.id === String(f.id)));
 
   document.getElementById('detailEmpty').style.display = 'none';
@@ -445,12 +564,182 @@ document.querySelectorAll('.filter-chip').forEach(chip => {
   });
 });
 
-document.getElementById('detalheBtnEditar').onclick = () => alert('Edição de endereço ainda não está disponível nesta tela.');
-document.getElementById('detalheBtnExcluir').onclick = () => alert('Exclusão de família ainda não está disponível nesta tela.');
-document.getElementById('detalheBtnAddCidadao').onclick = () => alert('Cadastro de novo morador ainda não está disponível nesta tela.');
+// ---------------------------------------------------------------------
+// Drawers (abrir/fechar)
+// ---------------------------------------------------------------------
+let familiaSelecionadaAtual = null;
 
-function abrirDrawer(id) { alert('Cadastro de nova família ainda não está disponível nesta tela.'); }
-function fecharTodosDrawers() { /* nenhum drawer implementado ainda */ }
+function abrirDrawer(id) {
+  document.getElementById('overlay').classList.add('active');
+  document.getElementById(id).classList.add('active');
+}
+function fecharTodosDrawers() {
+  document.getElementById('overlay').classList.remove('active');
+  document.querySelectorAll('.drawer').forEach(d => d.classList.remove('active'));
+}
+
+// ---------------------------------------------------------------------
+// Nova Família
+// ---------------------------------------------------------------------
+document.getElementById('btnSalvarNovaFamilia').onclick = async () => {
+  const logradouro = document.getElementById('nfLogradouro').value.trim();
+  const bairro = document.getElementById('nfBairro').value.trim();
+  if (!logradouro) { alert('Informe o logradouro.'); return; }
+  if (!bairro) { alert('Informe o bairro.'); return; }
+
+  const btn = document.getElementById('btnSalvarNovaFamilia');
+  btn.disabled = true; btn.textContent = 'Salvando...';
+
+  const { data, error } = await db.from('familias').insert({
+    logradouro,
+    numero: document.getElementById('nfNumero').value.trim() || null,
+    complemento: document.getElementById('nfComplemento').value.trim() || null,
+    bairro,
+    cep: document.getElementById('nfCep').value.trim() || null,
+    tipo_imovel: document.getElementById('nfTipoImovel').value || null,
+    abastecimento_agua: document.getElementById('nfAgua').value || null,
+    destino_lixo: document.getElementById('nfLixo').value || null,
+  }).select().single();
+
+  btn.disabled = false; btn.textContent = 'Criar Família';
+
+  if (error) { alert('Erro ao criar família: ' + error.message); console.error(error); return; }
+
+  ['nfLogradouro','nfNumero','nfComplemento','nfBairro','nfCep'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('nfTipoImovel').value = '';
+  document.getElementById('nfAgua').value = '';
+  document.getElementById('nfLixo').value = '';
+
+  fecharTodosDrawers();
+  await carregarFamilias();
+  const nova = familiasGlobais.find(f => String(f.id) === String(data.id));
+  if (nova) mostrarDetalheFamilia(nova);
+};
+
+// ---------------------------------------------------------------------
+// Editar Endereço
+// ---------------------------------------------------------------------
+document.getElementById('detalheBtnEditar').onclick = () => {
+  if (!familiaSelecionadaAtual) return;
+  const f = familiaSelecionadaAtual;
+  document.getElementById('efLogradouro').value = f.logradouro || '';
+  document.getElementById('efNumero').value = f.numero || '';
+  document.getElementById('efComplemento').value = f.complemento || '';
+  document.getElementById('efBairro').value = f.bairro || '';
+  document.getElementById('efCep').value = f.cep || '';
+  document.getElementById('efTipoImovel').value = f.tipo_imovel || '';
+  document.getElementById('efAgua').value = f.abastecimento_agua || '';
+  document.getElementById('efLixo').value = f.destino_lixo || '';
+  abrirDrawer('drawerEditarFamilia');
+};
+
+document.getElementById('btnSalvarEdicaoFamilia').onclick = async () => {
+  if (!familiaSelecionadaAtual) return;
+
+  const logradouro = document.getElementById('efLogradouro').value.trim();
+  const bairro = document.getElementById('efBairro').value.trim();
+  if (!logradouro) { alert('Informe o logradouro.'); return; }
+  if (!bairro) { alert('Informe o bairro.'); return; }
+
+  const btn = document.getElementById('btnSalvarEdicaoFamilia');
+  btn.disabled = true; btn.textContent = 'Salvando...';
+
+  const { error } = await db.from('familias').update({
+    logradouro,
+    numero: document.getElementById('efNumero').value.trim() || null,
+    complemento: document.getElementById('efComplemento').value.trim() || null,
+    bairro,
+    cep: document.getElementById('efCep').value.trim() || null,
+    tipo_imovel: document.getElementById('efTipoImovel').value || null,
+    abastecimento_agua: document.getElementById('efAgua').value || null,
+    destino_lixo: document.getElementById('efLixo').value || null,
+  }).eq('id', familiaSelecionadaAtual.id);
+
+  btn.disabled = false; btn.textContent = 'Salvar Alterações';
+
+  if (error) { alert('Erro ao salvar alterações: ' + error.message); console.error(error); return; }
+
+  const idAtual = familiaSelecionadaAtual.id;
+  fecharTodosDrawers();
+  await carregarFamilias();
+  const atualizada = familiasGlobais.find(f => String(f.id) === String(idAtual));
+  if (atualizada) mostrarDetalheFamilia(atualizada);
+};
+
+// ---------------------------------------------------------------------
+// Excluir Família
+// ---------------------------------------------------------------------
+document.getElementById('detalheBtnExcluir').onclick = async () => {
+  if (!familiaSelecionadaAtual) return;
+  const endereco = [familiaSelecionadaAtual.logradouro, familiaSelecionadaAtual.numero].filter(Boolean).join(', ');
+  if (!confirm(`Excluir a família de "${endereco}"? Isso também apaga os moradores, condições de saúde e visitas ligados a ela. Essa ação não pode ser desfeita.`)) return;
+
+  const { error } = await db.from('familias').delete().eq('id', familiaSelecionadaAtual.id);
+  if (error) { alert('Erro ao excluir: ' + error.message); console.error(error); return; }
+
+  familiaSelecionadaAtual = null;
+  document.getElementById('detailContent').classList.remove('active');
+  document.getElementById('detailEmpty').style.display = '';
+  await carregarFamilias();
+};
+
+// ---------------------------------------------------------------------
+// Novo Morador (cidadão)
+// ---------------------------------------------------------------------
+document.getElementById('detalheBtnAddCidadao').onclick = () => {
+  if (!familiaSelecionadaAtual) return;
+  document.getElementById('ncNome').value = '';
+  document.getElementById('ncNascimento').value = '';
+  document.getElementById('ncSexo').value = '';
+  document.getElementById('ncCpf').value = '';
+  document.getElementById('ncCns').value = '';
+  document.getElementById('ncResponsavel').checked = false;
+  document.querySelectorAll('#drawerNovoCidadao .chip-checkbox input').forEach(cb => cb.checked = false);
+  abrirDrawer('drawerNovoCidadao');
+};
+
+document.getElementById('btnSalvarNovoCidadao').onclick = async () => {
+  if (!familiaSelecionadaAtual) return;
+
+  const nome = document.getElementById('ncNome').value.trim();
+  if (!nome) { alert('Informe o nome completo.'); return; }
+
+  const btn = document.getElementById('btnSalvarNovoCidadao');
+  btn.disabled = true; btn.textContent = 'Salvando...';
+
+  const { data: novoCidadao, error } = await db.from('cidadaos').insert({
+    familia_id: familiaSelecionadaAtual.id,
+    nome,
+    data_nascimento: document.getElementById('ncNascimento').value || null,
+    sexo: document.getElementById('ncSexo').value || null,
+    cpf: document.getElementById('ncCpf').value.trim() || null,
+    cns: document.getElementById('ncCns').value.trim() || null,
+    e_responsavel_familiar: document.getElementById('ncResponsavel').checked,
+  }).select().single();
+
+  if (error) {
+    btn.disabled = false; btn.textContent = 'Adicionar Morador';
+    alert('Erro ao adicionar morador: ' + error.message);
+    console.error(error);
+    return;
+  }
+
+  const condicoesSelecionadas = Array.from(document.querySelectorAll('#drawerNovoCidadao .chip-checkbox input:checked')).map(cb => cb.value);
+  if (condicoesSelecionadas.length > 0) {
+    const { error: erroCondicoes } = await db.from('condicoes_saude').insert(
+      condicoesSelecionadas.map(condicao => ({ cidadao_id: novoCidadao.id, condicao }))
+    );
+    if (erroCondicoes) console.error('Morador salvo, mas houve erro ao salvar condições de saúde:', erroCondicoes);
+  }
+
+  btn.disabled = false; btn.textContent = 'Adicionar Morador';
+
+  const idFamilia = familiaSelecionadaAtual.id;
+  fecharTodosDrawers();
+  await carregarFamilias();
+  const atualizada = familiasGlobais.find(f => String(f.id) === String(idFamilia));
+  if (atualizada) mostrarDetalheFamilia(atualizada);
+};
 
 carregarFamilias();
 </script>

@@ -9,6 +9,8 @@
 <script src="auth.js"></script>
 <script>protegerPagina();</script>
 <script src="branding.js"></script>
+<script src="roteiro.js"></script>
+<script src="offline.js"></script>
 
 <!-- Phosphor Icons -->
 <script src="https://unpkg.com/@phosphor-icons/web"></script>
@@ -194,6 +196,7 @@ canvas { width: 100%; height: 300px; display: block; touch-action: none; cursor:
     <li><a href="mapa.html"><i class="ph ph-map-trifold"></i> Mapa</a></li>
     <li><a href="indicadores.html"><i class="ph ph-chart-line-up"></i> Indicadores</a></li>
     <li><a href="receitas.html"><i class="ph ph-pill"></i> Receitas</a></li>
+    <li><a href="relatorio-visitas.html"><i class="ph ph-file-text"></i> Relatório de Visitas</a></li>
     <li class="nav-divider"></li>
     <li><a href="busca.html"><i class="ph ph-magnifying-glass"></i> Busca</a></li>
     <li><a href="configuracoes.html"><i class="ph ph-gear"></i> Configurações</a></li>
@@ -238,11 +241,15 @@ canvas { width: 100%; height: 300px; display: block; touch-action: none; cursor:
           <button class="choice-btn" data-value="Criança"><i class="ph ph-horse"></i> Criança</button>
         </div>
 
-        <div class="section-label"><i class="ph ph-pen-nib"></i> Assinatura do paciente</div>
+        <div class="section-label"><i class="ph ph-pen-nib"></i> Assinatura do paciente <span style="font-weight:400; color:var(--text-muted); text-transform:none; letter-spacing:0;">(opcional)</span></div>
         <button class="sign-btn" id="btnAssinatura">
           <i class="ph ph-signature"></i>
           Clique para coletar a assinatura no tablet
         </button>
+        <div id="motivoSemAssinaturaWrap" style="margin-top: 10px; display: none;">
+          <input type="text" id="motivoSemAssinatura" placeholder="Motivo (opcional): ex. paciente não consegue assinar" style="width:100%; padding:10px 12px; border:1px solid var(--border); border-radius:10px; font-size:13.5px; outline:none;">
+        </div>
+        <button type="button" id="btnSemAssinatura" style="background:none; border:none; color:var(--text-muted); font-size:12.5px; font-weight:600; margin-top:8px; cursor:pointer; text-decoration:underline; padding:0;">Paciente não vai assinar</button>
       </div>
 
       <div class="dynamic-section" id="obsSection">
@@ -316,42 +323,61 @@ async function carregarContexto() {
   info.innerHTML = '<h2>Carregando família...</h2><div class="context-meta"><i class="ph ph-spinner"></i> Buscando dados</div>';
 
   try {
-    const [{ data: f, error: erroFamilia }, { data: visitasFamilia, error: erroVisitas }] = await Promise.all([
+    const promiseDados = Promise.all([
       db.from('familias').select('*, cidadaos(*)').eq('id', familiaId).single(),
       db.from('visitas').select('data_visita').eq('familia_id', familiaId).order('data_visita', { ascending: false }),
     ]);
+    const promiseTimeout = new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 8000));
+
+    const [{ data: f, error: erroFamilia }, { data: visitasFamilia, error: erroVisitas }] = await Promise.race([promiseDados, promiseTimeout]);
 
     if (erroFamilia || !f) throw erroFamilia || new Error('Família não encontrada');
 
-    const endereco = [f.logradouro, f.numero].filter(Boolean).join(', ') || 'Endereço não informado';
     const ultimaVisita = (!erroVisitas && visitasFamilia && visitasFamilia[0]) ? visitasFamilia[0].data_visita : null;
-    const dias = ultimaVisita ? diasDesde(ultimaVisita) : null;
-    const ultimaVisitaTxt = ultimaVisita ? `Há ${dias} dia${dias === 1 ? '' : 's'} (${formatarDataBR(ultimaVisita)})` : 'Nunca visitada';
-    const totalMoradores = (f.cidadaos || []).length;
-
-    info.innerHTML = `
-      <h2>${escapeHtml(endereco)}</h2>
-      <div class="context-meta"><i class="ph ph-map-pin"></i> ${escapeHtml(f.bairro || 'Bairro não informado')}</div>
-
-      <div class="context-details">
-        <div><strong>Moradores</strong> ${totalMoradores} cadastrado${totalMoradores === 1 ? '' : 's'} neste domicílio</div>
-        <div><strong>Última Visita</strong> ${ultimaVisitaTxt}</div>
-      </div>
-
-      <button type="button" class="btn-trocar-familia" id="btnTrocarFamilia"><i class="ph ph-arrows-clockwise"></i> Trocar família</button>
-    `;
-    $('btnTrocarFamilia').onclick = () => {
-      familiaId = null;
-      familiaCarregada = false;
-      history.replaceState(null, '', location.pathname);
-      carregarContexto();
-    };
-
+    renderizarContextoFamilia(f, ultimaVisita, false);
     familiaCarregada = true;
   } catch (e) {
     console.error(e);
-    info.innerHTML = '<h2>Não foi possível carregar</h2><div class="context-meta">Verifique sua conexão e tente novamente.</div>';
+    // Sem internet (ou muito lenta): tenta usar o mesmo cache local que o roteiro usa.
+    const cache = typeof lerCacheLocal === 'function' ? lerCacheLocal() : null;
+    const familiaCache = cache?.familiasEnriquecidas?.find(fam => String(fam.id) === String(familiaId));
+
+    if (familiaCache) {
+      renderizarContextoFamilia(familiaCache, familiaCache.ultimaVisita, true);
+      familiaCarregada = true;
+    } else {
+      info.innerHTML = `
+        <h2>Não foi possível carregar</h2>
+        <div class="context-meta">Sem internet e sem dados salvos neste aparelho para essa família ainda. Abra o "Meu Roteiro" pelo menos uma vez com internet pra guardar os dados localmente.</div>
+      `;
+    }
   }
+}
+
+function renderizarContextoFamilia(f, ultimaVisita, offline) {
+  const endereco = [f.logradouro, f.numero].filter(Boolean).join(', ') || 'Endereço não informado';
+  const dias = ultimaVisita ? diasDesde(ultimaVisita) : null;
+  const ultimaVisitaTxt = ultimaVisita ? `Há ${dias} dia${dias === 1 ? '' : 's'} (${formatarDataBR(ultimaVisita)})` : 'Nunca visitada';
+  const totalMoradores = (f.cidadaos || f.membros || []).length;
+
+  $('familyCardInfo').innerHTML = `
+    ${offline ? '<div class="context-meta" style="background:#FBF1DF; color:#8A5A0F; padding:8px 12px; border-radius:8px; margin-bottom:12px;"><i class="ph ph-wifi-slash"></i> Sem internet — mostrando dados salvos neste aparelho</div>' : ''}
+    <h2>${escapeHtml(endereco)}</h2>
+    <div class="context-meta"><i class="ph ph-map-pin"></i> ${escapeHtml(f.bairro || 'Bairro não informado')}</div>
+
+    <div class="context-details">
+      <div><strong>Moradores</strong> ${totalMoradores} cadastrado${totalMoradores === 1 ? '' : 's'} neste domicílio</div>
+      <div><strong>Última Visita</strong> ${ultimaVisitaTxt}</div>
+    </div>
+
+    <button type="button" class="btn-trocar-familia" id="btnTrocarFamilia"><i class="ph ph-arrows-clockwise"></i> Trocar família</button>
+  `;
+  $('btnTrocarFamilia').onclick = () => {
+    familiaId = null;
+    familiaCarregada = false;
+    history.replaceState(null, '', location.pathname);
+    carregarContexto();
+  };
 }
 
 let buscaFamiliaTimeout = null;
@@ -368,10 +394,21 @@ async function buscarFamiliaParaVisita(termo) {
   container.innerHTML = '<p class="estado-vazio" style="padding:12px;">Buscando…</p>';
 
   buscaFamiliaTimeout = setTimeout(async () => {
-    const { data, error } = await db.from('familias').select('*, cidadaos(nome, e_responsavel_familiar)').order('logradouro');
-    if (error) {
-      container.innerHTML = '<p class="estado-erro">Não foi possível buscar. Verifique sua conexão.</p>';
-      return;
+    let data = null;
+    try {
+      const promiseDados = db.from('familias').select('*, cidadaos(nome, e_responsavel_familiar)').order('logradouro');
+      const promiseTimeout = new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 6000));
+      const resultado = await Promise.race([promiseDados, promiseTimeout]);
+      if (resultado.error) throw resultado.error;
+      data = resultado.data;
+    } catch (e) {
+      const cache = typeof lerCacheLocal === 'function' ? lerCacheLocal() : null;
+      if (cache?.familiasEnriquecidas) {
+        data = cache.familiasEnriquecidas.map(f => ({ ...f, cidadaos: f.membros || [] }));
+      } else {
+        container.innerHTML = '<p class="estado-erro">Sem internet e sem dados salvos neste aparelho ainda.</p>';
+        return;
+      }
     }
 
     const termoBusca = t.toLowerCase();
@@ -426,7 +463,8 @@ function atualizar() {
   $('motivoSection').classList.toggle('show', ausenteOuRecusada);
   $('obsSection').classList.toggle('show', !!desfecho);
 
-  const ok = realizada ? assinatura : !!desfecho;
+  // A assinatura não é mais obrigatória para salvar — só o desfecho é.
+  const ok = !!desfecho;
   const btnAtual = $('btnSalvar');
   const txtAtual = $('statusText');
   
@@ -435,7 +473,7 @@ function atualizar() {
   if(!desfecho) {
     if(txtAtual) txtAtual.textContent = 'Escolha o desfecho para continuar';
   } else if(realizada) {
-    if(txtAtual) txtAtual.textContent = assinatura ? 'Tudo pronto para salvar' : 'Colete a assinatura para finalizar';
+    if(txtAtual) txtAtual.textContent = assinatura ? 'Tudo pronto para salvar' : 'Pronto para salvar (sem assinatura)';
     if(btnAtual) btnAtual.textContent = 'Salvar Visita Realizada';
   } else {
     if(txtAtual) txtAtual.textContent = 'Assinatura não é necessária';
@@ -487,8 +525,16 @@ $('btnConfirmar').onclick = () => {
   assinatura = true;
   $('btnAssinatura').classList.add('signed');
   $('btnAssinatura').innerHTML = '<i class="ph ph-check-circle"></i> Assinatura Coletada';
+  $('motivoSemAssinaturaWrap').style.display = 'none';
+  $('motivoSemAssinatura').value = '';
   modal.classList.remove('show');
   atualizar();
+};
+
+$('btnSemAssinatura').onclick = () => {
+  const wrap = $('motivoSemAssinaturaWrap');
+  wrap.style.display = wrap.style.display === 'none' ? 'block' : 'none';
+  if (wrap.style.display === 'block') $('motivoSemAssinatura').focus();
 };
 
 canvas.addEventListener('mousedown', start); canvas.addEventListener('mousemove', draw); canvas.addEventListener('mouseup', stop);
@@ -517,20 +563,41 @@ const salvarVisitaAction = async () => {
     observacoes: observacoesFinal,
     acompanhamentos: acompanhamentosSelecionados,
     profissional: 'ACS',
+    assinatura_base64: assinatura ? canvas.toDataURL('image/png') : null,
+    assinatura_ausente_motivo: !assinatura && desfecho === 'Realizada' ? ($('motivoSemAssinatura').value.trim() || null) : null,
   };
 
-  const { error } = await db.from('visitas').insert(novaVisita);
-
-  if (error) {
-    console.error(error);
-    alert('Erro ao salvar a visita: ' + error.message);
-    btn.disabled = false;
-    btn.textContent = textoOriginal;
+  // Sem internet: nem tenta a rede, guarda direto na fila local.
+  if (!navigator.onLine) {
+    enfileirarVisitaPendente(novaVisita);
+    alert('Sem internet no momento. A visita foi salva neste aparelho e será enviada automaticamente assim que a conexão voltar.');
+    window.location.href = 'meu-roteiro.html';
     return;
   }
 
-  alert('Visita registrada com sucesso!');
-  window.location.href = 'meu-roteiro.html';
+  try {
+    const promiseSalvar = db.from('visitas').insert(novaVisita);
+    const promiseTimeout = new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 8000));
+    const { error } = await Promise.race([promiseSalvar, promiseTimeout]);
+
+    if (error) {
+      // Chegou no servidor e ele recusou (ex: dado inválido) — não adianta enfileirar, é preciso corrigir.
+      console.error(error);
+      alert('Erro ao salvar a visita: ' + error.message);
+      btn.disabled = false;
+      btn.textContent = textoOriginal;
+      return;
+    }
+
+    alert('Visita registrada com sucesso!');
+    window.location.href = 'meu-roteiro.html';
+  } catch (e) {
+    // Timeout ou falha de rede no meio do envio: não descarta, guarda pra tentar de novo depois.
+    console.error(e);
+    enfileirarVisitaPendente(novaVisita);
+    alert('Não foi possível confirmar o envio (conexão instável). A visita foi salva neste aparelho e será enviada automaticamente assim que a conexão melhorar.');
+    window.location.href = 'meu-roteiro.html';
+  }
 };
 
 $('btnSalvar').onclick = salvarVisitaAction;
