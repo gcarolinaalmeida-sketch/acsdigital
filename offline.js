@@ -12,6 +12,16 @@
 
 const FILA_PENDENCIAS_KEY = 'acs_fila_pendencias_v1';
 
+// Registra o service worker que guarda as próprias páginas do site pra elas
+// abrirem mesmo sem internet. Sem isso, a fila de pendências abaixo nem
+// chega a rodar, porque a página nova (ex: nova-visita.html) não consegue
+// nem ser carregada pelo navegador quando não há sinal.
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch(() => { /* segue sem SW se não der, só perde o offline de páginas novas */ });
+  });
+}
+
 function lerFilaPendencias() {
   try { return JSON.parse(localStorage.getItem(FILA_PENDENCIAS_KEY)) || []; }
   catch (e) { return []; }

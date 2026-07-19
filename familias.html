@@ -409,6 +409,45 @@ body {
   </div>
 </div>
 
+<!-- DRAWER: Editar Morador -->
+<div class="drawer" id="drawerEditarCidadao">
+  <div class="drawer-header">
+    <h3><i class="ph ph-pencil-simple"></i> Editar Morador</h3>
+    <button class="btn-icon" onclick="fecharTodosDrawers()"><i class="ph ph-x"></i></button>
+  </div>
+  <div class="drawer-body">
+    <div class="form-row"><label>Nome completo *</label><input type="text" id="ecNome"></div>
+    <div class="form-row-split">
+      <div class="form-row"><label>Data de nascimento</label><input type="date" id="ecNascimento"></div>
+      <div class="form-row"><label>Sexo</label>
+        <select id="ecSexo"><option value="">Não informado</option><option value="FEMININO">Feminino</option><option value="MASCULINO">Masculino</option></select>
+      </div>
+    </div>
+    <div class="form-row-split">
+      <div class="form-row"><label>CPF</label><input type="text" id="ecCpf"></div>
+      <div class="form-row"><label>CNS</label><input type="text" id="ecCns"></div>
+    </div>
+    <div class="form-row">
+      <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+        <input type="checkbox" id="ecResponsavel" style="width:auto;"> É o responsável familiar
+      </label>
+    </div>
+    <div class="form-row">
+      <label>Condições de saúde</label>
+      <div style="display:flex; flex-wrap:wrap; gap:8px;">
+        <label class="chip-checkbox"><input type="checkbox" value="Hipertensão"> 🫀 Hipertensão</label>
+        <label class="chip-checkbox"><input type="checkbox" value="Diabetes"> 🍬 Diabetes</label>
+        <label class="chip-checkbox"><input type="checkbox" value="Gestante"> 🤰 Gestante</label>
+        <label class="chip-checkbox"><input type="checkbox" value="Acamado"> 🛏️ Acamado</label>
+      </div>
+    </div>
+  </div>
+  <div class="drawer-footer">
+    <button class="btn-outline-full" onclick="fecharTodosDrawers()">Cancelar</button>
+    <button class="btn-solid-full" id="btnSalvarEdicaoCidadao">Salvar Alterações</button>
+  </div>
+</div>
+
 <script>
 let familiasGlobais = [];
 let filtroAtual = 'todas';
@@ -540,8 +579,8 @@ function mostrarDetalheFamilia(f) {
             <div class="citizen-cns">CNS: ${escapeHtml(c.cns || 'Não informado')} | ${escapeHtml(tagsTxt)}</div>
           </div>
           <div class="citizen-actions">
-            <button class="btn-icon" onclick="event.stopPropagation(); alert('Edição de cidadão ainda não está disponível nesta tela.')"><i class="ph ph-pencil-simple"></i></button>
-            <button class="btn-icon danger" onclick="event.stopPropagation(); alert('Exclusão de cidadão ainda não está disponível nesta tela.')"><i class="ph ph-trash"></i></button>
+            <button class="btn-icon" onclick="event.stopPropagation(); abrirEdicaoCidadao('${c.id}')"><i class="ph ph-pencil-simple"></i></button>
+            <button class="btn-icon danger" onclick="event.stopPropagation(); excluirCidadao('${c.id}')"><i class="ph ph-trash"></i></button>
           </div>
         </div>
       `;
@@ -740,6 +779,98 @@ document.getElementById('btnSalvarNovoCidadao').onclick = async () => {
   const atualizada = familiasGlobais.find(f => String(f.id) === String(idFamilia));
   if (atualizada) mostrarDetalheFamilia(atualizada);
 };
+
+// ---------------------------------------------------------------------
+// Editar Morador
+// ---------------------------------------------------------------------
+let cidadaoSelecionadoAtual = null;
+
+function abrirEdicaoCidadao(cidadaoId) {
+  if (!familiaSelecionadaAtual) return;
+  const c = (familiaSelecionadaAtual.cidadaos || []).find(m => String(m.id) === String(cidadaoId));
+  if (!c) return;
+
+  cidadaoSelecionadoAtual = c;
+  document.getElementById('ecNome').value = c.nome || '';
+  document.getElementById('ecNascimento').value = c.data_nascimento || '';
+  document.getElementById('ecSexo').value = c.sexo || '';
+  document.getElementById('ecCpf').value = c.cpf || '';
+  document.getElementById('ecCns').value = c.cns || '';
+  document.getElementById('ecResponsavel').checked = !!c.e_responsavel_familiar;
+
+  const condicoesAtuais = new Set(condicoesDe(c));
+  document.querySelectorAll('#drawerEditarCidadao .chip-checkbox input').forEach(cb => {
+    cb.checked = condicoesAtuais.has(cb.value);
+  });
+
+  abrirDrawer('drawerEditarCidadao');
+}
+
+document.getElementById('btnSalvarEdicaoCidadao').onclick = async () => {
+  if (!cidadaoSelecionadoAtual) return;
+
+  const nome = document.getElementById('ecNome').value.trim();
+  if (!nome) { alert('Informe o nome completo.'); return; }
+
+  const btn = document.getElementById('btnSalvarEdicaoCidadao');
+  btn.disabled = true; btn.textContent = 'Salvando...';
+
+  const { error: erroCidadao } = await db.from('cidadaos').update({
+    nome,
+    data_nascimento: document.getElementById('ecNascimento').value || null,
+    sexo: document.getElementById('ecSexo').value || null,
+    cpf: document.getElementById('ecCpf').value.trim() || null,
+    cns: document.getElementById('ecCns').value.trim() || null,
+    e_responsavel_familiar: document.getElementById('ecResponsavel').checked,
+  }).eq('id', cidadaoSelecionadoAtual.id);
+
+  if (erroCidadao) {
+    btn.disabled = false; btn.textContent = 'Salvar Alterações';
+    alert('Erro ao salvar alterações: ' + erroCidadao.message);
+    console.error(erroCidadao);
+    return;
+  }
+
+  // Condições de saúde: mais simples e confiável é apagar todas as atuais
+  // desse cidadão e recriar só as que estão marcadas agora.
+  const { error: erroLimpar } = await db.from('condicoes_saude').delete().eq('cidadao_id', cidadaoSelecionadoAtual.id);
+  if (erroLimpar) console.error('Aviso: não foi possível limpar condições antigas:', erroLimpar);
+
+  const condicoesSelecionadas = Array.from(document.querySelectorAll('#drawerEditarCidadao .chip-checkbox input:checked')).map(cb => cb.value);
+  if (condicoesSelecionadas.length > 0) {
+    const { error: erroCondicoes } = await db.from('condicoes_saude').insert(
+      condicoesSelecionadas.map(condicao => ({ cidadao_id: cidadaoSelecionadoAtual.id, condicao }))
+    );
+    if (erroCondicoes) console.error('Morador salvo, mas houve erro ao salvar condições de saúde:', erroCondicoes);
+  }
+
+  btn.disabled = false; btn.textContent = 'Salvar Alterações';
+
+  const idFamilia = familiaSelecionadaAtual.id;
+  fecharTodosDrawers();
+  await carregarFamilias();
+  const atualizada = familiasGlobais.find(f => String(f.id) === String(idFamilia));
+  if (atualizada) mostrarDetalheFamilia(atualizada);
+};
+
+// ---------------------------------------------------------------------
+// Excluir Morador
+// ---------------------------------------------------------------------
+async function excluirCidadao(cidadaoId) {
+  if (!familiaSelecionadaAtual) return;
+  const c = (familiaSelecionadaAtual.cidadaos || []).find(m => String(m.id) === String(cidadaoId));
+  if (!c) return;
+
+  if (!confirm(`Excluir "${c.nome}" desta família? Isso também apaga as condições de saúde e o histórico de visitas ligados a essa pessoa. Essa ação não pode ser desfeita.`)) return;
+
+  const { error } = await db.from('cidadaos').delete().eq('id', cidadaoId);
+  if (error) { alert('Erro ao excluir morador: ' + error.message); console.error(error); return; }
+
+  const idFamilia = familiaSelecionadaAtual.id;
+  await carregarFamilias();
+  const atualizada = familiasGlobais.find(f => String(f.id) === String(idFamilia));
+  if (atualizada) mostrarDetalheFamilia(atualizada);
+}
 
 carregarFamilias();
 </script>
