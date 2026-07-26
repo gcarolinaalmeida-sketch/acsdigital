@@ -10,6 +10,7 @@
 <script src="auth.js"></script>
 <script>protegerPagina();</script>
 <script src="branding.js"></script>
+<script src="condicoes-saude.js"></script>
 
 <!-- Biblioteca Phosphor Icons (Ícones vazados) -->
 <script src="https://unpkg.com/@phosphor-icons/web"></script>
@@ -177,6 +178,7 @@ body {
 .citizen-info { flex: 1; }
 .citizen-name { font-weight: 600; font-size: 15px; color: var(--text-main); display: flex; align-items: center; gap: 8px;}
 .citizen-cns { font-size: 13px; color: var(--text-muted); margin-top: 4px; }
+.citizen-condicoes-badges { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
 .citizen-actions { display: flex; gap: 8px; }
 .btn-icon { background: none; border: none; font-size: 18px; color: var(--text-muted); cursor: pointer; padding: 4px; border-radius: 6px;}
 .btn-icon:hover { background: #f3f4f6; color: var(--text-main); }
@@ -203,6 +205,41 @@ body {
 .btn-solid-full:disabled { opacity: 0.6; cursor: not-allowed; }
 .chip-checkbox { display: flex; align-items: center; gap: 6px; border: 1px solid var(--border); border-radius: 20px; padding: 7px 12px; font-size: 12.5px; font-weight: 600; cursor: pointer; }
 .chip-checkbox input { width: auto; }
+
+/* ---------------------------------------------------------------------
+   Seletor de Condições de Saúde (chips agrupados, estilo e-SUS APS)
+--------------------------------------------------------------------- */
+.condicoes-selector { display: flex; flex-direction: column; gap: 18px; }
+.condicoes-grupo-titulo { font-size: 11.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em; color: var(--text-muted); margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
+.condicoes-grupo-titulo i { font-size: 14px; }
+.condicoes-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+
+.condicao-chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: var(--bg-card, #fff); border: 1px solid var(--border);
+  color: var(--text-main, #111827); font-family: inherit;
+  border-radius: 20px; padding: 7px 13px; font-size: 12.5px; font-weight: 600;
+  cursor: pointer; transition: 0.13s; -webkit-tap-highlight-color: transparent;
+}
+.condicao-chip:hover { border-color: var(--text-muted); }
+.condicao-chip-emoji { font-size: 13px; }
+
+/* Cor só aparece quando selecionado - uma cor discreta por grupo */
+.condicoes-grupo[data-tema="cronicas"] .condicao-chip.selected { background: #FDECEA; border-color: #E8998C; color: #B23A2C; }
+.condicoes-grupo[data-tema="mulher"] .condicao-chip.selected { background: #FCE7F3; border-color: #E9A8CB; color: #A3266B; }
+.condicoes-grupo[data-tema="crianca"] .condicao-chip.selected { background: #E0F2FE; border-color: #93C5E0; color: #175D8C; }
+.condicoes-grupo[data-tema="idoso"] .condicao-chip.selected { background: #FEF3D8; border-color: #E5C077; color: #92660A; }
+.condicoes-grupo[data-tema="transmissivel"] .condicao-chip.selected { background: #FCE4E4; border-color: #E39A9A; color: #A32E2E; }
+.condicoes-grupo[data-tema="mental"] .condicao-chip.selected { background: #EDE7FB; border-color: #C3AEEA; color: #5B3AA8; }
+
+.condicoes-obs-row { margin-top: 4px; }
+.condicoes-obs-row label { display: block; font-size: 12px; font-weight: 700; color: var(--text-muted); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.02em; }
+.condicoes-obs-row textarea { width: 100%; border: 1px solid var(--border-strong, var(--border)); border-radius: 10px; padding: 10px 12px; font-size: 14px; font-family: inherit; outline: none; resize: vertical; }
+.condicoes-obs-row textarea:focus { border-color: var(--primary); }
+
+@media (max-width: 520px) {
+  .condicao-chip { padding: 8px 12px; font-size: 12px; }
+}
 
 </style>
 </head>
@@ -393,15 +430,7 @@ body {
         <input type="checkbox" id="ncResponsavel" style="width:auto;"> É o responsável familiar
       </label>
     </div>
-    <div class="form-row">
-      <label>Condições de saúde</label>
-      <div style="display:flex; flex-wrap:wrap; gap:8px;">
-        <label class="chip-checkbox"><input type="checkbox" value="Hipertensão"> 🫀 Hipertensão</label>
-        <label class="chip-checkbox"><input type="checkbox" value="Diabetes"> 🍬 Diabetes</label>
-        <label class="chip-checkbox"><input type="checkbox" value="Gestante"> 🤰 Gestante</label>
-        <label class="chip-checkbox"><input type="checkbox" value="Acamado"> 🛏️ Acamado</label>
-      </div>
-    </div>
+    <div class="form-row" id="ncCondicoesWrap"></div>
   </div>
   <div class="drawer-footer">
     <button class="btn-outline-full" onclick="fecharTodosDrawers()">Cancelar</button>
@@ -432,15 +461,7 @@ body {
         <input type="checkbox" id="ecResponsavel" style="width:auto;"> É o responsável familiar
       </label>
     </div>
-    <div class="form-row">
-      <label>Condições de saúde</label>
-      <div style="display:flex; flex-wrap:wrap; gap:8px;">
-        <label class="chip-checkbox"><input type="checkbox" value="Hipertensão"> 🫀 Hipertensão</label>
-        <label class="chip-checkbox"><input type="checkbox" value="Diabetes"> 🍬 Diabetes</label>
-        <label class="chip-checkbox"><input type="checkbox" value="Gestante"> 🤰 Gestante</label>
-        <label class="chip-checkbox"><input type="checkbox" value="Acamado"> 🛏️ Acamado</label>
-      </div>
-    </div>
+    <div class="form-row" id="ecCondicoesWrap"></div>
   </div>
   <div class="drawer-footer">
     <button class="btn-outline-full" onclick="fecharTodosDrawers()">Cancelar</button>
@@ -455,20 +476,6 @@ let termoBusca = '';
 
 function condicoesDe(cidadao) { return (cidadao.condicoes_saude || []).map(c => c.condicao); }
 function escapeHtml(str) { return String(str ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
-
-function tagsFamilia(f) {
-  const todasCondicoes = (f.cidadaos || []).flatMap(condicoesDe);
-  const tags = [];
-  const has = todasCondicoes.filter(c => c === 'Hipertensão').length;
-  const dm = todasCondicoes.filter(c => c === 'Diabetes').length;
-  const gestante = todasCondicoes.filter(c => c === 'Gestante').length;
-  const acamado = todasCondicoes.filter(c => c === 'Acamado').length;
-  if (has) tags.push(`🫀 ${has} HAS`);
-  if (dm) tags.push(`🍬 ${dm} DM`);
-  if (gestante) tags.push(`🤰 ${gestante} Gestante${gestante === 1 ? '' : 's'}`);
-  if (acamado) tags.push(`🛏️ ${acamado} Acamado${acamado === 1 ? '' : 's'}`);
-  return tags;
-}
 
 function familiaIncompleta(f) {
   return (f.cidadaos || []).length === 0 || !(f.cidadaos || []).some(c => c.e_responsavel_familiar);
@@ -526,7 +533,8 @@ function renderizarLista() {
     const endereco = [f.logradouro, f.numero].filter(Boolean).join(', ') || 'Endereço não informado';
     const responsavel = (f.cidadaos || []).find(c => c.e_responsavel_familiar)?.nome;
     const qtd = (f.cidadaos || []).length;
-    const tags = tagsFamilia(f);
+    const todasCondicoes = (f.cidadaos || []).flatMap(condicoesDe);
+    const badgesCondicoes = badgesResumoCondicoes(todasCondicoes);
     const incompleta = familiaIncompleta(f);
 
     return `
@@ -535,7 +543,7 @@ function renderizarLista() {
         <div class="family-info">${responsavel ? 'Resp: ' + escapeHtml(responsavel) + '<br>' : ''}📍 ${escapeHtml(f.bairro || 'Bairro não informado')}</div>
         <div class="badges">
           <span class="badge"><i class="ph ph-users"></i> ${qtd} morador${qtd === 1 ? '' : 'es'}</span>
-          ${tags.map(t => `<span class="badge">${t}</span>`).join('')}
+          ${badgesCondicoes}
           ${incompleta ? '<span class="badge alert"><i class="ph ph-warning"></i> Incompleto</span>' : ''}
         </div>
       </div>
@@ -571,12 +579,13 @@ function mostrarDetalheFamilia(f) {
     membrosEl.innerHTML = membros.map(c => {
       const idade = calcularIdade(c.data_nascimento);
       const tags = condicoesDe(c);
-      const tagsTxt = tags.length > 0 ? tags.join(', ') : 'Nenhuma condição registrada';
+      const badgesTags = badgesResumoCondicoes(tags, 6);
       return `
         <div class="citizen-item" onclick="location.href='prontuario.html?id=${c.id}'" style="cursor:pointer;">
           <div class="citizen-info">
             <div class="citizen-name">${escapeHtml(c.nome)}${idade !== null ? ` (${idade}a)` : ''} ${c.e_responsavel_familiar ? '<span class="badge" style="background:#e0f2fe; color:#0ea5e9;">Responsável</span>' : ''}</div>
-            <div class="citizen-cns">CNS: ${escapeHtml(c.cns || 'Não informado')} | ${escapeHtml(tagsTxt)}</div>
+            <div class="citizen-cns">CNS: ${escapeHtml(c.cns || 'Não informado')}</div>
+            <div class="citizen-condicoes-badges">${badgesTags || '<span class="badge">Nenhuma condição registrada</span>'}</div>
           </div>
           <div class="citizen-actions">
             <button class="btn-icon" onclick="event.stopPropagation(); abrirEdicaoCidadao('${c.id}')"><i class="ph ph-pencil-simple"></i></button>
@@ -733,7 +742,7 @@ document.getElementById('detalheBtnAddCidadao').onclick = () => {
   document.getElementById('ncCpf').value = '';
   document.getElementById('ncCns').value = '';
   document.getElementById('ncResponsavel').checked = false;
-  document.querySelectorAll('#drawerNovoCidadao .chip-checkbox input').forEach(cb => cb.checked = false);
+  document.getElementById('ncCondicoesWrap').innerHTML = htmlSeletorCondicoesSaude('nc');
   abrirDrawer('drawerNovoCidadao');
 };
 
@@ -754,6 +763,7 @@ document.getElementById('btnSalvarNovoCidadao').onclick = async () => {
     cpf: document.getElementById('ncCpf').value.trim() || null,
     cns: document.getElementById('ncCns').value.trim() || null,
     e_responsavel_familiar: document.getElementById('ncResponsavel').checked,
+    observacoes_condicoes_saude: obterObsCondicoes('nc') || null,
   }).select().single();
 
   if (error) {
@@ -763,7 +773,7 @@ document.getElementById('btnSalvarNovoCidadao').onclick = async () => {
     return;
   }
 
-  const condicoesSelecionadas = Array.from(document.querySelectorAll('#drawerNovoCidadao .chip-checkbox input:checked')).map(cb => cb.value);
+  const condicoesSelecionadas = obterCondicoesSelecionadas('nc');
   if (condicoesSelecionadas.length > 0) {
     const { error: erroCondicoes } = await db.from('condicoes_saude').insert(
       condicoesSelecionadas.map(condicao => ({ cidadao_id: novoCidadao.id, condicao }))
@@ -798,10 +808,9 @@ function abrirEdicaoCidadao(cidadaoId) {
   document.getElementById('ecCns').value = c.cns || '';
   document.getElementById('ecResponsavel').checked = !!c.e_responsavel_familiar;
 
-  const condicoesAtuais = new Set(condicoesDe(c));
-  document.querySelectorAll('#drawerEditarCidadao .chip-checkbox input').forEach(cb => {
-    cb.checked = condicoesAtuais.has(cb.value);
-  });
+  document.getElementById('ecCondicoesWrap').innerHTML = htmlSeletorCondicoesSaude('ec');
+  marcarCondicoesSelecionadas('ec', condicoesDe(c));
+  definirObsCondicoes('ec', c.observacoes_condicoes_saude || '');
 
   abrirDrawer('drawerEditarCidadao');
 }
@@ -822,6 +831,7 @@ document.getElementById('btnSalvarEdicaoCidadao').onclick = async () => {
     cpf: document.getElementById('ecCpf').value.trim() || null,
     cns: document.getElementById('ecCns').value.trim() || null,
     e_responsavel_familiar: document.getElementById('ecResponsavel').checked,
+    observacoes_condicoes_saude: obterObsCondicoes('ec') || null,
   }).eq('id', cidadaoSelecionadoAtual.id);
 
   if (erroCidadao) {
@@ -836,7 +846,7 @@ document.getElementById('btnSalvarEdicaoCidadao').onclick = async () => {
   const { error: erroLimpar } = await db.from('condicoes_saude').delete().eq('cidadao_id', cidadaoSelecionadoAtual.id);
   if (erroLimpar) console.error('Aviso: não foi possível limpar condições antigas:', erroLimpar);
 
-  const condicoesSelecionadas = Array.from(document.querySelectorAll('#drawerEditarCidadao .chip-checkbox input:checked')).map(cb => cb.value);
+  const condicoesSelecionadas = obterCondicoesSelecionadas('ec');
   if (condicoesSelecionadas.length > 0) {
     const { error: erroCondicoes } = await db.from('condicoes_saude').insert(
       condicoesSelecionadas.map(condicao => ({ cidadao_id: cidadaoSelecionadoAtual.id, condicao }))

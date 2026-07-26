@@ -311,6 +311,20 @@ async function renderizarIndicadores(familias) {
     'Idosos (60+)': { emoji: '👴', valor: idades.filter(i => i !== null && i >= 60).length },
   };
 
+  // Gera automaticamente um indicador extra pra cada condição de saúde
+  // cadastrada (fora as 4 já destacadas acima), sem precisar programar cada
+  // uma na mão. Só aparece se houver pelo menos 1 pessoa com aquela condição.
+  if (typeof GRUPOS_CONDICOES_SAUDE !== 'undefined') {
+    const jaDestacadas = new Set(['Hipertensão', 'Diabetes', 'Gestante', 'Acamado']);
+    GRUPOS_CONDICOES_SAUDE.forEach(grupo => {
+      grupo.itens.forEach(item => {
+        if (jaDestacadas.has(item.valor)) return;
+        const qtd = condicoesTodas.filter(c => c.condicao === item.valor).length;
+        if (qtd > 0) contagens[item.sigla] = { emoji: item.emoji, valor: qtd };
+      });
+    });
+  }
+
   // Tendência real (famílias novas este mês) - só exibida se a coluna created_at existir.
   let familiasNovasMes = null;
   try {
