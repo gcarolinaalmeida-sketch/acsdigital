@@ -120,11 +120,29 @@ body { display: flex; background: var(--bg-app); color: var(--text-main); min-he
 .summary-card-icon.risco-alto { background: var(--danger-light); color: var(--danger); }
 .summary-card-icon.risco-intermediario { background: var(--warning-light); color: var(--warning); }
 .summary-card-icon.risco-habitual { background: var(--success-light); color: var(--success); }
+
+/* Badges genéricos (usados na aba Condições e no card de risco) */
+.badge { display: inline-flex; align-items: center; gap: 5px; font-size: 11.5px; font-weight: 700; padding: 4px 10px; border-radius: 20px; background: var(--bg-app); color: var(--text-muted); }
+.badge.vulnerabilidade { background: var(--purple-light); color: var(--purple); }
+.badge.risco-alto { background: var(--danger-light); color: var(--danger); }
+.badge.risco-intermediaria, .badge.risco-intermediario { background: var(--warning-light); color: var(--warning); }
+.badge.risco-habitual { background: var(--success-light); color: var(--success); }
+
+/* Chips de seleção (usados no formulário de vulnerabilidades) */
+.condicao-chip { display: inline-flex; align-items: center; gap: 6px; background: var(--bg-card); border: 1px solid var(--border); color: var(--text-main); font-family: inherit; border-radius: 20px; padding: 7px 13px; font-size: 12.5px; font-weight: 600; cursor: pointer; transition: 0.13s; }
+.condicao-chip:hover { border-color: var(--text-muted); }
+.condicao-chip.selected { background: var(--purple-light); border-color: var(--purple); color: var(--purple); }
 .summary-card-title { font-size: 11.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.02em; }
 .summary-card-value { font-size: 16px; font-weight: 700; margin-bottom: 2px; }
 .summary-card-sub { font-size: 12px; color: var(--text-muted); line-height: 1.4; }
 .summary-card.indisponivel { opacity: 0.55; }
 .summary-card.indisponivel .summary-card-value { font-size: 13px; font-weight: 600; color: var(--text-faint); }
+.summary-card.clicavel { cursor: pointer; transition: 0.15s; }
+.summary-card.clicavel:hover { border-color: var(--primary); box-shadow: 0 2px 10px rgba(37,99,235,0.08); }
+.summary-card.vazio-convite { border-style: dashed; border-color: var(--border-strong); cursor: pointer; transition: 0.15s; }
+.summary-card.vazio-convite:hover { border-color: var(--primary); background: var(--primary-light); }
+.summary-card.vazio-convite .summary-card-value { font-size: 13px; font-weight: 600; color: var(--text-muted); }
+.summary-card.vazio-convite .summary-card-sub { color: var(--primary); font-weight: 600; }
 
 /* ---------------------------------------------------------------------
    Ação rápida: nova evolução
@@ -384,24 +402,81 @@ body { display: flex; background: var(--bg-app); color: var(--text-main); min-he
 
   <!-- ========================= ABA: EXAMES ========================= -->
   <div class="tab-content" id="tab-exames">
-    <div class="empty-tab-state">
-      <i class="ph ph-test-tube"></i>
-      <h4>Exames ainda não são registrados neste sistema</h4>
-      <p>Esse recurso precisa de uma tabela nova no banco de dados para guardar tipo de exame, data, resultado e arquivo anexo. Fale com quem mantém o sistema se quiser priorizar isso.</p>
+    <div class="section-label" style="display:flex; align-items:center; justify-content:space-between; margin-top:0;">
+      <span>Exames registrados</span>
+      <button class="btn-nova-receita" id="btnNovoExame"><i class="ph ph-plus"></i> Novo Exame</button>
     </div>
+
+    <div class="form-card" id="exameForm" style="display:none;">
+      <div class="form-row"><label>Tipo de exame *</label><input type="text" id="campoTipoExame" placeholder="Ex: Hemograma, Glicemia, Colesterol..."></div>
+      <div class="form-row-split">
+        <div class="form-row"><label>Data do exame</label><input type="date" id="campoDataExame"></div>
+      </div>
+      <div class="form-row"><label>Resultado</label><textarea id="campoResultadoExame" rows="2" placeholder="Ex: Glicemia 98 mg/dL — dentro da faixa normal"></textarea></div>
+      <div class="form-row"><label>Observações (opcional)</label><textarea id="campoObsExame" rows="2"></textarea></div>
+      <div class="form-actions">
+        <button class="btn-cancel" id="btnCancelarExame">Cancelar</button>
+        <button class="btn-submit" id="btnSalvarExame">Salvar exame</button>
+      </div>
+    </div>
+
+    <div id="listaExames"><p style="color:var(--text-muted); font-size:13.5px;">Carregando...</p></div>
   </div>
 
   <!-- ========================= ABA: VACINAS ========================= -->
   <div class="tab-content" id="tab-vacinas">
-    <div class="empty-tab-state">
-      <i class="ph ph-syringe"></i>
-      <h4>Vacinação ainda não é registrada neste sistema</h4>
-      <p>Esse recurso precisa de uma tabela nova no banco de dados para guardar imunobiológico, dose, data de aplicação e próxima dose prevista.</p>
+    <div class="section-label" style="display:flex; align-items:center; justify-content:space-between; margin-top:0;">
+      <span>Vacinas registradas</span>
+      <button class="btn-nova-receita" id="btnNovaVacina"><i class="ph ph-plus"></i> Nova Vacina</button>
     </div>
+
+    <div class="form-card" id="vacinaForm" style="display:none;">
+      <div class="form-row"><label>Imunobiológico *</label><input type="text" id="campoImunobiologico" placeholder="Ex: Hepatite B, Tríplice viral, Influenza, Covid-19..."></div>
+      <div class="form-row-split">
+        <div class="form-row"><label>Dose</label><input type="text" id="campoDoseVacina" placeholder="Ex: 1ª dose, Reforço, Dose única"></div>
+        <div class="form-row"><label>Data de aplicação</label><input type="date" id="campoDataAplicacao"></div>
+      </div>
+      <div class="form-row"><label>Próxima dose prevista (opcional)</label><input type="date" id="campoProximaDose"></div>
+      <div class="form-row"><label>Observações (opcional)</label><textarea id="campoObsVacina" rows="2"></textarea></div>
+      <div class="form-actions">
+        <button class="btn-cancel" id="btnCancelarVacina">Cancelar</button>
+        <button class="btn-submit" id="btnSalvarVacina">Salvar vacina</button>
+      </div>
+    </div>
+
+    <div id="listaVacinas"><p style="color:var(--text-muted); font-size:13.5px;">Carregando...</p></div>
   </div>
 
   <!-- ========================= ABA: CONDIÇÕES ========================= -->
   <div class="tab-content" id="tab-condicoes">
+    <div class="section-label" style="display:flex; align-items:center; justify-content:space-between; margin-top:0;">
+      <span>Risco e vulnerabilidade</span>
+      <button class="btn-nova-receita" id="btnEditarRisco"><i class="ph ph-pencil-simple"></i> Editar</button>
+    </div>
+
+    <div class="form-card" id="riscoForm" style="display:none;">
+      <div class="form-row">
+        <label>Classificação de risco</label>
+        <select id="campoClassificacaoRisco">
+          <option value="">Não classificado</option>
+          <option value="Habitual">Habitual</option>
+          <option value="Intermediário">Intermediário</option>
+          <option value="Alto Risco">Alto Risco</option>
+        </select>
+      </div>
+      <div class="form-row">
+        <label>Vulnerabilidades (marque quantas se aplicarem)</label>
+        <div style="display:flex; flex-wrap:wrap; gap:8px;" id="vulnerabilidadeChips"></div>
+      </div>
+      <div class="form-row"><label>Observações sobre risco/vulnerabilidade (opcional)</label><textarea id="campoObsRisco" rows="2"></textarea></div>
+      <div class="form-actions">
+        <button class="btn-cancel" id="btnCancelarRisco">Cancelar</button>
+        <button class="btn-submit" id="btnSalvarRisco">Salvar</button>
+      </div>
+    </div>
+
+    <div id="riscoDetalhe" style="margin-bottom:24px;"></div>
+
     <div class="section-label">Condições de saúde registradas</div>
     <div id="condicoesDetalhe"><p style="color:var(--text-muted); font-size:13.5px;">Carregando...</p></div>
   </div>
@@ -456,6 +531,13 @@ const btnSave = document.getElementById('btnSave');
 let cidadaoAtual = null;
 let receitasCidadaoAtual = [];
 let visitasCidadaoAtual = [];
+let examesCidadaoAtual = [];
+let vacinasCidadaoAtual = [];
+
+const VULNERABILIDADES_OPCOES = [
+  'Mora sozinho(a)', 'Acamado sem cuidador', 'Situação de rua', 'Insegurança alimentar',
+  'Violência doméstica', 'Dependência química', 'Sem renda fixa', 'Área de difícil acesso',
+];
 
 function escapeHtml(str) { return String(str ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
 
@@ -599,10 +681,13 @@ async function carregarProntuario() {
 
   renderizarHeaderIdentidade(cidadao);
   renderizarCondicoesTab(cidadao);
+  renderizarRiscoDetalhe(cidadao);
   renderizarFamiliaTab(cidadao);
 
   await carregarReceitasCidadao(cidadao.id);
   await carregarVisitas(cidadao.id);
+  await carregarExames(cidadao.id);
+  await carregarVacinas(cidadao.id);
 
   renderizarResumoCards(cidadao);
   renderizarAlertas(cidadao);
@@ -711,9 +796,10 @@ function renderizarResumoCards(c) {
 
   const riscoClasse = c.classificacao_risco === 'Alto Risco' ? 'risco-alto' : c.classificacao_risco === 'Intermediário' ? 'risco-intermediario' : c.classificacao_risco === 'Habitual' ? 'risco-habitual' : 'off';
   cartoes.push(`
-    <div class="summary-card">
+    <div class="summary-card clicavel" onclick="irParaAba('condicoes')">
       <div class="summary-card-top"><span class="summary-card-title">Classificação de Risco</span><span class="summary-card-icon ${riscoClasse}"><i class="ph ph-shield-warning"></i></span></div>
       <div class="summary-card-value">${escapeHtml(c.classificacao_risco || 'Não classificado')}</div>
+      ${(c.vulnerabilidade || []).length ? `<div class="summary-card-sub">${(c.vulnerabilidade || []).length} vulnerabilidade${(c.vulnerabilidade || []).length === 1 ? '' : 's'} registrada${(c.vulnerabilidade || []).length === 1 ? '' : 's'}</div>` : ''}
     </div>
   `);
 
@@ -726,26 +812,50 @@ function renderizarResumoCards(c) {
   `);
 
   cartoes.push(`
-    <div class="summary-card">
+    <div class="summary-card clicavel" onclick="irParaAba('medicamentos')">
       <div class="summary-card-top"><span class="summary-card-title">Receitas Ativas</span><span class="summary-card-icon ${receitasAtivas.length ? 'on' : 'off'}"><i class="ph ph-pill"></i></span></div>
       <div class="summary-card-value">${receitasAtivas.length}</div>
       <div class="summary-card-sub">${proximaAVencerDias !== null ? (proximaAVencerDias < 0 ? `${Math.abs(proximaAVencerDias)}d atrasada` : `próxima em ${proximaAVencerDias}d`) : 'nenhuma cadastrada'}</div>
     </div>
   `);
 
-  cartoes.push(`
-    <div class="summary-card indisponivel">
-      <div class="summary-card-top"><span class="summary-card-title">Vacinação</span><span class="summary-card-icon off"><i class="ph ph-syringe"></i></span></div>
-      <div class="summary-card-value">Não registrado</div>
-    </div>
-  `);
+  if (vacinasCidadaoAtual.length > 0) {
+    const ultimaVacina = vacinasCidadaoAtual[0];
+    cartoes.push(`
+      <div class="summary-card clicavel" onclick="irParaAba('vacinas')">
+        <div class="summary-card-top"><span class="summary-card-title">Vacinação</span><span class="summary-card-icon on"><i class="ph ph-syringe"></i></span></div>
+        <div class="summary-card-value">${vacinasCidadaoAtual.length} registrada${vacinasCidadaoAtual.length === 1 ? '' : 's'}</div>
+        <div class="summary-card-sub">última: ${escapeHtml(ultimaVacina.imunobiologico)} (${formatarDataBR(ultimaVacina.data_aplicacao)})</div>
+      </div>
+    `);
+  } else {
+    cartoes.push(`
+      <div class="summary-card vazio-convite" onclick="irParaAba('vacinas')">
+        <div class="summary-card-top"><span class="summary-card-title">Vacinação</span><span class="summary-card-icon off"><i class="ph ph-syringe"></i></span></div>
+        <div class="summary-card-value">Nada registrado</div>
+        <div class="summary-card-sub"><i class="ph ph-plus"></i> Adicionar</div>
+      </div>
+    `);
+  }
 
-  cartoes.push(`
-    <div class="summary-card indisponivel">
-      <div class="summary-card-top"><span class="summary-card-title">Últimos Exames</span><span class="summary-card-icon off"><i class="ph ph-test-tube"></i></span></div>
-      <div class="summary-card-value">Não registrado</div>
-    </div>
-  `);
+  if (examesCidadaoAtual.length > 0) {
+    const ultimoExame = examesCidadaoAtual[0];
+    cartoes.push(`
+      <div class="summary-card clicavel" onclick="irParaAba('exames')">
+        <div class="summary-card-top"><span class="summary-card-title">Últimos Exames</span><span class="summary-card-icon on"><i class="ph ph-test-tube"></i></span></div>
+        <div class="summary-card-value">${examesCidadaoAtual.length} registrado${examesCidadaoAtual.length === 1 ? '' : 's'}</div>
+        <div class="summary-card-sub">último: ${escapeHtml(ultimoExame.tipo_exame)} (${formatarDataBR(ultimoExame.data_exame)})</div>
+      </div>
+    `);
+  } else {
+    cartoes.push(`
+      <div class="summary-card vazio-convite" onclick="irParaAba('exames')">
+        <div class="summary-card-top"><span class="summary-card-title">Últimos Exames</span><span class="summary-card-icon off"><i class="ph ph-test-tube"></i></span></div>
+        <div class="summary-card-value">Nada registrado</div>
+        <div class="summary-card-sub"><i class="ph ph-plus"></i> Adicionar</div>
+      </div>
+    `);
+  }
 
   grid.innerHTML = cartoes.join('');
 }
@@ -788,6 +898,12 @@ function renderizarAlertas(c) {
     if (dias < 0) alertas.push({ icone: 'ph-pill', texto: `Receita de ${r.medicamento} está atrasada há ${Math.abs(dias)} dia(s).` });
   });
 
+  vacinasCidadaoAtual.forEach(v => {
+    if (!v.proxima_dose) return;
+    const dias = diasParaData(v.proxima_dose);
+    if (dias < 0) alertas.push({ icone: 'ph-syringe', texto: `Próxima dose de ${v.imunobiologico} está atrasada há ${Math.abs(dias)} dia(s).` });
+  });
+
   const box = document.getElementById('smartAlerts');
   const lista = document.getElementById('smartAlertsList');
 
@@ -796,6 +912,227 @@ function renderizarAlertas(c) {
   box.style.display = 'block';
   lista.innerHTML = alertas.map(a => `<div class="alert-item"><i class="ph ${a.icone}"></i> ${escapeHtml(a.texto)}</div>`).join('');
 }
+
+// ---------------------------------------------------------------------
+// Risco e Vulnerabilidade (editável)
+// ---------------------------------------------------------------------
+function renderizarRiscoDetalhe(c) {
+  const box = document.getElementById('riscoDetalhe');
+  const riscoClasse = c.classificacao_risco === 'Alto Risco' ? 'risco-alto' : c.classificacao_risco === 'Intermediário' ? 'risco-intermediario' : c.classificacao_risco === 'Habitual' ? 'risco-habitual' : '';
+  const vulnerabilidades = c.vulnerabilidade || [];
+
+  box.innerHTML = `
+    <div class="condicao-card">
+      <div class="condicao-card-title"><i class="ph ph-shield-warning"></i> Classificação: ${c.classificacao_risco ? `<span class="badge ${riscoClasse}" style="margin-left:4px;">${escapeHtml(c.classificacao_risco)}</span>` : '<span style="color:var(--text-muted); font-weight:500;">Não classificado</span>'}</div>
+      ${vulnerabilidades.length ? `<div style="display:flex; flex-wrap:wrap; gap:6px; margin-top:10px;">${vulnerabilidades.map(v => `<span class="badge vulnerabilidade">${escapeHtml(v)}</span>`).join('')}</div>` : '<div class="condicao-card-meta" style="margin-top:6px;">Nenhuma vulnerabilidade registrada.</div>'}
+      ${c.obs_risco_vulnerabilidade ? `<div class="condicao-card-meta" style="margin-top:10px; font-style:italic;">${escapeHtml(c.obs_risco_vulnerabilidade)}</div>` : ''}
+    </div>
+  `;
+}
+
+document.getElementById('btnEditarRisco').onclick = () => {
+  const form = document.getElementById('riscoForm');
+  const abrindo = form.style.display === 'none';
+  form.style.display = abrindo ? 'block' : 'none';
+  if (!abrindo || !cidadaoAtual) return;
+
+  document.getElementById('campoClassificacaoRisco').value = cidadaoAtual.classificacao_risco || '';
+  document.getElementById('campoObsRisco').value = cidadaoAtual.obs_risco_vulnerabilidade || '';
+
+  const vulnerabilidadesAtuais = new Set(cidadaoAtual.vulnerabilidade || []);
+  document.getElementById('vulnerabilidadeChips').innerHTML = VULNERABILIDADES_OPCOES.map(v => `
+    <button type="button" class="condicao-chip vulnerabilidade-chip ${vulnerabilidadesAtuais.has(v) ? 'selected' : ''}" data-valor="${escapeHtml(v)}">${escapeHtml(v)}</button>
+  `).join('');
+  document.querySelectorAll('.vulnerabilidade-chip').forEach(chip => {
+    chip.onclick = () => chip.classList.toggle('selected');
+  });
+
+  form.scrollIntoView({ behavior: 'smooth', block: 'center' });
+};
+
+document.getElementById('btnCancelarRisco').onclick = () => { document.getElementById('riscoForm').style.display = 'none'; };
+
+document.getElementById('btnSalvarRisco').onclick = async () => {
+  if (!cidadaoAtual) return;
+  const btn = document.getElementById('btnSalvarRisco');
+  btn.disabled = true; btn.textContent = 'Salvando...';
+
+  const vulnerabilidadesSelecionadas = Array.from(document.querySelectorAll('.vulnerabilidade-chip.selected')).map(c => c.dataset.valor);
+
+  const { error } = await db.from('cidadaos').update({
+    classificacao_risco: document.getElementById('campoClassificacaoRisco').value || null,
+    vulnerabilidade: vulnerabilidadesSelecionadas.length ? vulnerabilidadesSelecionadas : null,
+    obs_risco_vulnerabilidade: document.getElementById('campoObsRisco').value.trim() || null,
+  }).eq('id', cidadaoAtual.id);
+
+  btn.disabled = false; btn.textContent = 'Salvar';
+
+  if (error) { alert('Erro ao salvar: ' + error.message); console.error(error); return; }
+
+  cidadaoAtual.classificacao_risco = document.getElementById('campoClassificacaoRisco').value || null;
+  cidadaoAtual.vulnerabilidade = vulnerabilidadesSelecionadas.length ? vulnerabilidadesSelecionadas : null;
+  cidadaoAtual.obs_risco_vulnerabilidade = document.getElementById('campoObsRisco').value.trim() || null;
+
+  document.getElementById('riscoForm').style.display = 'none';
+  renderizarRiscoDetalhe(cidadaoAtual);
+  renderizarResumoCards(cidadaoAtual);
+  renderizarAlertas(cidadaoAtual);
+  renderizarHeaderStatus(cidadaoAtual);
+};
+
+// ---------------------------------------------------------------------
+// Aba Exames
+// ---------------------------------------------------------------------
+function exameCardHtml(e) {
+  return `
+    <div class="condicao-card">
+      <div class="condicao-card-title"><i class="ph ph-test-tube"></i> ${escapeHtml(e.tipo_exame)}</div>
+      <div class="condicao-card-meta">${formatarDataBR(e.data_exame)}${e.resultado ? ' · ' + escapeHtml(e.resultado) : ''}</div>
+      ${e.observacoes ? `<div class="condicao-card-meta" style="margin-top:4px; font-style:italic;">${escapeHtml(e.observacoes)}</div>` : ''}
+    </div>
+  `;
+}
+
+async function carregarExames(cidadaoIdAlvo) {
+  const box = document.getElementById('listaExames');
+  const { data, error } = await db.from('exames').select('*').eq('cidadao_id', cidadaoIdAlvo).order('data_exame', { ascending: false });
+
+  if (error) {
+    box.innerHTML = `<p style="color:var(--danger); font-size:13.5px;">Não foi possível carregar os exames.</p>`;
+    console.error(error);
+    examesCidadaoAtual = [];
+    return;
+  }
+
+  examesCidadaoAtual = data || [];
+  box.innerHTML = examesCidadaoAtual.length === 0
+    ? `<p style="color:var(--text-muted); font-size:13.5px;">Nenhum exame registrado ainda.</p>`
+    : examesCidadaoAtual.map(exameCardHtml).join('');
+}
+
+document.getElementById('btnNovoExame').onclick = () => {
+  const form = document.getElementById('exameForm');
+  const abrindo = form.style.display === 'none';
+  form.style.display = abrindo ? 'block' : 'none';
+  if (abrindo) {
+    document.getElementById('campoDataExame').value = new Date().toISOString().slice(0, 10);
+    form.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+};
+
+document.getElementById('btnCancelarExame').onclick = () => {
+  document.getElementById('exameForm').style.display = 'none';
+  document.getElementById('campoTipoExame').value = '';
+  document.getElementById('campoResultadoExame').value = '';
+  document.getElementById('campoObsExame').value = '';
+};
+
+document.getElementById('btnSalvarExame').onclick = async () => {
+  if (!cidadaoAtual) return;
+  const tipo = document.getElementById('campoTipoExame').value.trim();
+  if (!tipo) { alert('Informe o tipo de exame.'); return; }
+
+  const btn = document.getElementById('btnSalvarExame');
+  btn.disabled = true; btn.textContent = 'Salvando...';
+
+  const { error } = await db.from('exames').insert({
+    cidadao_id: cidadaoAtual.id,
+    tipo_exame: tipo,
+    data_exame: document.getElementById('campoDataExame').value || new Date().toISOString().slice(0, 10),
+    resultado: document.getElementById('campoResultadoExame').value.trim() || null,
+    observacoes: document.getElementById('campoObsExame').value.trim() || null,
+  });
+
+  btn.disabled = false; btn.textContent = 'Salvar exame';
+
+  if (error) { alert('Erro ao salvar exame: ' + error.message); console.error(error); return; }
+
+  document.getElementById('btnCancelarExame').onclick();
+  await carregarExames(cidadaoAtual.id);
+  renderizarResumoCards(cidadaoAtual);
+};
+
+// ---------------------------------------------------------------------
+// Aba Vacinas
+// ---------------------------------------------------------------------
+function vacinaCardHtml(v) {
+  const diasProxima = v.proxima_dose ? diasParaData(v.proxima_dose) : null;
+  let statusHtml = '';
+  if (diasProxima !== null) {
+    if (diasProxima < 0) statusHtml = `<span class="med-status-badge atrasada">próxima dose atrasada ${Math.abs(diasProxima)}d</span>`;
+    else if (diasProxima <= 30) statusHtml = `<span class="med-status-badge em-breve">próxima dose em ${diasProxima}d</span>`;
+    else statusHtml = `<span class="med-status-badge ok">próxima dose em ${diasProxima}d</span>`;
+  }
+  return `
+    <div class="condicao-card">
+      <div class="condicao-card-title"><i class="ph ph-syringe"></i> ${escapeHtml(v.imunobiologico)}${v.dose ? ' — ' + escapeHtml(v.dose) : ''}</div>
+      <div class="condicao-card-meta">Aplicada em ${formatarDataBR(v.data_aplicacao)}${v.proxima_dose ? ' · próxima dose: ' + formatarDataBR(v.proxima_dose) : ''}</div>
+      ${statusHtml ? `<div style="margin-top:8px;">${statusHtml}</div>` : ''}
+      ${v.observacoes ? `<div class="condicao-card-meta" style="margin-top:4px; font-style:italic;">${escapeHtml(v.observacoes)}</div>` : ''}
+    </div>
+  `;
+}
+
+async function carregarVacinas(cidadaoIdAlvo) {
+  const box = document.getElementById('listaVacinas');
+  const { data, error } = await db.from('vacinas').select('*').eq('cidadao_id', cidadaoIdAlvo).order('data_aplicacao', { ascending: false });
+
+  if (error) {
+    box.innerHTML = `<p style="color:var(--danger); font-size:13.5px;">Não foi possível carregar as vacinas.</p>`;
+    console.error(error);
+    vacinasCidadaoAtual = [];
+    return;
+  }
+
+  vacinasCidadaoAtual = data || [];
+  box.innerHTML = vacinasCidadaoAtual.length === 0
+    ? `<p style="color:var(--text-muted); font-size:13.5px;">Nenhuma vacina registrada ainda.</p>`
+    : vacinasCidadaoAtual.map(vacinaCardHtml).join('');
+}
+
+document.getElementById('btnNovaVacina').onclick = () => {
+  const form = document.getElementById('vacinaForm');
+  const abrindo = form.style.display === 'none';
+  form.style.display = abrindo ? 'block' : 'none';
+  if (abrindo) {
+    document.getElementById('campoDataAplicacao').value = new Date().toISOString().slice(0, 10);
+    form.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+};
+
+document.getElementById('btnCancelarVacina').onclick = () => {
+  document.getElementById('vacinaForm').style.display = 'none';
+  document.getElementById('campoImunobiologico').value = '';
+  document.getElementById('campoDoseVacina').value = '';
+  document.getElementById('campoProximaDose').value = '';
+  document.getElementById('campoObsVacina').value = '';
+};
+
+document.getElementById('btnSalvarVacina').onclick = async () => {
+  if (!cidadaoAtual) return;
+  const imuno = document.getElementById('campoImunobiologico').value.trim();
+  if (!imuno) { alert('Informe o imunobiológico.'); return; }
+
+  const btn = document.getElementById('btnSalvarVacina');
+  btn.disabled = true; btn.textContent = 'Salvando...';
+
+  const { error } = await db.from('vacinas').insert({
+    cidadao_id: cidadaoAtual.id,
+    imunobiologico: imuno,
+    dose: document.getElementById('campoDoseVacina').value.trim() || null,
+    data_aplicacao: document.getElementById('campoDataAplicacao').value || new Date().toISOString().slice(0, 10),
+    proxima_dose: document.getElementById('campoProximaDose').value || null,
+    observacoes: document.getElementById('campoObsVacina').value.trim() || null,
+  });
+
+  btn.disabled = false; btn.textContent = 'Salvar vacina';
+
+  if (error) { alert('Erro ao salvar vacina: ' + error.message); console.error(error); return; }
+
+  document.getElementById('btnCancelarVacina').onclick();
+  await carregarVacinas(cidadaoAtual.id);
+  renderizarResumoCards(cidadaoAtual);
+};
 
 // ---------------------------------------------------------------------
 // Aba Condições
@@ -1042,6 +1379,20 @@ async function salvarEvolucao() {
 }
 
 carregarProntuario();
+
+// O cabeçalho tem altura variável (nome pode quebrar linha, badges podem
+// empilhar), então a barra de abas precisa recalcular sua posição sempre
+// que o cabeçalho mudar de tamanho — senão as abas ficam escondidas atrás
+// do cabeçalho fixo no topo.
+function ajustarPosicaoAbas() {
+  const header = document.querySelector('.patient-header');
+  const tabsBar = document.getElementById('tabsBar');
+  if (header && tabsBar) tabsBar.style.top = header.offsetHeight + 'px';
+}
+window.addEventListener('resize', ajustarPosicaoAbas);
+window.addEventListener('load', ajustarPosicaoAbas);
+new ResizeObserver(ajustarPosicaoAbas).observe(document.querySelector('.patient-header'));
+ajustarPosicaoAbas();
 </script>
 </body>
 </html>
