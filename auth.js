@@ -38,7 +38,11 @@ async function fazerLogout() {
 // Adiciona o item "Sair" no fim do menu lateral, em todas as páginas que
 // incluírem auth.js (evita repetir o HTML em cada arquivo .html).
 function adicionarBotaoSair() {
-  const nav = document.querySelector('.nav-links');
+  // Páginas com a sidebar nova (nav.js) têm vários <ul class="nav-links">, um por
+  // grupo (Principal, Território...) - "Sair" deve ir no último grupo (Sistema).
+  // Páginas com a sidebar antiga têm só uma lista, então isso continua funcionando.
+  const listas = document.querySelectorAll('.nav-links');
+  const nav = listas[listas.length - 1];
   if (!nav || document.getElementById('navSair')) return;
   const li = document.createElement('li');
   li.innerHTML = `<a href="#" id="navSair"><span class="nav-icon">🚪</span> Sair</a>`;
