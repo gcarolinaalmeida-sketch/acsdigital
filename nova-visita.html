@@ -87,6 +87,36 @@ body {
 .dynamic-section.show { display: block; animation: fadeIn 0.3s ease; }
 @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
 
+/* STEPPER (wizard de 4 etapas) */
+.stepper { display: flex; align-items: center; margin-bottom: 28px; }
+.stepper-step { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+.stepper-circle {
+  width: 30px; height: 30px; border-radius: 50%; background: var(--bg-app); border: 2px solid var(--border);
+  color: var(--text-muted); font-size: 13px; font-weight: 700; display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0; transition: 0.2s;
+}
+.stepper-label { font-size: 13px; font-weight: 600; color: var(--text-muted); white-space: nowrap; }
+.stepper-step.done .stepper-circle { background: var(--primary); border-color: var(--primary); color: white; }
+.stepper-step.done .stepper-label { color: var(--text-main); }
+.stepper-step.current .stepper-circle { border-color: var(--primary); color: var(--primary); background: var(--primary-light); }
+.stepper-step.current .stepper-label { color: var(--text-main); }
+.stepper-line { flex: 1; height: 2px; background: var(--border); margin: 0 10px; min-width: 16px; }
+.stepper-line.done { background: var(--primary); }
+
+.step-panel { display: none; flex-direction: column; gap: 24px; }
+.step-panel.active { display: flex; }
+.step-nav { display: flex; justify-content: space-between; gap: 12px; margin-top: 4px; }
+.btn-step-back { background: var(--bg-card); border: 1px solid var(--border); color: var(--text-muted); padding: 12px 20px; border-radius: 12px; font-weight: 600; font-size: 14px; cursor: pointer; }
+.btn-step-back:hover { border-color: var(--text-muted); color: var(--text-main); }
+.btn-step-next { background: var(--primary); color: white; border: none; padding: 12px 24px; border-radius: 12px; font-weight: 600; font-size: 14px; cursor: pointer; margin-left: auto; }
+.btn-step-next:hover { background: var(--success); }
+.btn-step-next:disabled { opacity: 0.4; pointer-events: none; }
+.step1-family-preview { background: var(--bg-app); border: 1px solid var(--border); border-radius: 14px; padding: 18px; }
+.step1-family-preview h3 { font-size: 16px; font-weight: 700; margin-bottom: 4px; }
+.step1-family-preview p { font-size: 13px; color: var(--text-muted); }
+.step-summary { background: var(--bg-app); border: 1px solid var(--border); border-radius: 14px; padding: 18px; font-size: 13px; color: var(--text-muted); display: flex; flex-direction: column; gap: 6px; }
+.step-summary strong { color: var(--text-main); }
+
 textarea {
   width: 100%; min-height: 120px; border: 1px solid var(--border); border-radius: 14px; background: var(--bg-app);
   padding: 16px; font-size: 15px; line-height: 1.5; resize: vertical; outline: none; transition: 0.2s; color: var(--text-main);
@@ -190,51 +220,103 @@ canvas { width: 100%; height: 300px; display: block; touch-action: none; cursor:
   </header>
 
   <div class="workspace">
-    <!-- ESQUERDA: Formulário -->
+    <!-- ESQUERDA: Formulário em 4 etapas -->
     <div class="form-panel">
-      
-      <div>
-        <div class="section-label"><i class="ph ph-check-square-offset"></i> A visita foi realizada?</div>
-        <div class="choices-grid three" id="desfechoGroup">
-          <button class="choice-btn" data-value="Realizada"><i class="ph ph-check-circle"></i> Realizada</button>
-          <button class="choice-btn" data-value="Ausente"><i class="ph ph-door"></i> Ausente</button>
-          <button class="choice-btn" data-value="Recusada"><i class="ph ph-hand-palm"></i> Recusada</button>
+
+      <div class="stepper" id="stepper">
+        <div class="stepper-step current" data-step="1"><div class="stepper-circle">1</div><div class="stepper-label">Família</div></div>
+        <div class="stepper-line"></div>
+        <div class="stepper-step" data-step="2"><div class="stepper-circle">2</div><div class="stepper-label">Motivo</div></div>
+        <div class="stepper-line"></div>
+        <div class="stepper-step" data-step="3"><div class="stepper-circle">3</div><div class="stepper-label">Avaliação</div></div>
+        <div class="stepper-line"></div>
+        <div class="stepper-step" data-step="4"><div class="stepper-circle">4</div><div class="stepper-label">Encerramento</div></div>
+      </div>
+
+      <!-- ETAPA 1: Família -->
+      <div class="step-panel active" data-step-panel="1">
+        <div>
+          <div class="section-label"><i class="ph ph-users"></i> Confirme a família da visita</div>
+          <div class="step1-family-preview">
+            <h3 id="step1FamiliaNome">Carregando família...</h3>
+            <p id="step1FamiliaEndereco">—</p>
+          </div>
+        </div>
+        <div class="step-nav">
+          <button type="button" class="btn-step-next" id="btnStep1Next" style="margin-left:0;">Próximo <i class="ph ph-arrow-right"></i></button>
         </div>
       </div>
 
-      <div class="dynamic-section" id="motivoSection">
-        <div class="section-label"><i class="ph ph-question"></i> Motivo rápido</div>
-        <div class="choices-grid two" id="motivoGroup">
-          <button class="choice-btn" data-value="Não atendeu">Não atendeu</button>
-          <button class="choice-btn" data-value="Casa fechada">Casa fechada</button>
-          <button class="choice-btn" data-value="Mudou-se">Mudou-se</button>
-          <button class="choice-btn" data-value="Outro">Outro</button>
+      <!-- ETAPA 2: Motivo (situação da visita) -->
+      <div class="step-panel" data-step-panel="2">
+        <div>
+          <div class="section-label"><i class="ph ph-check-square-offset"></i> A visita foi realizada?</div>
+          <div class="choices-grid three" id="desfechoGroup">
+            <button class="choice-btn" data-value="Realizada"><i class="ph ph-check-circle"></i> Realizada</button>
+            <button class="choice-btn" data-value="Ausente"><i class="ph ph-door"></i> Ausente</button>
+            <button class="choice-btn" data-value="Recusada"><i class="ph ph-hand-palm"></i> Recusada</button>
+          </div>
+        </div>
+
+        <div class="dynamic-section" id="motivoSection">
+          <div class="section-label"><i class="ph ph-question"></i> Motivo rápido</div>
+          <div class="choices-grid two" id="motivoGroup">
+            <button class="choice-btn" data-value="Não atendeu">Não atendeu</button>
+            <button class="choice-btn" data-value="Casa fechada">Casa fechada</button>
+            <button class="choice-btn" data-value="Mudou-se">Mudou-se</button>
+            <button class="choice-btn" data-value="Outro">Outro</button>
+          </div>
+        </div>
+
+        <div class="step-nav">
+          <button type="button" class="btn-step-back" data-back="1"><i class="ph ph-arrow-left"></i> Voltar</button>
+          <button type="button" class="btn-step-next" id="btnStep2Next" disabled>Próximo <i class="ph ph-arrow-right"></i></button>
         </div>
       </div>
 
-      <div class="dynamic-section" id="realizadaSection">
-        <div class="section-label"><i class="ph ph-stethoscope"></i> Acompanhamentos realizados</div>
-        <div class="choices-grid two" id="acompanhamentosGroup" style="margin-bottom: 24px;">
-          <button class="choice-btn" data-value="Hipertenso"><i class="ph ph-heartbeat"></i> Hipertenso</button>
-          <button class="choice-btn" data-value="Diabético"><i class="ph ph-drop"></i> Diabético</button>
-          <button class="choice-btn" data-value="Gestante"><i class="ph ph-baby"></i> Gestante</button>
-          <button class="choice-btn" data-value="Criança"><i class="ph ph-horse"></i> Criança</button>
-        </div>
+      <!-- ETAPA 3: Avaliação -->
+      <div class="step-panel" data-step-panel="3">
+        <div class="dynamic-section" id="realizadaSection">
+          <div class="section-label"><i class="ph ph-stethoscope"></i> Acompanhamentos realizados</div>
+          <div class="choices-grid two" id="acompanhamentosGroup" style="margin-bottom: 24px;">
+            <button class="choice-btn" data-value="Hipertenso"><i class="ph ph-heartbeat"></i> Hipertenso</button>
+            <button class="choice-btn" data-value="Diabético"><i class="ph ph-drop"></i> Diabético</button>
+            <button class="choice-btn" data-value="Gestante"><i class="ph ph-baby"></i> Gestante</button>
+            <button class="choice-btn" data-value="Criança"><i class="ph ph-horse"></i> Criança</button>
+          </div>
 
-        <div class="section-label"><i class="ph ph-pen-nib"></i> Assinatura do paciente <span style="font-weight:400; color:var(--text-muted); text-transform:none; letter-spacing:0;">(opcional)</span></div>
-        <button class="sign-btn" id="btnAssinatura">
-          <i class="ph ph-signature"></i>
-          Clique para coletar a assinatura no tablet
-        </button>
-        <div id="motivoSemAssinaturaWrap" style="margin-top: 10px; display: none;">
-          <input type="text" id="motivoSemAssinatura" placeholder="Motivo (opcional): ex. paciente não consegue assinar" style="width:100%; padding:10px 12px; border:1px solid var(--border); border-radius:10px; font-size:13.5px; outline:none;">
+          <div class="section-label"><i class="ph ph-pen-nib"></i> Assinatura do paciente <span style="font-weight:400; color:var(--text-muted); text-transform:none; letter-spacing:0;">(opcional)</span></div>
+          <button class="sign-btn" id="btnAssinatura">
+            <i class="ph ph-signature"></i>
+            Clique para coletar a assinatura no tablet
+          </button>
+          <div id="motivoSemAssinaturaWrap" style="margin-top: 10px; display: none;">
+            <input type="text" id="motivoSemAssinatura" placeholder="Motivo (opcional): ex. paciente não consegue assinar" style="width:100%; padding:10px 12px; border:1px solid var(--border); border-radius:10px; font-size:13.5px; outline:none;">
+          </div>
+          <button type="button" id="btnSemAssinatura" style="background:none; border:none; color:var(--text-muted); font-size:12.5px; font-weight:600; margin-top:8px; cursor:pointer; text-decoration:underline; padding:0;">Paciente não vai assinar</button>
         </div>
-        <button type="button" id="btnSemAssinatura" style="background:none; border:none; color:var(--text-muted); font-size:12.5px; font-weight:600; margin-top:8px; cursor:pointer; text-decoration:underline; padding:0;">Paciente não vai assinar</button>
+        <p class="estado-vazio" id="step3SemAvaliacao" style="display:none; text-align:left;">Como a visita não foi realizada, não há acompanhamentos ou assinatura para registrar nesta etapa. Pode seguir para o encerramento.</p>
+
+        <div class="step-nav">
+          <button type="button" class="btn-step-back" data-back="2"><i class="ph ph-arrow-left"></i> Voltar</button>
+          <button type="button" class="btn-step-next" id="btnStep3Next">Próximo <i class="ph ph-arrow-right"></i></button>
+        </div>
       </div>
 
-      <div class="dynamic-section" id="obsSection">
-        <div class="section-label"><i class="ph ph-text-align-left"></i> Observações da visita</div>
-        <textarea id="observacoes" placeholder="Ex.: Orientações dadas, sinais observados no ambiente, encaminhamentos realizados..."></textarea>
+      <!-- ETAPA 4: Encerramento -->
+      <div class="step-panel" data-step-panel="4">
+        <div class="dynamic-section" id="obsSection" style="display:block;">
+          <div class="section-label"><i class="ph ph-text-align-left"></i> Observações da visita</div>
+          <textarea id="observacoes" placeholder="Ex.: Orientações dadas, sinais observados no ambiente, encaminhamentos realizados..."></textarea>
+        </div>
+
+        <div class="step-summary" id="stepResumoFinal">
+          <div><strong>Resumo:</strong> escolha o desfecho na etapa 2 para ver aqui.</div>
+        </div>
+
+        <div class="step-nav">
+          <button type="button" class="btn-step-back" data-back="3"><i class="ph ph-arrow-left"></i> Voltar</button>
+        </div>
       </div>
 
     </div>
@@ -442,6 +524,7 @@ function atualizar() {
   $('realizadaSection').classList.toggle('show', realizada);
   $('motivoSection').classList.toggle('show', ausenteOuRecusada);
   $('obsSection').classList.toggle('show', !!desfecho);
+  if ($('step3SemAvaliacao')) $('step3SemAvaliacao').style.display = (desfecho && !realizada) ? 'block' : 'none';
 
   // A assinatura não é mais obrigatória para salvar — só o desfecho é.
   const ok = !!desfecho;
@@ -449,6 +532,8 @@ function atualizar() {
   const txtAtual = $('statusText');
   
   if(btnAtual) btnAtual.classList.toggle('active', ok);
+  const btnStep2 = $('btnStep2Next');
+  if (btnStep2) btnStep2.disabled = !ok;
 
   if(!desfecho) {
     if(txtAtual) txtAtual.textContent = 'Escolha o desfecho para continuar';
@@ -582,6 +667,68 @@ const salvarVisitaAction = async () => {
 
 $('btnSalvar').onclick = salvarVisitaAction;
 carregarContexto();
+
+/* ============================================================================
+   Motor do wizard (4 etapas) — só controla QUAL painel aparece; toda a
+   validação e o salvamento continuam sendo feitos pela lógica acima,
+   que não foi alterada.
+============================================================================ */
+let etapaAtual = 1;
+const totalEtapas = 4;
+
+function irParaEtapa(n) {
+  etapaAtual = Math.min(Math.max(n, 1), totalEtapas);
+
+  document.querySelectorAll('.step-panel').forEach(p => {
+    p.classList.toggle('active', Number(p.dataset.stepPanel) === etapaAtual);
+  });
+
+  document.querySelectorAll('.stepper-step').forEach((el, i) => {
+    const passo = i + 1;
+    el.classList.toggle('current', passo === etapaAtual);
+    el.classList.toggle('done', passo < etapaAtual);
+  });
+  document.querySelectorAll('.stepper-line').forEach((el, i) => {
+    el.classList.toggle('done', (i + 1) < etapaAtual);
+  });
+
+  if (etapaAtual === 4) atualizarResumoFinal();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function atualizarResumoFinal() {
+  const resumo = $('stepResumoFinal');
+  if (!resumo) return;
+  if (!desfecho) {
+    resumo.innerHTML = '<div><strong>Resumo:</strong> volte e escolha o desfecho da visita.</div>';
+    return;
+  }
+  const acompanhamentos = desfecho === 'Realizada'
+    ? Array.from($('acompanhamentosGroup').querySelectorAll('.choice-btn.selected')).map(b => b.dataset.value)
+    : [];
+  resumo.innerHTML = `
+    <div><strong>Desfecho:</strong> ${desfecho}${motivo && desfecho !== 'Realizada' ? ' — ' + motivo : ''}</div>
+    ${desfecho === 'Realizada' ? `<div><strong>Acompanhamentos:</strong> ${acompanhamentos.length ? acompanhamentos.join(', ') : 'Nenhum selecionado'}</div>` : ''}
+    ${desfecho === 'Realizada' ? `<div><strong>Assinatura:</strong> ${assinatura ? 'Coletada' : 'Não coletada'}</div>` : ''}
+  `;
+}
+
+document.getElementById('btnStep1Next').onclick = () => irParaEtapa(2);
+document.getElementById('btnStep2Next').onclick = () => irParaEtapa(3);
+document.getElementById('btnStep3Next').onclick = () => irParaEtapa(4);
+document.querySelectorAll('[data-back]').forEach(btn => {
+  btn.onclick = () => irParaEtapa(Number(btn.dataset.back));
+});
+
+// Preenche o preview da família na Etapa 1 assim que os dados chegam,
+// reaproveitando o mesmo carregamento que já popula o painel lateral.
+const _renderizarContextoFamiliaOriginal = renderizarContextoFamilia;
+renderizarContextoFamilia = function (f, ultimaVisita, offline) {
+  _renderizarContextoFamiliaOriginal(f, ultimaVisita, offline);
+  const endereco = [f.logradouro, f.numero].filter(Boolean).join(', ') || 'Endereço não informado';
+  $('step1FamiliaNome').textContent = endereco;
+  $('step1FamiliaEndereco').textContent = f.bairro ? `Bairro: ${f.bairro}` : 'Bairro não informado';
+};
 </script>
 <script src="nav.js"></script>
 <script>renderizarNavegacao('visitas');</script>
