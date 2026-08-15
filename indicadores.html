@@ -12,28 +12,28 @@
 
 <!-- Phosphor Icons para estética minimalista -->
 <script src="https://unpkg.com/@phosphor-icons/web"></script>
+<link rel="stylesheet" href="styles.css">
 
 <style>
 :root {
-  --bg-app: #f9fafb;
-  --bg-card: #ffffff;
-  --text-main: #111827;
-  --text-muted: #6b7280;
-  --border: #e5e7eb;
+  --bg-app: #F8FAFC;
+  --bg-card: #FFFFFF;
+  --text-main: #0F172A;
+  --text-muted: #64748B;
+  --border: #E2E8F0;
   --radius: 16px;
-  --primary: #0ea5e9;
-  --primary-light: #e0f2fe;
-  --success: #10b981;
-  --success-light: #d1fae5;
-  --danger: #ef4444;
-  --danger-light: #fef2f2;
-  --warning: #f59e0b;
-  --warning-light: #fef3c7;
+  --primary: #16A34A;
+  --primary-light: #DCFCE7;
+  --success: #15803D;
+  --success-light: #DCFCE7;
+  --danger: #DC2626;
+  --danger-light: #FEE2E2;
+  --warning: #D97706;
+  --warning-light: #FEF3C7;
 }
 
 * { 
-  margin: 0; padding: 0; box-sizing: border-box; 
-  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif;
+  box-sizing: border-box; 
   -webkit-font-smoothing: antialiased;
 }
 
@@ -41,25 +41,6 @@ body {
   display: flex; background: var(--bg-app); color: var(--text-main); 
   height: 100vh; overflow: hidden; 
 }
-
-/* SIDEBAR - Padrão iPad */
-.sidebar {
-  width: 260px; background: var(--bg-card); border-right: 1px solid var(--border);
-  padding: 30px 20px; display: flex; flex-direction: column; flex-shrink: 0;
-  z-index: 10;
-}
-.sidebar h2 { font-size: 16px; font-weight: 700; letter-spacing: -0.02em; }
-.sidebar span { font-size: 13px; color: var(--text-muted); margin-top: 2px; display: block; }
-.nav-links { margin-top: 30px; display: flex; flex-direction: column; gap: 8px; list-style: none;}
-.nav-links a {
-  text-decoration: none; font-size: 14px; font-weight: 500; color: var(--text-muted);
-  padding: 10px 14px; border-radius: 10px; display: flex; align-items: center; gap: 12px; transition: all 0.2s;
-}
-.nav-links a i { font-size: 20px; }
-.nav-links a:hover { background: #f3f4f6; color: var(--text-main); }
-.nav-links a.active { background: var(--primary-light); color: var(--primary); font-weight: 600; }
-.nav-links a.active i { font-family: "Phosphor-Fill"; }
-.nav-divider { height: 1px; background: var(--border); margin: 8px 4px; list-style: none; }
 
 /* MAIN CONTENT */
 .main-content {
@@ -134,31 +115,27 @@ body {
 .ops-desc { font-size: 14px; color: var(--text-muted); line-height: 1.5; margin-bottom: 20px; flex: 1; }
 .ops-action { font-size: 14px; font-weight: 600; color: var(--primary); display: flex; align-items: center; gap: 6px; }
 
+/* ---------------------------------------------------------------------
+   Responsividade iPad/celular
+--------------------------------------------------------------------- */
+@media (max-width: 1024px) {
+  .app-sidebar { display: none; }
+  body { height: auto; min-height: 100vh; overflow: visible; }
+  .main-content { overflow-y: visible; padding: 24px 20px 90px; }
+  .metric-grid { grid-template-columns: 1fr; gap: 16px; }
+  .metric-card { padding: 22px; }
+  .ops-grid { grid-template-columns: repeat(2, 1fr); gap: 14px; }
+}
+@media (max-width: 560px) {
+  .ops-grid { grid-template-columns: 1fr; }
+}
 </style>
 </head>
 <body>
 
 <!-- SIDEBAR -->
-<aside class="sidebar">
-  <div class="sidebar-header">
-    <h2>ACS Digital</h2>
-    <span>Microárea 02</span>
-  </div>
-  <ul class="nav-links">
-    <li><a href="index.html"><i class="ph ph-squares-four"></i> Dashboard</a></li>
-    <li><a href="meu-roteiro.html"><i class="ph ph-map-pin-line"></i> Meu Roteiro</a></li>
-    <li><a href="agenda.html"><i class="ph ph-calendar-blank"></i> Agenda</a></li>
-    <li><a href="nova-visita.html"><i class="ph ph-clipboard-text"></i> Visitas</a></li>
-    <li><a href="familias.html"><i class="ph ph-users"></i> Famílias</a></li>
-    <li><a href="mapa.html"><i class="ph ph-map-trifold"></i> Mapa</a></li>
-    <li><a href="indicadores.html" class="active"><i class="ph ph-chart-line-up"></i> Indicadores</a></li>
-    <li><a href="receitas.html"><i class="ph ph-pill"></i> Receitas</a></li>
-    <li><a href="relatorio-visitas.html"><i class="ph ph-file-text"></i> Relatório de Visitas</a></li>
-    <li class="nav-divider"></li>
-    <li><a href="busca.html"><i class="ph ph-magnifying-glass"></i> Busca</a></li>
-    <li><a href="configuracoes.html"><i class="ph ph-gear"></i> Configurações</a></li>
-  </ul>
-</aside>
+<aside class="app-sidebar" id="appSidebar"></aside>
+<nav class="bottom-nav" id="appBottomNav"></nav>
 
 <main class="main-content">
   <div class="content-wrapper">
@@ -338,5 +315,7 @@ async function carregarIndicadores() {
 
 carregarIndicadores();
 </script>
+<script src="nav.js"></script>
+<script>renderizarNavegacao('indicadores');</script>
 </body>
 </html>
