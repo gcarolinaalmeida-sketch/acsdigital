@@ -6,54 +6,45 @@
 <title>Meu Roteiro - ACS Digital</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://unpkg.com/lucide@latest"></script>
+<script src="https://unpkg.com/@phosphor-icons/web"></script>
 <script src="config.js"></script>
 <script src="auth.js"></script>
 <script>protegerPagina();</script>
 <script src="branding.js"></script>
 <script src="roteiro.js"></script>
 <script src="offline.js"></script>
+<link rel="stylesheet" href="styles.css">
 
 <style>
 /* ============================================================================
-   Tokens - inspirado em Notion / Linear / Apple Health: muito branco,
-   bordas finas, quase nenhuma sombra, cor só onde ela significa algo
-   (prioridade, status). Tipografia é o que cria a hierarquia, não caixas.
+   Tokens desta página - alinhados à identidade verde do resto do app.
+   O restante da folha (layout de leitura focada, drawer wizard, drag-and-drop)
+   é específico desta tela e continua igual, só a paleta muda.
 ============================================================================ */
 :root {
-  --bg-color: #FAFAF9;
+  --bg-color: #F8FAFC;
   --surface: #FFFFFF;
-  --text-main: #171717;
-  --text-muted: #8A8A85;
-  --text-faint: #B4B4AE;
-  --border: #EBEBE8;
-  --border-strong: #DEDEDA;
-  --primary: #2563EB;
-  --primary-soft: #EFF4FF;
-  --danger: #DC4C3E;
-  --danger-soft: #FDEEEC;
-  --warning: #C9820A;
-  --warning-soft: #FBF2E3;
-  --success: #2F9E63;
-  --success-soft: #EAF6EF;
+  --text-main: #0F172A;
+  --text-muted: #64748B;
+  --text-faint: #94A3B8;
+  --border: #E2E8F0;
+  --border-strong: #CBD5E1;
+  --primary: #16A34A;
+  --primary-soft: #DCFCE7;
+  --danger: #DC2626;
+  --danger-soft: #FEE2E2;
+  --warning: #D97706;
+  --warning-soft: #FEF3C7;
+  --success: #15803D;
+  --success-soft: #DCFCE7;
   --radius-sm: 8px;
   --radius-md: 12px;
   --radius-lg: 16px;
 }
 
-* { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif; -webkit-tap-highlight-color: transparent; }
-body { background-color: var(--bg-color); color: var(--text-main); display: flex; min-height: 100vh; -webkit-font-smoothing: antialiased; }
+* { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+body { background-color: var(--bg-color); color: var(--text-main); display: flex; min-height: 100vh; -webkit-font-smoothing: antialiased; font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
 ::-webkit-scrollbar { display: none; }
-
-/* --- Sidebar (mesma estrutura das outras páginas, só mais discreta) --- */
-.sidebar { width: 240px; background: var(--surface); border-right: 1px solid var(--border); padding: 24px 14px; display: flex; flex-direction: column; gap: 24px; flex-shrink: 0; }
-.sidebar-header h2 { font-size: 14px; font-weight: 600; }
-.sidebar-header span { font-size: 12px; color: var(--text-muted); }
-.nav-links { list-style: none; display: flex; flex-direction: column; gap: 2px; }
-.nav-links li a { text-decoration: none; color: var(--text-muted); font-size: 14px; padding: 8px 12px; border-radius: var(--radius-sm); display: flex; align-items: center; gap: 10px; transition: 0.15s; font-weight: 500; }
-.nav-links li a svg { width: 16px; height: 16px; }
-.nav-links li a:hover { background: var(--bg-color); color: var(--text-main); }
-.nav-links li a.active { background: var(--primary-soft); color: var(--primary); font-weight: 600; }
-.nav-divider { height: 1px; background: var(--border); margin: 8px 4px; }
 
 .main-content { flex: 1; display: flex; flex-direction: column; overflow-y: auto; padding-bottom: 90px; }
 .content-wrapper { max-width: 680px; margin: 0 auto; width: 100%; padding: 40px 24px; }
@@ -69,7 +60,7 @@ body { background-color: var(--bg-color); color: var(--text-main); display: flex
 .progress-text { font-size: 13px; color: var(--text-muted); font-weight: 500; margin-bottom: 8px; display: flex; justify-content: space-between; }
 .progress-text strong { color: var(--text-main); font-weight: 600; }
 .progress-track { width: 100%; height: 4px; background: var(--border); border-radius: 2px; overflow: hidden; }
-.progress-fill { height: 100%; background: var(--text-main); border-radius: 2px; transition: width 0.4s ease; }
+.progress-fill { height: 100%; background: var(--primary); border-radius: 2px; transition: width 0.4s ease; }
 
 /* --- Próxima visita: o maior elemento da tela --- */
 .section-label { font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; font-weight: 600; color: var(--text-faint); margin-bottom: 14px; }
@@ -93,8 +84,8 @@ body { background-color: var(--bg-color); color: var(--text-main); display: flex
 .nv-meta-item { display: flex; align-items: center; gap: 8px; }
 .nv-meta-item svg { width: 14px; height: 14px; color: var(--text-faint); flex-shrink: 0; }
 
-.btn-iniciar { width: 100%; background: var(--text-main); color: white; border: none; padding: 18px; border-radius: var(--radius-md); font-size: 16px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; text-decoration: none; transition: opacity 0.15s; }
-.btn-iniciar:hover { opacity: 0.88; }
+.btn-iniciar { width: 100%; background: var(--primary); color: white; border: none; padding: 18px; border-radius: var(--radius-md); font-size: 16px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; text-decoration: none; transition: background 0.15s; }
+.btn-iniciar:hover { background: var(--success); }
 .btn-iniciar.urgente { background: var(--danger); }
 .btn-iniciar svg { width: 17px; height: 17px; }
 
@@ -192,40 +183,14 @@ body { background-color: var(--bg-color); color: var(--text-main); display: flex
 .btn-solid-full { flex: 2; background: var(--text-main); color: white; border: none; padding: 12px; border-radius: var(--radius-md); font-size: 14px; font-weight: 600; cursor: pointer; }
 .btn-solid-full:disabled { background: var(--border-strong); cursor: not-allowed; }
 
-.bottom-nav { display: none; }
-
-@media (max-width: 768px) {
-  .sidebar { display: none; }
+@media (max-width: 1024px) {
   .content-wrapper { padding: 24px 18px 100px; }
-  .bottom-nav { display: flex; position: fixed; bottom: 0; left: 0; right: 0; background: rgba(255,255,255,0.94); backdrop-filter: blur(10px); border-top: 1px solid var(--border); z-index: 45; padding: 8px 16px calc(env(safe-area-inset-bottom, 0px) + 8px); justify-content: space-around; }
-  .bottom-nav a { display: flex; flex-direction: column; align-items: center; gap: 4px; text-decoration: none; color: var(--text-muted); font-size: 11px; font-weight: 500; }
-  .bottom-nav a svg { width: 20px; height: 20px; }
-  .bottom-nav a.active { color: var(--primary); }
 }
 </style>
 </head>
 <body>
 
-  <aside class="sidebar">
-    <div class="sidebar-header">
-      <h2>UBS Guarda-Mor</h2>
-      <span>Micro-área 03</span>
-    </div>
-    <ul class="nav-links">
-      <li><a href="index.html"><i data-lucide="layout-grid"></i> Dashboard</a></li>
-      <li><a href="meu-roteiro.html" class="active"><i data-lucide="map-pin"></i> Meu Roteiro</a></li>
-      <li><a href="agenda.html"><i data-lucide="calendar"></i> Agenda</a></li>
-      <li><a href="busca.html"><i data-lucide="clipboard-list"></i> Visitas</a></li>
-      <li><a href="familias.html"><i data-lucide="users"></i> Famílias</a></li>
-      <li><a href="mapa.html"><i data-lucide="map"></i> Mapa</a></li>
-      <li><a href="indicadores.html"><i data-lucide="bar-chart-2"></i> Indicadores</a></li>
-      <li><a href="receitas.html"><i data-lucide="pill"></i> Receitas</a></li>
-      <li><a href="relatorio-visitas.html"><i data-lucide="file-text"></i> Relatório de Visitas</a></li>
-      <li class="nav-divider"></li>
-      <li><a href="busca.html"><i data-lucide="search"></i> Busca</a></li>
-      <li><a href="configuracoes.html"><i data-lucide="settings"></i> Configurações</a></li>
-    </ul>
-  </aside>
+  <aside class="app-sidebar" id="appSidebar"></aside>
 
   <main class="main-content">
     <div class="content-wrapper">
@@ -258,12 +223,7 @@ body { background-color: var(--bg-color); color: var(--text-main); display: flex
     </div>
   </main>
 
-  <nav class="bottom-nav">
-    <a href="index.html"><i data-lucide="layout-grid"></i> Início</a>
-    <a href="meu-roteiro.html" class="active"><i data-lucide="map-pin"></i> Roteiro</a>
-    <a href="agenda.html"><i data-lucide="calendar"></i> Agenda</a>
-    <a href="familias.html"><i data-lucide="users"></i> Famílias</a>
-  </nav>
+  <nav class="bottom-nav" id="appBottomNav"></nav>
 
   <!-- ======================= Drawer: Adicionar família ======================= -->
   <div class="overlay" id="overlay"></div>
@@ -881,5 +841,7 @@ body { background-color: var(--bg-color); color: var(--text-main); display: flex
   lucide.createIcons();
   carregarPagina();
   </script>
+  <script src="nav.js"></script>
+  <script>renderizarNavegacao('roteiro');</script>
 </body>
 </html>
