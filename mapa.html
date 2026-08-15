@@ -10,30 +10,24 @@
 <script>protegerPagina();</script>
 <script src="branding.js"></script>
 <script src="roteiro.js"></script>
+<script src="https://unpkg.com/@phosphor-icons/web"></script>
+<link rel="stylesheet" href="styles.css">
 <style>
 :root {
---bg-color: #FAFAFA;
+--bg-color: #F8FAFC;
 --surface: #FFFFFF;
---text-main: #111827;
---text-muted: #6B7280;
---border: #E5E7EB;
---primary: #0A84FF;
---success: #34C759;
---danger: #FF3B30;
---warning: #FF9500;
+--text-main: #0F172A;
+--text-muted: #64748B;
+--border: #E2E8F0;
+--primary: #16A34A;
+--success: #15803D;
+--danger: #DC2626;
+--warning: #D97706;
+--info-pin: #2563EB;
 --radius: 12px;
 }
-* { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+* { box-sizing: border-box; }
 body { display: flex; height: 100vh; overflow: hidden; background-color: var(--bg-color); }
-/* Sidebar Base */
-.sidebar { width: 260px; background-color: var(--bg-color); border-right: 1px solid var(--border); padding: 24px 16px; display: flex; flex-direction: column; gap: 24px; z-index: 20; }
-.sidebar-header h2 { font-size: 14px; font-weight: 600; }
-.sidebar-header span { font-size: 12px; color: var(--text-muted); }
-.nav-links { list-style: none; display: flex; flex-direction: column; gap: 2px; }
-.nav-links li a { text-decoration: none; color: var(--text-muted); font-size: 14px; padding: 9px 12px; border-radius: 10px; display: flex; align-items: center; gap: 10px; transition: 0.2s; }
-.nav-links li a .nav-icon { font-size: 15px; width: 18px; text-align: center; flex-shrink: 0; }
-.nav-links li a:hover, .nav-links li a.active { background-color: #F3F4F6; color: var(--text-main); font-weight: 500; }
-.nav-links li.nav-divider { height: 1px; background: var(--border); margin: 8px 4px; list-style: none; }
 /* Área do Mapa */
 .map-container { flex: 1; position: relative; background-color: #E5E5EA; /* Simula a cor de fundo de um mapa */ overflow: hidden; }
 /* Simulação visual de ruas de mapa */
@@ -47,7 +41,7 @@ body { display: flex; height: 100vh; overflow: hidden; background-color: var(--b
 .pin:hover { transform: translate(-50%, -50%) scale(1.2); z-index: 15; }
 .pin.danger { background: var(--danger); color: white; }
 .pin.warning { background: var(--warning); color: white; }
-.pin.info { background: var(--primary); color: white; }
+.pin.info { background: var(--info-pin); color: white; }
 .pin.done { background: var(--success); color: white; opacity: 0.6; }
 /* Popover (Card de Resumo) */
 .popover { position: absolute; width: 320px; background: var(--surface); border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.15); padding: 20px; z-index: 20; opacity: 0; pointer-events: none; transition: 0.2s; transform: translate(-50%, 20px); }
@@ -59,7 +53,7 @@ body { display: flex; height: 100vh; overflow: hidden; background-color: var(--b
 .tag { padding: 4px 8px; border-radius: 6px; font-size: 11px; font-weight: 600; }
 .tag-danger { background: rgba(255, 59, 48, 0.1); color: var(--danger); }
 .tag-warning { background: rgba(255, 149, 0, 0.1); color: var(--warning); }
-.tag-info { background: rgba(10, 132, 255, 0.1); color: var(--primary); }
+.tag-info { background: rgba(37, 99, 235, 0.1); color: var(--info-pin); }
 .popover-meta { font-size: 13px; color: var(--text-muted); }
 .popover-actions { display: flex; gap: 8px; margin-top: 16px; border-top: 1px solid var(--border); padding-top: 16px; }
 .btn-popover { flex: 1; padding: 10px; border-radius: 8px; font-weight: 600; font-size: 13px; cursor: pointer; border: none; text-align: center; text-decoration: none; }
@@ -69,7 +63,7 @@ body { display: flex; height: 100vh; overflow: hidden; background-color: var(--b
 .route-panel { position: absolute; right: 24px; top: 80px; bottom: 24px; width: 300px; background: var(--surface); border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); display: flex; flex-direction: column; overflow: hidden; pointer-events: auto; }
 .route-header { padding: 20px; border-bottom: 1px solid var(--border); }
 .route-header h3 { font-size: 16px; margin-bottom: 12px; }
-.btn-optimize { width: 100%; padding: 10px; background: rgba(10, 132, 255, 0.1); color: var(--primary); border: 1px dashed var(--primary); border-radius: 8px; font-weight: 600; font-size: 13px; cursor: pointer; }
+.btn-optimize { width: 100%; padding: 10px; background: rgba(22, 163, 74, 0.1); color: var(--primary); border: 1px dashed var(--primary); border-radius: 8px; font-weight: 600; font-size: 13px; cursor: pointer; }
 .route-list { flex: 1; overflow-y: auto; padding: 20px; }
 .route-section { font-size: 12px; font-weight: 600; color: var(--text-muted); margin-bottom: 12px; margin-top: 16px; }
 .route-item { display: flex; align-items: center; gap: 12px; padding: 12px; border: 1px solid var(--border); border-radius: 8px; margin-bottom: 8px; cursor: pointer; transition: 0.2s; text-decoration: none; }
@@ -81,30 +75,30 @@ body { display: flex; height: 100vh; overflow: hidden; background-color: var(--b
 .route-info strong { display: block; font-size: 14px; margin-bottom: 2px; color: var(--text-main); }
 .route-info span { font-size: 12px; color: var(--text-muted); }
 .estado-vazio-mapa { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: var(--text-muted); font-size: 14px; text-align: center; padding: 40px; }
+.map-legend { position: absolute; left: 24px; bottom: 24px; z-index: 10; background: var(--surface); border-radius: 12px; padding: 10px 14px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); display: flex; flex-direction: column; gap: 6px; font-size: 12px; color: var(--text-main); }
+.map-legend div { display: flex; align-items: center; gap: 8px; }
+.map-legend .dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+
+/* ---------------------------------------------------------------------
+   Responsividade iPad/celular: sidebar vira barra inferior, e o painel
+   roteirizador (que fica flutuando à direita no desktop) vira uma
+   bandeja que sobe de baixo, pra não tampar o mapa inteiro.
+--------------------------------------------------------------------- */
+@media (max-width: 1024px) {
+  .app-sidebar { display: none; }
+  .floating-header { top: 16px; left: 16px; right: 16px; }
+  .route-panel {
+    left: 12px; right: 12px; top: auto; bottom: 78px; width: auto; max-height: 45vh;
+  }
+  .popover { max-width: calc(100vw - 40px); }
+  .map-legend { display: none; }
+}
 </style>
 </head>
 <body>
 <!-- Sidebar Principal -->
-<aside class="sidebar">
-<div class="sidebar-header">
-<h2>UBS Guarda-Mor</h2>
-<span>Micro-área 03</span>
-</div>
-<ul class="nav-links">
-<li><a href="index.html"><span class="nav-icon">🏠</span> Dashboard</a></li>
-<li><a href="meu-roteiro.html"><span class="nav-icon">▶️</span> Meu Roteiro</a></li>
-<li><a href="agenda.html"><span class="nav-icon">🗓️</span> Agenda</a></li>
-<li><a href="nova-visita.html"><span class="nav-icon">📋</span> Visitas</a></li>
-<li><a href="familias.html"><span class="nav-icon">👨‍👩‍👧</span> Famílias</a></li>
-<li><a href="mapa.html" class="active"><span class="nav-icon">🗺️</span> Mapa</a></li>
-<li><a href="indicadores.html"><span class="nav-icon">📊</span> Indicadores</a></li>
-<li><a href="receitas.html"><span class="nav-icon">💊</span> Receitas</a></li>
-<li><a href="relatorio-visitas.html"><span class="nav-icon">📋</span> Relatório de Visitas</a></li>
-<li class="nav-divider"></li>
-<li><a href="busca.html"><span class="nav-icon">🔍</span> Busca</a></li>
-<li><a href="configuracoes.html"><span class="nav-icon">⚙️</span> Configurações</a></li>
-</ul>
-</aside>
+<aside class="app-sidebar" id="appSidebar"></aside>
+<nav class="bottom-nav" id="appBottomNav"></nav>
 <!-- Área do Mapa -->
 <main class="map-container">
 <div class="map-bg"></div>
@@ -117,6 +111,14 @@ body { display: flex; height: 100vh; overflow: hidden; background-color: var(--b
 
 <!-- Pins reais são inseridos aqui via JS -->
 <div id="pinsContainer"></div>
+
+<!-- Legenda -->
+<div class="map-legend">
+<div><span class="dot" style="background:var(--success);"></span> Visita concluída</div>
+<div><span class="dot" style="background:var(--warning);"></span> Atenção / Pendente</div>
+<div><span class="dot" style="background:var(--danger);"></span> Prioritária / Urgente</div>
+<div><span class="dot" style="background:var(--info-pin);"></span> Rotina</div>
+</div>
 
 <!-- POPOVER DE INFORMAÇÕES DO MARCADOR -->
 <div class="popover" id="mapPopover">
@@ -212,7 +214,7 @@ function abrirPopoverFamilia(familiaId, elementoPin) {
   const tagClasse = f.prio.nivel === 'urgente' ? 'tag-danger' : f.prio.nivel === 'atencao' ? 'tag-warning' : 'tag-info';
   document.getElementById('popTags').innerHTML = `
     <span class="tag ${tagClasse}">${f.prio.tipoPrincipal.emoji} ${escapeHtml(f.prio.tipoPrincipal.label)}</span>
-    ${f.visitouHoje ? '<span class="tag" style="background: rgba(52,199,89,0.12); color: var(--success);">✓ Visitada hoje</span>' : ''}
+    ${f.visitouHoje ? '<span class="tag" style="background: rgba(21,128,61,0.12); color: var(--success);">✓ Visitada hoje</span>' : ''}
   `;
 
   const ultimaVisitaTxt = f.totalVisitas > 0
@@ -285,5 +287,7 @@ document.getElementById('mapaBusca').addEventListener('input', (e) => {
 
 carregarMapa();
 </script>
+<script src="nav.js"></script>
+<script>renderizarNavegacao('mapa');</script>
 </body>
 </html>
