@@ -115,6 +115,13 @@ body {
 .ops-desc { font-size: 14px; color: var(--text-muted); line-height: 1.5; margin-bottom: 20px; flex: 1; }
 .ops-action { font-size: 14px; font-weight: 600; color: var(--primary); display: flex; align-items: center; gap: 6px; }
 
+/* GRÁFICO DE EVOLUÇÃO (SVG simples, sem biblioteca externa) */
+.chart-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 30px; }
+.chart-card svg { width: 100%; height: auto; display: block; }
+.chart-point-label { font-size: 11px; fill: var(--text-muted); font-weight: 600; }
+.chart-value-label { font-size: 12px; fill: var(--text-main); font-weight: 700; }
+.chart-note { font-size: 12px; color: var(--text-muted); margin-top: 16px; display: flex; align-items: center; gap: 6px; }
+
 /* ---------------------------------------------------------------------
    Responsividade iPad/celular
 --------------------------------------------------------------------- */
@@ -181,6 +188,13 @@ body {
         </div>
         <div class="metric-feedback" id="metricDmFeedback">Calculando...</div>
       </div>
+    </div>
+
+    <!-- SEÇÃO NOVA: EVOLUÇÃO DA COBERTURA -->
+    <div class="section-label"><i class="ph ph-chart-line-up"></i> Evolução da cobertura de visitas</div>
+    <div class="chart-card">
+      <svg id="chartEvolucao" viewBox="0 0 800 220" preserveAspectRatio="xMidYMid meet"></svg>
+      <div class="chart-note" id="chartEvolucaoNota"><i class="ph ph-info"></i> Calculando…</div>
     </div>
 
     <!-- SEÇÃO 2: OPERACIONAL -->
@@ -283,6 +297,7 @@ async function carregarIndicadores() {
 
   definirIndicador('Has', hasAferidos, hasCondicoes.length);
   definirIndicador('Dm', dmAferidos, dmCondicoes.length);
+  renderizarEvolucaoCobertura(listaFamilias, listaVisitas);
 
   // --- Operacional (Território) ---
   const idsComVisita = new Set(listaVisitas.map(v => v.familia_id).filter(Boolean));
@@ -314,6 +329,79 @@ async function carregarIndicadores() {
 }
 
 carregarIndicadores();
+
+/* ============================================================================
+   Evolução da cobertura de visitas — calculada a partir do histórico real
+   de `visitas` (não depende de nenhuma coluna nova no banco).
+   ----------------------------------------------------------------------------
+   Limitação honesta: como não guardamos um "total de famílias" histórico por
+   mês, o denominador usado é o total de famílias CADASTRADAS HOJE, aplicado
+   retroativamente aos meses passados. Se o número de famílias cadastradas
+   mudou muito nesse período, os meses mais antigos ficam um pouco distorcidos.
+   Para um valor 100% exato mês a mês, seria preciso guardar um snapshot
+   mensal do total de famílias (tabela nova) — posso montar isso se quiser.
+============================================================================ */
+function renderizarEvolucaoCobertura(familias, visitas) {
+  const totalFamilias = familias.length;
+  const nomesMes = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+  const hoje = new Date();
+  const meses = [];
+  for (let i = 5; i >= 0; i--) {
+    const d = new Date(hoje.getFullYear(), hoje.getMonth() - i, 1);
+    meses.push({ ano: d.getFullYear(), mes: d.getMonth(), label: nomesMes[d.getMonth()] });
+  }
+
+  const pontos = meses.map(m => {
+    if (totalFamilias === 0) return { ...m, pct: 0 };
+    const familiasComVisitaNoMes = new Set(
+      visitas
+        .filter(v => {
+          if (!v.data_visita) return false;
+          const d = new Date(v.data_visita + 'T00:00:00');
+          return d.getFullYear() === m.ano && d.getMonth() === m.mes;
+        })
+        .map(v => v.familia_id)
+    );
+    const pct = Math.round((familiasComVisitaNoMes.size / totalFamilias) * 100);
+    return { ...m, pct };
+  });
+
+  const nota = document.getElementById('chartEvolucaoNota');
+  if (totalFamilias === 0) {
+    nota.innerHTML = '<i class="ph ph-info"></i> Cadastre famílias para acompanhar a evolução da cobertura.';
+    document.getElementById('chartEvolucao').innerHTML = '';
+    return;
+  }
+  nota.innerHTML = '<i class="ph ph-info"></i> Calculado a partir do histórico real de visitas; usa o total de famílias cadastradas hoje como base.';
+
+  // --- Desenho do SVG (linha simples, sem biblioteca) ---
+  const W = 800, H = 220, padL = 36, padR = 20, padT = 20, padB = 30;
+  const plotW = W - padL - padR, plotH = H - padT - padB;
+  const maxPct = Math.max(100, ...pontos.map(p => p.pct));
+  const xFor = i => padL + (plotW / (pontos.length - 1)) * i;
+  const yFor = pct => padT + plotH - (pct / maxPct) * plotH;
+
+  const linePath = pontos.map((p, i) => `${i === 0 ? 'M' : 'L'} ${xFor(i)} ${yFor(p.pct)}`).join(' ');
+  const areaPath = `${linePath} L ${xFor(pontos.length - 1)} ${padT + plotH} L ${xFor(0)} ${padT + plotH} Z`;
+
+  const gridLines = [0, 25, 50, 75, 100].map(v => `
+    <line x1="${padL}" y1="${yFor(v)}" x2="${W - padR}" y2="${yFor(v)}" stroke="var(--border)" stroke-width="1" />
+    <text x="${padL - 8}" y="${yFor(v) + 4}" text-anchor="end" class="chart-point-label">${v}%</text>
+  `).join('');
+
+  const pointsSvg = pontos.map((p, i) => `
+    <circle cx="${xFor(i)}" cy="${yFor(p.pct)}" r="4" fill="var(--primary)" stroke="white" stroke-width="2" />
+    <text x="${xFor(i)}" y="${yFor(p.pct) - 12}" text-anchor="middle" class="chart-value-label">${p.pct}%</text>
+    <text x="${xFor(i)}" y="${H - 6}" text-anchor="middle" class="chart-point-label">${p.label}</text>
+  `).join('');
+
+  document.getElementById('chartEvolucao').innerHTML = `
+    ${gridLines}
+    <path d="${areaPath}" fill="var(--primary-light)" opacity="0.5" />
+    <path d="${linePath}" fill="none" stroke="var(--primary)" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round" />
+    ${pointsSvg}
+  `;
+}
 </script>
 <script src="nav.js"></script>
 <script>renderizarNavegacao('indicadores');</script>
