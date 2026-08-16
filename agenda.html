@@ -12,26 +12,26 @@
 <script src="roteiro.js"></script>
 
 <script src="https://unpkg.com/@phosphor-icons/web"></script>
+<link rel="stylesheet" href="styles.css">
 
 <style>
 :root {
-  --bg-app: #f9fafb;
-  --bg-card: #ffffff;
-  --text-main: #111827;
-  --text-muted: #6b7280;
-  --border: #e5e7eb;
+  --bg-app: #F8FAFC;
+  --bg-card: #FFFFFF;
+  --text-main: #0F172A;
+  --text-muted: #64748B;
+  --border: #E2E8F0;
   --radius: 16px;
-  --primary: #0ea5e9;
-  --primary-light: #e0f2fe;
-  --success: #10b981;
-  --success-light: #d1fae5;
-  --warning: #f59e0b;
-  --warning-light: #fef3c7;
+  --primary: #16A34A;
+  --primary-light: #DCFCE7;
+  --success: #15803D;
+  --success-light: #DCFCE7;
+  --warning: #D97706;
+  --warning-light: #FEF3C7;
 }
 
 * { 
-  margin: 0; padding: 0; box-sizing: border-box; 
-  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif;
+  box-sizing: border-box; 
   -webkit-font-smoothing: antialiased;
 }
 
@@ -39,25 +39,6 @@ body {
   display: flex; background: var(--bg-app); color: var(--text-main); 
   height: 100vh; overflow: hidden; 
 }
-
-/* SIDEBAR - Padrão iPad */
-.sidebar {
-  width: 260px; background: var(--bg-card); border-right: 1px solid var(--border);
-  padding: 30px 20px; display: flex; flex-direction: column; flex-shrink: 0;
-  z-index: 10;
-}
-.sidebar h2 { font-size: 16px; font-weight: 700; letter-spacing: -0.02em; }
-.sidebar span { font-size: 13px; color: var(--text-muted); margin-top: 2px; display: block; }
-.nav-links { margin-top: 30px; display: flex; flex-direction: column; gap: 8px; list-style: none;}
-.nav-links a {
-  text-decoration: none; font-size: 14px; font-weight: 500; color: var(--text-muted);
-  padding: 10px 14px; border-radius: 10px; display: flex; align-items: center; gap: 12px; transition: all 0.2s;
-}
-.nav-links a i { font-size: 20px; }
-.nav-links a:hover { background: #f3f4f6; color: var(--text-main); }
-.nav-links a.active { background: var(--primary-light); color: var(--primary); font-weight: 600; }
-.nav-links a.active i { font-family: "Phosphor-Fill"; }
-.nav-divider { height: 1px; background: var(--border); margin: 8px 4px; list-style: none; }
 
 /* MAIN CONTAINER (Split View) */
 .main-content {
@@ -79,7 +60,8 @@ body {
   width: 36px; height: 36px; font-size: 18px; cursor: pointer; color: var(--text-muted); transition: 0.2s;
 }
 .month-nav button:hover { border-color: var(--primary); color: var(--primary); }
-.month-label { font-size: 16px; font-weight: 600; min-width: 140px; text-align: center; text-transform: capitalize; }
+.month-label { font-size: 16px; font-weight: 600; min-width: 140px; text-align: center; }
+.month-label::first-letter { text-transform: uppercase; }
 .btn-hoje { 
   background: var(--primary-light); color: var(--primary); border: none; 
   border-radius: 8px; padding: 0 16px; font-size: 13px; font-weight: 600; cursor: pointer; height: 36px;
@@ -101,11 +83,11 @@ body {
 .day-cell:hover { background: var(--bg-app); border-color: var(--border); }
 .day-cell.outro-mes { color: #d1d5db; pointer-events: none; }
 .day-cell.hoje { border-color: var(--primary); font-weight: 700; color: var(--primary); }
-.day-cell.selecionado { background: var(--primary); color: white; box-shadow: 0 4px 12px rgba(14, 165, 233, 0.2); border-color: var(--primary);}
+.day-cell.selecionado { background: var(--primary); color: white; box-shadow: 0 4px 12px rgba(22, 163, 74, 0.2); border-color: var(--primary);}
 .day-cell.selecionado .day-dot { background: white; }
 .day-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--success); }
 .day-cell.futuro { color: var(--text-muted); }
-.day-cell.recepcao { background: #fef3c7; }
+.day-cell.recepcao { background: var(--warning-light); }
 .day-cell.feriado { background: #f3f4f6; color: #9ca3af; text-decoration: line-through; }
 .day-cell.recepcao.selecionado, .day-cell.feriado.selecionado { color: white; text-decoration: none; }
 
@@ -126,7 +108,7 @@ body {
   padding: 10px; font-size: 12px; font-weight: 600; color: var(--text-muted); cursor: pointer; transition: 0.2s;
 }
 .btn-day-type:hover { border-color: var(--primary); color: var(--primary); }
-.btn-day-type.active.recepcao { background: #fef3c7; border-color: #f59e0b; color: #92600a; }
+.btn-day-type.active.recepcao { background: var(--warning-light); border-color: var(--warning); color: #92600A; }
 .btn-day-type.active.feriado { background: #f3f4f6; border-color: #9ca3af; color: #374151; }
 
 .legend-row { display: flex; gap: 16px; margin-top: 24px; font-size: 12px; color: var(--text-muted); justify-content: center;}
@@ -138,7 +120,8 @@ body {
   flex: 1; background: var(--bg-card); display: flex; flex-direction: column; overflow-y: auto; padding: 40px;
 }
 .day-panel-header { margin-bottom: 30px; border-bottom: 1px solid var(--border); padding-bottom: 20px;}
-.day-panel-title { font-size: 20px; font-weight: 700; margin-bottom: 6px; text-transform: capitalize; }
+.day-panel-title { font-size: 20px; font-weight: 700; margin-bottom: 6px; }
+.day-panel-title::first-letter { text-transform: uppercase; }
 .day-panel-sub { font-size: 14px; color: var(--text-muted); }
 
 .panel-section-label { 
@@ -152,7 +135,7 @@ body {
   display: flex; gap: 14px; padding: 16px; border: 1px solid var(--border); 
   border-radius: 12px; margin-bottom: 10px; text-decoration: none; color: var(--text-main); transition: 0.2s;
 }
-.visit-item:hover { border-color: var(--primary); box-shadow: 0 4px 12px rgba(14, 165, 233, 0.05); transform: translateY(-1px);}
+.visit-item:hover { border-color: var(--primary); box-shadow: 0 4px 12px rgba(22, 163, 74, 0.05); transform: translateY(-1px);}
 .visit-icon { 
   width: 36px; height: 36px; border-radius: 10px; background: var(--bg-app); 
   display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; color: var(--text-muted);
@@ -163,30 +146,26 @@ body {
 .visit-name { font-size: 14px; font-weight: 600; display: block; margin-bottom: 2px;}
 .visit-sub { font-size: 13px; color: var(--text-muted); }
 .visit-obs { font-size: 13px; color: var(--text-muted); margin-top: 6px; font-style: italic; background: var(--bg-app); padding: 8px; border-radius: 8px; border: 1px solid var(--border);}
+
+/* ---------------------------------------------------------------------
+   Responsividade iPad/celular: calendário e painel do dia empilham em
+   vez de split lado a lado.
+--------------------------------------------------------------------- */
+@media (max-width: 1024px) {
+  .app-sidebar { display: none; }
+  body { height: auto; min-height: 100vh; overflow: visible; }
+  .main-content { flex-direction: column; overflow: visible; padding-bottom: 70px; }
+  .calendar-panel { max-width: 100%; border-right: none; border-bottom: 1px solid var(--border); }
+  .calendar-header, .calendar-card, .planning-card { padding-left: 20px; padding-right: 20px; margin-left: 0; margin-right: 0; }
+  .calendar-header { padding-top: 20px; }
+  .day-panel { padding: 24px 20px; }
+}
 </style>
 </head>
 <body>
 
-<aside class="sidebar">
-  <div class="sidebar-header">
-    <h2>ACS Digital</h2>
-    <span>Microárea 02</span>
-  </div>
-  <ul class="nav-links">
-    <li><a href="index.html"><i class="ph ph-squares-four"></i> Dashboard</a></li>
-    <li><a href="meu-roteiro.html"><i class="ph ph-map-pin-line"></i> Meu Roteiro</a></li>
-    <li><a href="agenda.html" class="active"><i class="ph ph-calendar-blank"></i> Agenda</a></li>
-    <li><a href="nova-visita.html"><i class="ph ph-clipboard-text"></i> Visitas</a></li>
-    <li><a href="familias.html"><i class="ph ph-users"></i> Famílias</a></li>
-    <li><a href="mapa.html"><i class="ph ph-map-trifold"></i> Mapa</a></li>
-    <li><a href="indicadores.html"><i class="ph ph-chart-line-up"></i> Indicadores</a></li>
-    <li><a href="receitas.html"><i class="ph ph-pill"></i> Receitas</a></li>
-    <li><a href="relatorio-visitas.html"><i class="ph ph-file-text"></i> Relatório de Visitas</a></li>
-    <li class="nav-divider"></li>
-    <li><a href="busca.html"><i class="ph ph-magnifying-glass"></i> Busca</a></li>
-    <li><a href="configuracoes.html"><i class="ph ph-gear"></i> Configurações</a></li>
-  </ul>
-</aside>
+<aside class="app-sidebar" id="appSidebar"></aside>
+<nav class="bottom-nav" id="appBottomNav"></nav>
 
 <main class="main-content">
   <div class="calendar-panel">
@@ -210,7 +189,7 @@ body {
       <div class="legend-row">
         <span><span class="legend-dot" style="background: var(--success);"></span> Com visitas</span>
         <span><span class="legend-dot" style="background: var(--primary); border: 2px solid var(--primary-light);"></span> Hoje</span>
-        <span><span class="legend-dot" style="background: #fef3c7; border: 1px solid #f59e0b;"></span> Recepção</span>
+        <span><span class="legend-dot" style="background: var(--warning-light); border: 1px solid var(--warning);"></span> Recepção</span>
         <span><span class="legend-dot" style="background: #f3f4f6; border: 1px solid #9ca3af;"></span> Feriado</span>
       </div>
     </div>
@@ -315,7 +294,8 @@ function renderizarCalendario() {
   const celulas = [];
   for (let i = primeiroDiaSemana - 1; i >= 0; i--) celulas.push({ numero: totalDiasMesAnterior - i, outroMes: true });
   for (let d = 1; d <= totalDiasMes; d++) celulas.push({ numero: d, outroMes: false, iso: `${ano}-${String(mes + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}` });
-  while (celulas.length % 7 !== 0) celulas.push({ numero: celulas.length, outroMes: true });
+  let proximoMesNumero = 1;
+  while (celulas.length % 7 !== 0) celulas.push({ numero: proximoMesNumero++, outroMes: true });
 
   const grid = document.getElementById('daysGrid');
   grid.innerHTML = celulas.map(c => {
@@ -439,5 +419,7 @@ document.getElementById('btnHoje').onclick = () => {
 
 carregarAgenda();
 </script>
+<script src="nav.js"></script>
+<script>renderizarNavegacao('agenda');</script>
 </body>
 </html>
