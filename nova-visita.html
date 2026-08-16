@@ -286,10 +286,24 @@ canvas { width: 100%; height: 300px; display: block; touch-action: none; cursor:
           </div>
 
           <div class="section-label"><i class="ph ph-pen-nib"></i> Assinatura do paciente <span style="font-weight:400; color:var(--text-muted); text-transform:none; letter-spacing:0;">(opcional)</span></div>
-          <button class="sign-btn" id="btnAssinatura">
-            <i class="ph ph-signature"></i>
-            Clique para coletar a assinatura no tablet
-          </button>
+          <div style="display:flex; gap:10px; flex-wrap:wrap;">
+            <button class="sign-btn" id="btnAssinatura" style="flex:1; min-width:220px;">
+              <i class="ph ph-signature"></i>
+              Clique para coletar a assinatura no tablet
+            </button>
+            <button type="button" class="sign-btn" id="btnFotoAssinatura" style="flex:1; min-width:220px;">
+              <i class="ph ph-camera"></i>
+              Ou anexe uma foto da assinatura
+            </button>
+          </div>
+          <input type="file" id="inputFotoAssinatura" accept="image/*" style="display:none;">
+          <div id="fotoAssinaturaPreviewWrap" style="display:none; align-items:center; gap:10px; margin-top:10px; background: var(--bg-app); border: 1px solid var(--border); border-radius: 12px; padding: 10px 12px;">
+            <img id="fotoAssinaturaPreview" style="width:56px; height:56px; object-fit:cover; border-radius:8px; border:1px solid var(--border); flex-shrink:0;" alt="Prévia da foto da assinatura">
+            <div style="flex:1;">
+              <div style="font-size:13px; font-weight:600; color: var(--success);">Foto da assinatura anexada</div>
+              <button type="button" id="btnRemoverFotoAssinatura" style="background:none; border:none; color:var(--text-muted); font-size:12.5px; text-decoration:underline; cursor:pointer; padding:0;">Remover foto</button>
+            </div>
+          </div>
           <div id="motivoSemAssinaturaWrap" style="margin-top: 10px; display: none;">
             <input type="text" id="motivoSemAssinatura" placeholder="Motivo (opcional): ex. paciente não consegue assinar" style="width:100%; padding:10px 12px; border:1px solid var(--border); border-radius:10px; font-size:13.5px; outline:none;">
           </div>
@@ -356,6 +370,11 @@ canvas { width: 100%; height: 300px; display: block; touch-action: none; cursor:
 const params = new URLSearchParams(location.search);
 let familiaId = params.get('familia_id');
 let desfecho = null, motivo = null, assinatura = false, desenhando = false, assinou = false;
+// Foto da assinatura (alternativa a desenhar no canvas — ex.: paciente assinou um papel
+// e o ACS fotografa em vez de desenhar no tablet). Guarda o mesmo tipo de dado
+// (data URL base64) que a assinatura desenhada, só que como JPEG comprimido.
+// Quando presente, tem prioridade na hora de salvar (ver salvarVisitaAction).
+let fotoAssinaturaDataUrl = null;
 
 const $ = id => document.getElementById(id);
 function escapeHtml(str) { return String(str ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
@@ -588,6 +607,9 @@ $('btnLimpar').onclick = () => { ctx.clearRect(0, 0, canvas.width, canvas.height
 $('btnConfirmar').onclick = () => {
   if(!assinou) { alert('Por favor, assine no quadro.'); return; }
   assinatura = true;
+  // Desenhar no tablet substitui uma foto anexada antes (só guardamos uma
+  // assinatura por visita, pra não ficar ambíguo qual das duas é salva).
+  limparFotoAssinatura();
   $('btnAssinatura').classList.add('signed');
   $('btnAssinatura').innerHTML = '<i class="ph ph-check-circle"></i> Assinatura Coletada';
   $('motivoSemAssinaturaWrap').style.display = 'none';
@@ -604,6 +626,88 @@ $('btnSemAssinatura').onclick = () => {
 
 canvas.addEventListener('mousedown', start); canvas.addEventListener('mousemove', draw); canvas.addEventListener('mouseup', stop);
 canvas.addEventListener('touchstart', start, {passive: false}); canvas.addEventListener('touchmove', draw, {passive: false}); canvas.addEventListener('touchend', stop);
+
+/* --- FOTO DA ASSINATURA (alternativa ao desenho no canvas) ---
+   Não existe bucket de Storage no projeto ainda — todo o resto do sistema
+   (inclusive a própria assinatura desenhada) já salva imagem como base64
+   direto na coluna do banco. Seguimos o mesmo padrão aqui, só comprimindo a
+   foto antes (uma foto de câmera "crua" pode ter vários MB; assim ela fica
+   preto pouco maior que a assinatura desenhada). */
+function comprimirImagemParaDataUrl(file, larguraMaxima, qualidade) {
+  return new Promise((resolve, reject) => {
+    if (!file.type || !file.type.startsWith('image/')) { reject(new Error('Selecione um arquivo de imagem.')); return; }
+    const leitor = new FileReader();
+    leitor.onerror = () => reject(new Error('Não foi possível ler o arquivo.'));
+    leitor.onload = () => {
+      const img = new Image();
+      img.onerror = () => reject(new Error('O arquivo selecionado não é uma imagem válida.'));
+      img.onload = () => {
+        const escala = Math.min(1, larguraMaxima / img.width);
+        const w = Math.max(1, Math.round(img.width * escala));
+        const h = Math.max(1, Math.round(img.height * escala));
+        const canvasTmp = document.createElement('canvas');
+        canvasTmp.width = w;
+        canvasTmp.height = h;
+        canvasTmp.getContext('2d').drawImage(img, 0, 0, w, h);
+        resolve(canvasTmp.toDataURL('image/jpeg', qualidade));
+      };
+      img.src = leitor.result;
+    };
+    leitor.readAsDataURL(file);
+  });
+}
+
+function limparFotoAssinatura() {
+  fotoAssinaturaDataUrl = null;
+  $('fotoAssinaturaPreviewWrap').style.display = 'none';
+  $('fotoAssinaturaPreview').src = '';
+  $('btnFotoAssinatura').classList.remove('signed');
+  $('btnFotoAssinatura').innerHTML = '<i class="ph ph-camera"></i> Ou anexe uma foto da assinatura';
+}
+
+$('btnFotoAssinatura').onclick = () => $('inputFotoAssinatura').click();
+
+$('inputFotoAssinatura').onchange = async (e) => {
+  const file = e.target.files[0];
+  e.target.value = ''; // permite escolher o mesmo arquivo de novo depois (ex.: tentar de novo)
+  if (!file) return;
+
+  const btn = $('btnFotoAssinatura');
+  const textoOriginal = btn.innerHTML;
+  btn.innerHTML = '<i class="ph ph-spinner"></i> Processando foto...';
+
+  try {
+    const dataUrl = await comprimirImagemParaDataUrl(file, 1000, 0.82);
+    fotoAssinaturaDataUrl = dataUrl;
+    assinatura = true;
+    // Uma foto substitui um desenho feito antes no canvas, pelo mesmo motivo
+    // contrário: só uma assinatura é salva.
+    assinou = false;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    $('btnAssinatura').classList.remove('signed');
+    $('btnAssinatura').innerHTML = '<i class="ph ph-signature"></i> Clique para coletar a assinatura no tablet';
+
+    $('fotoAssinaturaPreview').src = fotoAssinaturaDataUrl;
+    $('fotoAssinaturaPreviewWrap').style.display = 'flex';
+    btn.classList.add('signed');
+    btn.innerHTML = '<i class="ph ph-check-circle"></i> Foto anexada (toque para trocar)';
+
+    $('motivoSemAssinaturaWrap').style.display = 'none';
+    $('motivoSemAssinatura').value = '';
+    atualizar();
+  } catch (err) {
+    console.error(err);
+    alert(err.message || 'Não foi possível processar a foto. Tente novamente.');
+    btn.innerHTML = textoOriginal;
+  }
+};
+
+$('btnRemoverFotoAssinatura').onclick = (e) => {
+  e.stopPropagation();
+  limparFotoAssinatura();
+  assinatura = assinou; // se não houver desenho no canvas também, volta a "sem assinatura"
+  atualizar();
+};
 
 const salvarVisitaAction = async () => {
   if(!$('btnSalvar').classList.contains('active')) return;
@@ -628,7 +732,11 @@ const salvarVisitaAction = async () => {
     observacoes: observacoesFinal,
     acompanhamentos: acompanhamentosSelecionados,
     profissional: 'ACS',
-    assinatura_base64: assinatura ? canvas.toDataURL('image/png') : null,
+    // Foto anexada tem prioridade; se não houver foto, usa o desenho do
+    // canvas (comportamento de sempre). fotoAssinaturaDataUrl só fica
+    // preenchida quando assinatura === true, então esse fallback nunca
+    // manda um canvas em branco por engano.
+    assinatura_base64: fotoAssinaturaDataUrl || (assinatura ? canvas.toDataURL('image/png') : null),
     assinatura_ausente_motivo: !assinatura && desfecho === 'Realizada' ? ($('motivoSemAssinatura').value.trim() || null) : null,
   };
 
