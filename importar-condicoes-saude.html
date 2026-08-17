@@ -1,0 +1,655 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Importar Condições de Saúde - ACS Digital</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
+<script src="auth.js"></script>
+<script>protegerPagina();</script>
+<style>
+:root {
+  --bg-color: #FAFAFA; --surface: #FFFFFF; --text-main: #111827; --text-muted: #6B7280;
+  --border: #E5E7EB; --primary: #0A84FF; --success: #34C759; --danger: #FF3B30; --warning: #FF9500;
+  --radius: 12px; --chip-bg: #F2F2F7;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+body { background: var(--bg-color); color: var(--text-main); padding: 32px 24px 80px; }
+.wrap { max-width: 980px; margin: 0 auto; }
+h1 { font-size: 22px; margin-bottom: 6px; }
+.subtitle { font-size: 14px; color: var(--text-muted); margin-bottom: 24px; }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; margin-bottom: 20px; }
+.card h2 { font-size: 15px; margin-bottom: 10px; }
+.aviso { background: #FFF4E5; border: 1px solid var(--warning); border-radius: var(--radius); padding: 14px 16px; font-size: 13px; margin-bottom: 20px; line-height: 1.6; }
+.btn { background: var(--primary); color: white; border: none; padding: 10px 18px; border-radius: 8px; font-weight: 600; font-size: 14px; cursor: pointer; }
+.btn:disabled { background: var(--chip-bg); color: var(--text-muted); cursor: not-allowed; }
+.btn.secondary { background: var(--chip-bg); color: var(--text-main); }
+.btn.danger { background: var(--danger); }
+.resumo-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin: 16px 0; }
+.resumo-tile { background: var(--bg-color); border-radius: 10px; padding: 12px 14px; text-align: center; }
+.resumo-tile .num { font-size: 22px; font-weight: 700; }
+.resumo-tile .lbl { font-size: 11px; color: var(--text-muted); text-transform: uppercase; }
+.actions-bar { display: flex; gap: 10px; align-items: center; margin-top: 16px; flex-wrap: wrap; }
+.log { font-size: 13px; color: var(--text-muted); margin-top: 12px; white-space: pre-wrap; max-height: 340px; overflow-y: auto; background: var(--bg-color); border-radius: 8px; padding: 12px; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th { text-align: left; padding: 8px; border-bottom: 2px solid var(--border); font-size: 11px; text-transform: uppercase; color: var(--text-muted); }
+td { padding: 6px 8px; border-bottom: 1px solid var(--border); }
+.table-wrap { max-height: 420px; overflow-y: auto; border: 1px solid var(--border); border-radius: 8px; margin-top: 12px; }
+.badge { font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 999px; }
+.badge.nova { background: rgba(10,132,255,0.12); color: var(--primary); }
+.badge.existente { background: rgba(52,199,89,0.15); color: var(--success); }
+.badge.pulada { background: var(--chip-bg); color: var(--text-muted); }
+.badge.naoencontrado { background: rgba(255,59,48,0.12); color: var(--danger); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>🏥 Importar Condições de Saúde (relatórios por condição)</h1>
+  <p class="subtitle">Ferramenta avulsa, de uso único — não faz parte do menu do app. Importa 446 registros condição-por-pessoa (311 pessoas distintas) extraídos dos 15 relatórios "Relação de Pacientes Por Faixa Etária" filtrados por condição.</p>
+
+  <div class="aviso">
+    ⚠️ <strong>Leia antes de importar:</strong><br><br>
+    1. A ferramenta <strong>compara pelo CNS</strong> com os cidadãos já cadastrados no seu banco. Só grava condição pra quem já está cadastrado — pessoas com CNS não encontrado aparecem destacadas na prévia e <strong>não são criadas automaticamente</strong> (evita duplicar cadastro por um relatório sem endereço).<br><br>
+    2. Se a pessoa já tiver essa condição marcada, o registro é <strong>pulado</strong> (sem duplicar). Só grava condições que ainda não existem pra ela.<br><br>
+    3. Os nomes das condições usados são os mesmos do seletor do app (Hipertensão, Diabetes, Gestante, Acamado, Pessoa com deficiência, Transtorno mental) mais 9 novas categorias adicionadas ao seletor: Doença renal, Doença respiratória, Doença cardíaca, Infarto, AVC/Derrame, Câncer, Domiciliado, Bolsa Família, Fumante.<br><br>
+    4. Nada é gravado até você clicar em <strong>"Confirmar importação"</strong>, depois de revisar a prévia abaixo.
+  </div>
+
+  <div class="card">
+    <h2>1. Analisar contra o banco atual</h2>
+    <p style="font-size:13px; color:var(--text-muted);">Compara os 446 registros com os cidadãos e condições já existentes no seu Supabase (por CNS).</p>
+    <div class="actions-bar">
+      <button class="btn" id="btnAnalisar">Analisar</button>
+      <span id="statusAnalise" style="font-size:13px; color:var(--text-muted);"></span>
+    </div>
+  </div>
+
+  <div class="card" id="cardResumo" style="display:none;">
+    <h2>2. Prévia</h2>
+    <div class="resumo-grid">
+      <div class="resumo-tile"><div class="num" id="numNovas">0</div><div class="lbl">Condições novas a gravar</div></div>
+      <div class="resumo-tile"><div class="num" id="numJaExistentes">0</div><div class="lbl">Já tinha essa condição</div></div>
+      <div class="resumo-tile"><div class="num" id="numNaoEncontrados">0</div><div class="lbl">CNS não encontrado no banco</div></div>
+      <div class="resumo-tile"><div class="num" id="numPessoasAfetadas">0</div><div class="lbl">Pessoas que vão receber condição nova</div></div>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Pessoa</th><th>CNS</th><th>Condição</th><th>Situação</th></tr></thead>
+        <tbody id="tabelaPreview"></tbody>
+      </table>
+    </div>
+    <div class="actions-bar">
+      <button class="btn" id="btnConfirmar">Confirmar importação</button>
+      <span id="statusImportacao" style="font-size:13px; color:var(--text-muted);"></span>
+    </div>
+    <div class="log" id="logImportacao" style="display:none;"></div>
+  </div>
+</div>
+<script>
+// Dados extraídos dos 15 PDFs "Relação de Pacientes Por Faixa Etária" filtrados por condição
+// (doença renal, doença respiratória, saúde mental, infarto, hipertensão, gestante, fumante,
+// diabetes, deficiência, domiciliado, doença cardíaca, câncer, bolsa família, AVC/derrame, acamado).
+// Cada linha: [cns, condicao, nome_como_no_relatorio]
+const CONDICOES_DATASET = [
+["700404904433441", "Doença renal", "Alfredo Armando De Carvalho Mauro"],
+["706502324253797", "Doença renal", "Bruna Rodrigues Borges"],
+["707002809568237", "Doença renal", "EDMAR BATISTA SANDIM"],
+["708602529018183", "Doença renal", "Isabel Aparecida Da Costa Fagundes"],
+["708600599185087", "Doença renal", "Joao Batista Lopes"],
+["708701195904197", "Doença renal", "JOAO ELOI DE CARVALHO"],
+["700704987949170", "Doença renal", "MARIA CONCEIÇÃO DOS SANTOS"],
+["704308583365894", "Doença renal", "Neusa Divina Moreira"],
+["708602061940883", "Doença renal", "Paulo Fernando Guimaraes"],
+["705208482729377", "Doença respiratória", "Ana Daniela Da Silva"],
+["703408789806900", "Doença respiratória", "Andresa De Paula Nascimento"],
+["708400776309567", "Doença respiratória", "Angela Maria Rosa Dos Santos"],
+["704705747368630", "Doença respiratória", "Arthur Henrique Martins Marques"],
+["700001957264203", "Doença respiratória", "BRUNA MARTINS"],
+["700909929746397", "Doença respiratória", "Cecilia Ribeiro Cruz"],
+["708600022413582", "Doença respiratória", "Claudio Jose Dos Santos Costa"],
+["707601280786198", "Doença respiratória", "Fausta Nazare Sousa Ferreira"],
+["700102946113713", "Doença respiratória", "GEOVANA DO CARMO BARBOSA"],
+["708204153023440", "Doença respiratória", "GERALDO VALENTINO DE GOUVEA"],
+["702606720693242", "Doença respiratória", "HELENA COSTA DE OLIVEIRA"],
+["709003876584319", "Doença respiratória", "Mariangela Cruze Falco"],
+["703201604166492", "Doença respiratória", "Neusa Aparecida De Carvalho"],
+["700007554333504", "Doença respiratória", "Sebastiao Itelvino Galdino"],
+["700206930169229", "Doença respiratória", "Valeria Das Merces Silva"],
+["700405976745440", "Doença respiratória", "Virginia Freire Machado"],
+["706503308562390", "Doença respiratória", "Vitor Almeida Pelluzi"],
+["707004820008031", "Doença respiratória", "Yasmim Odete Ferreira Santiago"],
+["709806040349590", "Transtorno mental", "ADILSON DE ALMEIDA"],
+["705204404431671", "Transtorno mental", "ADRIANO RIBEIRO MARQUES"],
+["708206187102248", "Transtorno mental", "Ailton Ribeiro Marques"],
+["700007650372906", "Transtorno mental", "Carmen Maria De Souza Santos"],
+["709002830156313", "Transtorno mental", "ELZA DE OLIVEIRA"],
+["708200600896143", "Transtorno mental", "EVERTON ROQUINI BRAGA DA SILVA GAIO"],
+["700406948487840", "Transtorno mental", "FELIPE AUGUSTO SANDIM SANTOS"],
+["704203791462585", "Transtorno mental", "Juan Ighor Rodrigues De Oliveira"],
+["704709744256231", "Transtorno mental", "LUCINEA NAZARE DE CARVALHO"],
+["700507369202259", "Transtorno mental", "MARIANA ROSA DA SILVA"],
+["706802254598224", "Transtorno mental", "MARINA SOUZA SANTOS"],
+["704102843924150", "Transtorno mental", "Mateus Gonçalves Amaral"],
+["709608695602373", "Transtorno mental", "Valda Helena Gonçalves De Lima Amaral"],
+["705008831268657", "Transtorno mental", "VITORIA FERREIRA MENESES"],
+["700400917906641", "Transtorno mental", "Zoraia De Almeida Pelluzi"],
+["702800128436763", "Infarto", "Isaura Aparecida Reis"],
+["704103174122070", "Infarto", "MARIA CELIA MARQUES"],
+["705503429786410", "Infarto", "SOELI MARIA DE JESUS"],
+["709806040349590", "Hipertensão", "ADILSON DE ALMEIDA"],
+["700007417261706", "Hipertensão", "Aguida Rafaela Da Silva"],
+["706700759391820", "Hipertensão", "ALBERTO ANDRE DAMASCENO"],
+["709002843183616", "Hipertensão", "Alcides Aquiles Dos Santos Filho"],
+["701409630793635", "Hipertensão", "Alessandro Pontes"],
+["704602165967629", "Hipertensão", "ALICE DE ABREU"],
+["700005695931503", "Hipertensão", "Alvino Rodrigues Dos Santos"],
+["705208482729377", "Hipertensão", "Ana Daniela Da Silva"],
+["709204265448433", "Hipertensão", "ANDECLER MARQUES DE SANTANA NASCIMENTO"],
+["704604141867626", "Hipertensão", "Anderson Dos Santos Garcia"],
+["704807023986146", "Hipertensão", "ANDRÉ RICARDO DE PAIVA"],
+["700006904200906", "Hipertensão", "Andrea Conceiçao Dias"],
+["704600141612225", "Hipertensão", "Angela Aparecida Moreira"],
+["708400776309567", "Hipertensão", "Angela Maria Rosa Dos Santos"],
+["709007873709114", "Hipertensão", "Antonio De Assis Gaio"],
+["700000034603500", "Hipertensão", "Antonio Fernando Das Neves"],
+["708105542961338", "Hipertensão", "ANTONIO HENRIQUE DE PAIVA FILHO"],
+["700506108754451", "Hipertensão", "APARECIDA DE FATIMA CARVALHO"],
+["706809738822722", "Hipertensão", "Aparecida Maria De Carvalho"],
+["704804581300746", "Hipertensão", "AURELINA CANDIDA MARQUES"],
+["700001957264203", "Hipertensão", "BRUNA MARTINS"],
+["700008065054905", "Hipertensão", "Carlos Alberto Ferreira"],
+["700004968608300", "Hipertensão", "CARLOS ALBERTO GONÇALVES JUNIOR"],
+["704809067281743", "Hipertensão", "Carmelita Teixeira De Souza Mendes"],
+["700204913357827", "Hipertensão", "Catarina Maria Ribeiro"],
+["702406568445824", "Hipertensão", "CELINA ALVES SOARES"],
+["706309743643177", "Hipertensão", "CELSO DE ARAUJO"],
+["708608074629087", "Hipertensão", "Charles Willian Da Costa"],
+["704605119481924", "Hipertensão", "Claudesina Maria Do Sacramento Lopes"],
+["708006818632629", "Hipertensão", "Claudia Merces Da Silva"],
+["705804424691630", "Hipertensão", "CLAUDIA VIVIANE TEIXEIRA"],
+["708600022413582", "Hipertensão", "Claudio Jose Dos Santos Costa"],
+["704203233683583", "Hipertensão", "Cleide Conceiçao De Paiva"],
+["700005491561600", "Hipertensão", "Cosme Ramos De Carvalho"],
+["707601222728199", "Hipertensão", "DALVA CANDIDA RODRIGUES TEIXEIRA"],
+["707600229012198", "Hipertensão", "DEBORA FERNANDA RIBEIRO MOREIRA"],
+["704209295651583", "Hipertensão", "Deborah Rodrigues Soares"],
+["704100258320180", "Hipertensão", "Deivide Almeida De Avila"],
+["700007196155402", "Hipertensão", "Denisia Resende Oliveira"],
+["708908706546910", "Hipertensão", "Dinauro De Moura Assis"],
+["704801035145146", "Hipertensão", "Domingos Gonçalves Do Pilar"],
+["705009428428952", "Hipertensão", "Domingos Savio De Carvalho"],
+["702808182776868", "Hipertensão", "DOMINGOS SAVIO DOS SANTOS"],
+["706704598932217", "Hipertensão", "DOMINGOS SAVIO NASCIMENTO PEREIRA"],
+["700005734329104", "Hipertensão", "Dulce Helena Merces Dos Santos Silva"],
+["704703056380740", "Hipertensão", "EDER CALDAS BRAGA"],
+["700402425602640", "Hipertensão", "Edmar José Guimarães Pedroso"],
+["700400107148650", "Hipertensão", "Edna Do Pilar Silva"],
+["708001594895430", "Hipertensão", "Eli Patricio Mendes"],
+["708407231524768", "Hipertensão", "Eliana Nazaré Sandim"],
+["700601496180460", "Hipertensão", "ELISABETE CRISTINA DOS SANTOS SOUZA"],
+["704207796699382", "Hipertensão", "Elisangela Regina Sandim"],
+["709002830156313", "Hipertensão", "ELZA DE OLIVEIRA"],
+["704300546067691", "Hipertensão", "ENIO FERREIRA NERY"],
+["705609423906516", "Hipertensão", "EVANDO ANTÔNIO DE OLIVEIRA"],
+["708200600896143", "Hipertensão", "EVERTON ROQUINI BRAGA DA SILVA GAIO"],
+["706309689185080", "Hipertensão", "Fabiano Augusto Nascimento Marques"],
+["708608014451389", "Hipertensão", "FABIO JOSÉ DA SILVA"],
+["707601280786198", "Hipertensão", "Fausta Nazare Sousa Ferreira"],
+["707607290391493", "Hipertensão", "FRANCISCO VICENTE DE SOUSA"],
+["700907983814891", "Hipertensão", "Geralda Terezinha De Carvalho"],
+["705007234135958", "Hipertensão", "Geraldo Evangelo De Carvalho"],
+["708004343994724", "Hipertensão", "Geraldo Ramos Da Silva"],
+["700309956425240", "Hipertensão", "GIOVANNI JOSÉ DE OLIVEIRA AVILA"],
+["707008818100930", "Hipertensão", "HELENA PEDROSO PONTES"],
+["706006369461443", "Hipertensão", "HELIA ROCHA MATOS"],
+["708204178088643", "Hipertensão", "HELOISA APARECIDA SANDIM"],
+["700105913408911", "Hipertensão", "Ilda Nascimento Marques"],
+["700006782723306", "Hipertensão", "Irene Batista De Carvalho"],
+["708602529018183", "Hipertensão", "Isabel Aparecida Da Costa Fagundes"],
+["702800128436763", "Hipertensão", "Isaura Aparecida Reis"],
+["700005759216206", "Hipertensão", "IZABEL GERALDA GUIMARAES"],
+["702603729314845", "Hipertensão", "Jaci Vitor De Andrade"],
+["708600599185087", "Hipertensão", "Joao Batista Lopes"],
+["705405409338091", "Hipertensão", "JOAO BATISTA SILVA"],
+["708001301921327", "Hipertensão", "Joao Bosco Lima"],
+["708701195904197", "Hipertensão", "JOAO ELOI DE CARVALHO"],
+["708503301293870", "Hipertensão", "JOAO FAUSTINO MARCELINO"],
+["707409095631271", "Hipertensão", "JOSÉ DUQUE DA SILVA"],
+["708603056962182", "Hipertensão", "JOSE GERALDO ALFREDO"],
+["706303135522580", "Hipertensão", "Jose Heitor De Carvalho"],
+["708903752285216", "Hipertensão", "JOSE ROQUE DA SILVA"],
+["700005771456203", "Hipertensão", "JOSIANE MARIA GUIMARAES AVILA"],
+["701003883692398", "Hipertensão", "Josino Gomes Do Amaral"],
+["702603207942542", "Hipertensão", "LIGIA MARIA DOS SANTOS PEREIRA"],
+["709004842429613", "Hipertensão", "LITUINA MARIA DO NASCIMENTO"],
+["704404340312510", "Hipertensão", "LUIZ CARLOS GONZAGA"],
+["707800609469910", "Hipertensão", "Manoel José Da Silva"],
+["709208256625534", "Hipertensão", "Marcos Bosco Pereira"],
+["700001065128902", "Hipertensão", "Margarida Carvalho De Oliveira Santos"],
+["702003306965988", "Hipertensão", "MARGARIDA PIRES TEIXEIRA"],
+["704103174122070", "Hipertensão", "MARIA CELIA MARQUES"],
+["705006897571755", "Hipertensão", "MARIA DAS DORES DA SILVA"],
+["706300796895679", "Hipertensão", "Maria De Fatima Ferreira Vieira"],
+["704106727376480", "Hipertensão", "MARIA DE FÁTIMA SACRAMENTO SILVA"],
+["705002293107650", "Hipertensão", "Maria De Lourdes"],
+["706906165506432", "Hipertensão", "MARIA DE LOURDES DE CARVALHO"],
+["705807437257937", "Hipertensão", "Maria Do Carmo Neri"],
+["700605932268564", "Hipertensão", "Maria Do Carmo Santos"],
+["704109197005378", "Hipertensão", "Maria Do Rosario Alves Vieira"],
+["702406028029928", "Hipertensão", "Maria Fatima De Paula Rodrigues"],
+["700005975733906", "Hipertensão", "Maria Geralda Da Silva Gaio"],
+["700001975031908", "Hipertensão", "MARIA JOSE DE OLIVEIRA NEVES"],
+["708009870813720", "Hipertensão", "MARIA LUCIA DA SILVA"],
+["708602532551482", "Hipertensão", "Maria Lucia De Oliveira"],
+["706809720420525", "Hipertensão", "MARIA LÚCIA SALES DE OLIVEIRA"],
+["700209489506721", "Hipertensão", "Maria Nazare De Souza"],
+["700504930689554", "Hipertensão", "MARIA PEREIRA BORGES"],
+["705005481727051", "Hipertensão", "MARIA PERPETUA SOCORRO AVILA LOPES"],
+["700505736518155", "Hipertensão", "Maria Valeria Rodrigues"],
+["707605204080593", "Hipertensão", "MARIANA LEOPOLDINA RIBEIRO"],
+["709003876584319", "Hipertensão", "Mariangela Cruze Falco"],
+["702502347128937", "Hipertensão", "MARILEA CARVALHO GONZAGA"],
+["702409578879226", "Hipertensão", "MARILENE MOREIRA DO NASCIMENTO"],
+["706809739132827", "Hipertensão", "Marlene Maria Neves Muffato"],
+["700004737915704", "Hipertensão", "MARTA ISABEL VICENTE"],
+["700206951759327", "Hipertensão", "MAURA OMENIR DA SILVA"],
+["708006834892222", "Hipertensão", "NAIR BARROS VIEIRA"],
+["704700754315836", "Hipertensão", "Natanael Silva Odilon"],
+["700004628247301", "Hipertensão", "Nelza Maria De Almeida Avila"],
+["708602061940883", "Hipertensão", "Paulo Fernando Guimaraes"],
+["706709512546911", "Hipertensão", "Perlencin Honório Vieira"],
+["708602090107582", "Hipertensão", "REGINA MARIA SIMAS COELHO"],
+["700007171989202", "Hipertensão", "RENE SADE HADDAD"],
+["704306552561592", "Hipertensão", "Ricardo Celio Ferreira"],
+["708405236017064", "Hipertensão", "Roberto Pereira Borges"],
+["700501582112355", "Hipertensão", "Rodrigo Cesar Nascimento Marques"],
+["708101547006837", "Hipertensão", "Rodrigo Vitor De Andrade"],
+["708108528364630", "Hipertensão", "Rosangela De Fatima Santana Oliveira"],
+["705606424334211", "Hipertensão", "ROSANGELA MARIA DE FATIMA"],
+["700005799637709", "Hipertensão", "ROSANGELA ZANOLA DA SILVA"],
+["700003357003400", "Hipertensão", "Rosely Ribeiro"],
+["708600550027488", "Hipertensão", "SABRINA BEATRIZ ASSUNCAO"],
+["702501346970536", "Hipertensão", "SANDRA FERNANDA DE CARVALHO"],
+["700007554333504", "Hipertensão", "Sebastiao Itelvino Galdino"],
+["707001850408736", "Hipertensão", "Sergio Ferreira Do Nascimento"],
+["706306781494075", "Hipertensão", "SÉRGIO WILLIAN DE OLIVEIRA"],
+["706804239807529", "Hipertensão", "Silvio Raimundo Teixeira"],
+["705503429786410", "Hipertensão", "SOELI MARIA DE JESUS"],
+["700407433374346", "Hipertensão", "Solange Aparecida Rodrigues De Paiva"],
+["700006282082301", "Hipertensão", "SUELEN CRISTINA LIMA ROCHA"],
+["705205455707373", "Hipertensão", "TÂNIA TRINDADE GOMES GOUVEA"],
+["701206044183719", "Hipertensão", "TATIANA DE MAGALHAES MACHADO SOZZI MIGUEL"],
+["700806995861083", "Hipertensão", "Terezinha Das Mercês Araujo"],
+["709608695602373", "Hipertensão", "Valda Helena Gonçalves De Lima Amaral"],
+["700206930169229", "Hipertensão", "Valeria Das Merces Silva"],
+["700600951677763", "Hipertensão", "VICENTE JOSE TEIXEIRA"],
+["700005739392807", "Hipertensão", "Vilma Barros Vieira"],
+["702007777023390", "Hipertensão", "Vilma Maria Da Silveira Damasceno"],
+["700405976745440", "Hipertensão", "Virginia Freire Machado"],
+["709202264692932", "Hipertensão", "Vitor Geraldo De Souza Teixeira"],
+["708002828155021", "Hipertensão", "Viviane Rosineide Da Silva"],
+["700400917906641", "Hipertensão", "Zoraia De Almeida Pelluzi"],
+["700007124242503", "Gestante", "Mariana Isabelle Giarola De Carvalho"],
+["705000825278150", "Gestante", "Thais Santos Teixeira"],
+["701409630793635", "Fumante", "Alessandro Pontes"],
+["700209969383720", "Fumante", "ALEXANDRE MOREIRA DO NASCIMENTO"],
+["705208482729377", "Fumante", "Ana Daniela Da Silva"],
+["700006904200906", "Fumante", "Andrea Conceiçao Dias"],
+["708400776309567", "Fumante", "Angela Maria Rosa Dos Santos"],
+["700306901182033", "Fumante", "ANTONIO FREIRE"],
+["702501388916130", "Fumante", "ANTÔNIO RIBEIRO FILHO"],
+["706307787980975", "Fumante", "ARLESTON DO ESPIRITO SANTO DA SILVA"],
+["705002669240157", "Fumante", "CARLOS ANTONIO DE OLIVEIRA"],
+["702406568445824", "Fumante", "CELINA ALVES SOARES"],
+["706903116644638", "Fumante", "Claudia Aparecida De Paula"],
+["708907722483110", "Fumante", "Claudineia Merces De Oliveira"],
+["708600022413582", "Fumante", "Claudio Jose Dos Santos Costa"],
+["706700540811618", "Fumante", "Cleusa Maria Da Costa"],
+["700507587488855", "Fumante", "CONCEIÇÃO RODRIGUES DE PAIVA"],
+["702105839689270", "Fumante", "CRISTIANE DA CONCEIÇAO GUIMARAES"],
+["704209213293084", "Fumante", "DENNY OSVALDO CAMPOS VIEIRA"],
+["706704598932217", "Fumante", "DOMINGOS SAVIO NASCIMENTO PEREIRA"],
+["706904168833734", "Fumante", "EDSON SIQUEIRA SANDIM"],
+["706900117769938", "Fumante", "ELIANE GARCIA"],
+["705401444299095", "Fumante", "ELZA MOREIRA GUIMARAES PEDROSO"],
+["705008642868452", "Fumante", "Erika Cristina De Oliveira"],
+["705609423906516", "Fumante", "EVANDO ANTÔNIO DE OLIVEIRA"],
+["709203276488236", "Fumante", "Everton Cleiton Rosa De Oliveira"],
+["701108327187580", "Fumante", "Fabiana Renata Borges"],
+["706309689185080", "Fumante", "Fabiano Augusto Nascimento Marques"],
+["706802263065527", "Fumante", "Fernando Carvalho Do Nascimento"],
+["707008818100930", "Fumante", "HELENA PEDROSO PONTES"],
+["701201048014011", "Fumante", "IGOR BORGES DIAS DE CARVALHO"],
+["700105913408911", "Fumante", "Ilda Nascimento Marques"],
+["702603729314845", "Fumante", "Jaci Vitor De Andrade"],
+["704209733193688", "Fumante", "JAQUELINE CRISTINA ALFREDO"],
+["706507398528794", "Fumante", "JEFFERSON DE FATIMA FREITAS"],
+["706008854779249", "Fumante", "JHON HERBERT CARDOSO DA SILVA"],
+["705405409338091", "Fumante", "JOAO BATISTA SILVA"],
+["706409691583186", "Fumante", "Jorge Ferreira Soares"],
+["704604144038825", "Fumante", "JOSE CARLOS BORGES"],
+["704203791462585", "Fumante", "Juan Ighor Rodrigues De Oliveira"],
+["702808691929867", "Fumante", "Julio Cesar Fonseca Dos Santos"],
+["708408300654670", "Fumante", "JULIO EMANUEL BARROS"],
+["700506505393056", "Fumante", "LIBERATO HEITOR DE ALMEIDA"],
+["704701788979738", "Fumante", "LUIZ CARLOS DA SILVA"],
+["704803084619948", "Fumante", "Marcela Aparecida De Moura Augusto"],
+["705009451966957", "Fumante", "MARCELO DA SILVA ÁVILA"],
+["708501308391175", "Fumante", "Marcia Helena Dos Santos"],
+["706805290207321", "Fumante", "Marcus Vinicius Ramalho De Oliveira"],
+["700605932268564", "Fumante", "Maria Do Carmo Santos"],
+["709805085051190", "Fumante", "MARIA INES PEREIRA"],
+["705005481727051", "Fumante", "MARIA PERPETUA SOCORRO AVILA LOPES"],
+["706207506283168", "Fumante", "MARILÉIA DE LOURDES GARCIA"],
+["704700754315836", "Fumante", "Natanael Silva Odilon"],
+["708502347811571", "Fumante", "RITA DE SOUZA TEIXEIRA"],
+["700501582112355", "Fumante", "Rodrigo Cesar Nascimento Marques"],
+["703403359401900", "Fumante", "Ronaldo Nunes Dos Santos"],
+["708108528364630", "Fumante", "Rosangela De Fatima Santana Oliveira"],
+["700005799637709", "Fumante", "ROSANGELA ZANOLA DA SILVA"],
+["708605068717988", "Fumante", "Ruby Rivera De Oliveira"],
+["706804239807529", "Fumante", "Silvio Raimundo Teixeira"],
+["705808416720337", "Fumante", "SIRLEA LUIZA DE FREITAS"],
+["701206044183719", "Fumante", "TATIANA DE MAGALHAES MACHADO SOZZI MIGUEL"],
+["707004803582930", "Fumante", "Valdete De Fatima Teixeira"],
+["700601447890867", "Fumante", "VINICIUS PASSARINI DE RESENDE CORREA"],
+["700405976745440", "Fumante", "Virginia Freire Machado"],
+["704607158610928", "Fumante", "Vitor Augusto De Paula Silva"],
+["700400917906641", "Fumante", "Zoraia De Almeida Pelluzi"],
+["709806040349590", "Diabetes", "ADILSON DE ALMEIDA"],
+["700007417261706", "Diabetes", "Aguida Rafaela Da Silva"],
+["706700759391820", "Diabetes", "ALBERTO ANDRE DAMASCENO"],
+["700404904433441", "Diabetes", "Alfredo Armando De Carvalho Mauro"],
+["704600141612225", "Diabetes", "Angela Aparecida Moreira"],
+["700000034603500", "Diabetes", "Antonio Fernando Das Neves"],
+["708105542961338", "Diabetes", "ANTONIO HENRIQUE DE PAIVA FILHO"],
+["705004809178558", "Diabetes", "ANTONIO HUMBERTO DO NASCIMENTO"],
+["702501388916130", "Diabetes", "ANTÔNIO RIBEIRO FILHO"],
+["706809738822722", "Diabetes", "Aparecida Maria De Carvalho"],
+["702406568445824", "Diabetes", "CELINA ALVES SOARES"],
+["706005823610045", "Diabetes", "CELIO GONÇALVES DA CRUZ"],
+["706309743643177", "Diabetes", "CELSO DE ARAUJO"],
+["700507587488855", "Diabetes", "CONCEIÇÃO RODRIGUES DE PAIVA"],
+["704709787462135", "Diabetes", "Corina Rodrigues Da Silva"],
+["700005491561600", "Diabetes", "Cosme Ramos De Carvalho"],
+["700005734329104", "Diabetes", "Dulce Helena Merces Dos Santos Silva"],
+["708001594895430", "Diabetes", "Eli Patricio Mendes"],
+["708407231524768", "Diabetes", "Eliana Nazaré Sandim"],
+["709603680850770", "Diabetes", "GISLAINE ROSE DA SILVA"],
+["707008818100930", "Diabetes", "HELENA PEDROSO PONTES"],
+["700105913408911", "Diabetes", "Ilda Nascimento Marques"],
+["700006782723306", "Diabetes", "Irene Batista De Carvalho"],
+["706303135522580", "Diabetes", "Jose Heitor De Carvalho"],
+["708002880602521", "Diabetes", "Jose Pontes Neto"],
+["708109528263738", "Diabetes", "Julio Ribeiro Filho"],
+["705000691146859", "Diabetes", "Kelly Aparecida Rodrigues Santos"],
+["702603207942542", "Diabetes", "LIGIA MARIA DOS SANTOS PEREIRA"],
+["700001065128902", "Diabetes", "Margarida Carvalho De Oliveira Santos"],
+["704106727376480", "Diabetes", "MARIA DE FÁTIMA SACRAMENTO SILVA"],
+["705807437257937", "Diabetes", "Maria Do Carmo Neri"],
+["702406028029928", "Diabetes", "Maria Fatima De Paula Rodrigues"],
+["700001975031908", "Diabetes", "MARIA JOSE DE OLIVEIRA NEVES"],
+["702409578879226", "Diabetes", "MARILENE MOREIRA DO NASCIMENTO"],
+["708006834892222", "Diabetes", "NAIR BARROS VIEIRA"],
+["708108528364630", "Diabetes", "Rosangela De Fatima Santana Oliveira"],
+["705606424334211", "Diabetes", "ROSANGELA MARIA DE FATIMA"],
+["706306781494075", "Diabetes", "SÉRGIO WILLIAN DE OLIVEIRA"],
+["700006282082301", "Diabetes", "SUELEN CRISTINA LIMA ROCHA"],
+["708903745483318", "Diabetes", "Valdivino Fagundes"],
+["702007777023390", "Diabetes", "Vilma Maria Da Silveira Damasceno"],
+["706802240667229", "Diabetes", "Wellington Luiz Rocha"],
+["708206187102248", "Pessoa com deficiência", "Ailton Ribeiro Marques"],
+["709008893688717", "Pessoa com deficiência", "Alexandre Marcos Alves De Souza"],
+["708600022413582", "Pessoa com deficiência", "Claudio Jose Dos Santos Costa"],
+["709209221243431", "Pessoa com deficiência", "DILMA APARECIDA DOS SANTOS"],
+["700406948487840", "Pessoa com deficiência", "FELIPE AUGUSTO SANDIM SANTOS"],
+["704502309240217", "Pessoa com deficiência", "Fernanda Evelyn Santos"],
+["709203218462734", "Pessoa com deficiência", "Graziela Brighenti Marfori"],
+["700808992892885", "Pessoa com deficiência", "ISADORA LUIZA AVILA"],
+["700002221029407", "Pessoa com deficiência", "Isaque Samuel Da Silva Castro"],
+["705405409338091", "Pessoa com deficiência", "JOAO BATISTA SILVA"],
+["707103370883520", "Pessoa com deficiência", "Juliano Carlos Da Silva"],
+["704308594205699", "Pessoa com deficiência", "LUCIANO DE FREITAS SILVA"],
+["704803084619948", "Pessoa com deficiência", "Marcela Aparecida De Moura Augusto"],
+["702507389821031", "Pessoa com deficiência", "Maria Das Graças Psf Guarda Mor"],
+["704606653116125", "Pessoa com deficiência", "Pollyanna Rodrigues De Oliveira"],
+["700009906218503", "Pessoa com deficiência", "PRISCILA ZIVIANI MOURA HALLAH"],
+["705503429786410", "Pessoa com deficiência", "SOELI MARIA DE JESUS"],
+["700005739392807", "Pessoa com deficiência", "Vilma Barros Vieira"],
+["705008831268657", "Pessoa com deficiência", "VITORIA FERREIRA MENESES"],
+["708206187102248", "Domiciliado", "Ailton Ribeiro Marques"],
+["706809738822722", "Domiciliado", "Aparecida Maria De Carvalho"],
+["708600022413582", "Domiciliado", "Claudio Jose Dos Santos Costa"],
+["704709787462135", "Domiciliado", "Corina Rodrigues Da Silva"],
+["707607290391493", "Domiciliado", "FRANCISCO VICENTE DE SOUSA"],
+["700907983814891", "Domiciliado", "Geralda Terezinha De Carvalho"],
+["708105542961338", "Doença cardíaca", "ANTONIO HENRIQUE DE PAIVA FILHO"],
+["704804581300746", "Doença cardíaca", "AURELINA CANDIDA MARQUES"],
+["702406568445824", "Doença cardíaca", "CELINA ALVES SOARES"],
+["708001594895430", "Doença cardíaca", "Eli Patricio Mendes"],
+["705007234135958", "Doença cardíaca", "Geraldo Evangelo De Carvalho"],
+["700309956425240", "Doença cardíaca", "GIOVANNI JOSÉ DE OLIVEIRA AVILA"],
+["706006369461443", "Doença cardíaca", "HELIA ROCHA MATOS"],
+["700006782723306", "Doença cardíaca", "Irene Batista De Carvalho"],
+["708602529018183", "Doença cardíaca", "Isabel Aparecida Da Costa Fagundes"],
+["702800128436763", "Doença cardíaca", "Isaura Aparecida Reis"],
+["708002880602521", "Doença cardíaca", "Jose Pontes Neto"],
+["704404340312510", "Doença cardíaca", "LUIZ CARLOS GONZAGA"],
+["700004136720607", "Doença cardíaca", "MARCELO DA SILVA CRUZ"],
+["704103174122070", "Doença cardíaca", "MARIA CELIA MARQUES"],
+["700005975733906", "Doença cardíaca", "Maria Geralda Da Silva Gaio"],
+["700209489506721", "Doença cardíaca", "Maria Nazare De Souza"],
+["708602061940883", "Doença cardíaca", "Paulo Fernando Guimaraes"],
+["706709512546911", "Doença cardíaca", "Perlencin Honório Vieira"],
+["700809476333186", "Doença cardíaca", "Rosemary Angela Ribeiro Alfredo"],
+["707004803582930", "Doença cardíaca", "Valdete De Fatima Teixeira"],
+["700306901182033", "Câncer", "ANTONIO FREIRE"],
+["708602529018183", "Câncer", "Isabel Aparecida Da Costa Fagundes"],
+["700808992892885", "Câncer", "ISADORA LUIZA AVILA"],
+["700007171989202", "Câncer", "RENE SADE HADDAD"],
+["702405362498530", "Câncer", "SAMUEL GUIMARÃES SILVA"],
+["702401053414428", "Bolsa Família", "ALICE RIBEIRO CRUZ"],
+["700203424243623", "Bolsa Família", "ANA FLOR GARCIA SILVEIRA"],
+["702206172867910", "Bolsa Família", "Ana Gabriela Nascimento"],
+["706301788654472", "Bolsa Família", "Ana Julia Garcia"],
+["703209669821999", "Bolsa Família", "ANA LAURA ÁVILA SILVA"],
+["700109904109617", "Bolsa Família", "Ana Luiza Silva Freitas"],
+["704804553965941", "Bolsa Família", "ANA PAULA APARECIDA DA SILVA"],
+["708606574640185", "Bolsa Família", "BRUNA VITORIA BEDESQUE SILVA"],
+["700607491391868", "Bolsa Família", "Bryan Alves Taveira"],
+["708504350229073", "Bolsa Família", "Camila Nascimento De Carvalho Ferreira"],
+["701807232884473", "Bolsa Família", "Carolaine Garcia Santana"],
+["707604230240690", "Bolsa Família", "CAROLINA CRISTINA OLIVEIRA NASCIMENTO"],
+["704601136157427", "Bolsa Família", "Catherine Lopes Bedesque"],
+["700909929746397", "Bolsa Família", "Cecilia Ribeiro Cruz"],
+["706503354526490", "Bolsa Família", "Célia Márcia Santiago"],
+["706903116644638", "Bolsa Família", "Claudia Aparecida De Paula"],
+["700208497680521", "Bolsa Família", "Daiane Da Silva Pereira"],
+["704806046929946", "Bolsa Família", "Danielle Vitoria Bedesque Silva"],
+["706801705194326", "Bolsa Família", "Davi Miguel Santos Garcia"],
+["700200916915029", "Bolsa Família", "Dejanira Maria De Resende"],
+["702107706893499", "Bolsa Família", "Diana Das Merces Ferreira"],
+["700509906504250", "Bolsa Família", "EMILY CRISTINA OLIVEIRA"],
+["701700280654770", "Bolsa Família", "Erica De Virgens Silva"],
+["708604029079185", "Bolsa Família", "Fabiana Aparecida Dos Santos"],
+["700508963602451", "Bolsa Família", "Francisco Santos Rodrigues"],
+["700509998096758", "Bolsa Família", "Gabriella Ribeiro Cruz"],
+["709001823886319", "Bolsa Família", "Giovanna Eduarda De Sousa"],
+["700104929655319", "Bolsa Família", "GISELE SILVA SANTOS"],
+["707106383921720", "Bolsa Família", "GISLAINE FATIMA DO NASCIMENTO"],
+["707002854084235", "Bolsa Família", "HELENA FERNANDA DE PAULA RIBEIRO"],
+["708204178088643", "Bolsa Família", "HELOISA APARECIDA SANDIM"],
+["702800147935362", "Bolsa Família", "Heloisa Vitória De Sousa"],
+["708903740820812", "Bolsa Família", "IANY MAGALHAES DINIZ"],
+["705203456090270", "Bolsa Família", "Iara Carla Briguente De Paula"],
+["704704726632834", "Bolsa Família", "Isabelle Vitoria De Carvalho"],
+["700808992892885", "Bolsa Família", "ISADORA LUIZA AVILA"],
+["707603297994696", "Bolsa Família", "JADE DE SOUSA AMORIM"],
+["708202698652045", "Bolsa Família", "Jaqueline Santana De Oliveira"],
+["700000495055209", "Bolsa Família", "JESSICA BEATRIZ NASCIMENTO"],
+["700005682304408", "Bolsa Família", "Jessica Cristina Raimundo"],
+["708204689052547", "Bolsa Família", "JESSICA LIMA DA SILVA"],
+["705805449390430", "Bolsa Família", "Joao Lucas Ferreira Santiago"],
+["704707009983640", "Bolsa Família", "Joao Lucas Silva"],
+["709801067944193", "Bolsa Família", "João Lukas Galdino Da Silva"],
+["702600212518149", "Bolsa Família", "Joao Miguel Guimaraes Nascimento"],
+["706307798570072", "Bolsa Família", "JOAQUIM GUIMARAES NASCIMENTO"],
+["704005832202268", "Bolsa Família", "Julia Brighenti Marfori"],
+["702406504850728", "Bolsa Família", "Júlia Vitória Bedesque Silva"],
+["702808691929867", "Bolsa Família", "Julio Cesar Fonseca Dos Santos"],
+["700304986741340", "Bolsa Família", "KATIA APARECIDA DE CARVALHO"],
+["705005091143152", "Bolsa Família", "Kauan Junio Barros Dos Santos"],
+["705000691146859", "Bolsa Família", "Kelly Aparecida Rodrigues Santos"],
+["703202692615694", "Bolsa Família", "Laura Carvalho Silva"],
+["700201938902923", "Bolsa Família", "Leandro Nascimento Rocha"],
+["701200071270214", "Bolsa Família", "Lorena Beatriz Silva Alves"],
+["708701101663492", "Bolsa Família", "Luciana Aparecida Da Silva"],
+["700307909411938", "Bolsa Família", "Maria Beatriz Garcia"],
+["700002653728804", "Bolsa Família", "Maria Flor Silva Jeremias"],
+["700505736518155", "Bolsa Família", "Maria Valeria Rodrigues"],
+["700007124242503", "Bolsa Família", "Mariana Isabelle Giarola De Carvalho"],
+["700507369202259", "Bolsa Família", "MARIANA ROSA DA SILVA"],
+["702406521977528", "Bolsa Família", "MARIANE HELENA RIBEIRO CRUZ"],
+["706207506283168", "Bolsa Família", "MARILÉIA DE LOURDES GARCIA"],
+["702306141246115", "Bolsa Família", "Mariluce Aparecida De Freitas"],
+["700206951759327", "Bolsa Família", "MAURA OMENIR DA SILVA"],
+["704602152929820", "Bolsa Família", "MICHAELE LEANDRA SANDIM DE JESUS"],
+["702402512161320", "Bolsa Família", "Miguel Elio Garcia Ribeiro"],
+["708403284512566", "Bolsa Família", "MYLENA EMANUELLE DE OLIVEIRA GONÇALVES"],
+["702807645983063", "Bolsa Família", "MYLLENA VITORIA LIMA BERNARDINO"],
+["704206281013684", "Bolsa Família", "Natalia Cecília Avila"],
+["704005380247668", "Bolsa Família", "PAMELA CAROLINA DA SILVA PAULA"],
+["704501147855520", "Bolsa Família", "Rafael Lucca Da Cruz"],
+["700000724180006", "Bolsa Família", "SAMUEL VICTOR DOS SANTOS"],
+["700006282082301", "Bolsa Família", "SUELEN CRISTINA LIMA ROCHA"],
+["708607083359983", "Bolsa Família", "SUZANA MARQUES DO NASCIMENTO"],
+["702903579972475", "Bolsa Família", "TAMIRES APARECIDA DE ANDRADE COSTA"],
+["705000825278150", "Bolsa Família", "Thais Santos Teixeira"],
+["704506378863515", "Bolsa Família", "THALITA THAYNARA DA SILVA"],
+["705701499443330", "Bolsa Família", "Theo Diniz De Paula"],
+["704006382664968", "Bolsa Família", "Victoria Andrade Do Nascimento"],
+["704108129491474", "Bolsa Família", "WALERIA ALICE DE CASTRO"],
+["707004820008031", "Bolsa Família", "Yasmim Odete Ferreira Santiago"],
+["700005734329104", "AVC/Derrame", "Dulce Helena Merces Dos Santos Silva"],
+["707607290391493", "AVC/Derrame", "FRANCISCO VICENTE DE SOUSA"],
+["702800128436763", "AVC/Derrame", "Isaura Aparecida Reis"],
+["708701195904197", "AVC/Derrame", "JOAO ELOI DE CARVALHO"],
+["709004842429613", "AVC/Derrame", "LITUINA MARIA DO NASCIMENTO"],
+["700005734329104", "Acamado", "Dulce Helena Merces Dos Santos Silva"],
+["705503429786410", "Acamado", "SOELI MARIA DE JESUS"]
+];
+
+function escapeHtml(str) { return String(str ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+
+let planoImportacao = null; // preenchido depois de "Analisar"
+
+document.getElementById('btnAnalisar').onclick = analisar;
+document.getElementById('btnConfirmar').onclick = confirmarImportacao;
+
+async function analisar() {
+  const btn = document.getElementById('btnAnalisar');
+  const status = document.getElementById('statusAnalise');
+  btn.disabled = true;
+  status.textContent = 'Buscando cadastros e condições existentes...';
+
+  const { data: cidadaosExistentes, error: erroCidadaos } = await db.from('cidadaos').select('id, nome, cns');
+  if (erroCidadaos) {
+    status.textContent = 'Erro ao consultar cidadãos: ' + erroCidadaos.message;
+    btn.disabled = false;
+    return;
+  }
+  const cnsParaId = new Map(); // cns -> { id, nome }
+  cidadaosExistentes.forEach(c => { if (c.cns) cnsParaId.set(c.cns, c); });
+
+  const { data: condicoesExistentes, error: erroCondicoes } = await db.from('condicoes_saude').select('cidadao_id, condicao');
+  if (erroCondicoes) {
+    status.textContent = 'Erro ao consultar condições: ' + erroCondicoes.message;
+    btn.disabled = false;
+    return;
+  }
+  const jaTemCondicao = new Set(condicoesExistentes.map(c => c.cidadao_id + '::' + c.condicao));
+
+  const paraInserir = [];   // { cidadao_id, condicao, nome, cns }
+  const linhasPreview = [];
+  let jaExistentesCount = 0;
+  let naoEncontradosCount = 0;
+  const pessoasComNova = new Set();
+
+  CONDICOES_DATASET.forEach(([cns, condicao, nome]) => {
+    const cidadao = cnsParaId.get(cns);
+    if (!cidadao) {
+      naoEncontradosCount++;
+      linhasPreview.push({ nome, cns, condicao, situacao: 'naoencontrado' });
+      return;
+    }
+    const chave = cidadao.id + '::' + condicao;
+    if (jaTemCondicao.has(chave)) {
+      jaExistentesCount++;
+      linhasPreview.push({ nome: cidadao.nome, cns, condicao, situacao: 'existente' });
+      return;
+    }
+    paraInserir.push({ cidadao_id: cidadao.id, condicao, nome: cidadao.nome, cns });
+    pessoasComNova.add(cidadao.id);
+    linhasPreview.push({ nome: cidadao.nome, cns, condicao, situacao: 'nova' });
+  });
+
+  planoImportacao = { paraInserir };
+
+  document.getElementById('numNovas').textContent = paraInserir.length;
+  document.getElementById('numJaExistentes').textContent = jaExistentesCount;
+  document.getElementById('numNaoEncontrados').textContent = naoEncontradosCount;
+  document.getElementById('numPessoasAfetadas').textContent = pessoasComNova.size;
+
+  const tbody = document.getElementById('tabelaPreview');
+  tbody.innerHTML = linhasPreview.map(l => {
+    const badgeClasse = l.situacao === 'existente' ? 'existente' : (l.situacao === 'naoencontrado' ? 'naoencontrado' : 'nova');
+    const badgeTexto = l.situacao === 'existente' ? 'Já tinha' : (l.situacao === 'naoencontrado' ? 'CNS não encontrado' : 'Nova');
+    return `<tr><td>${escapeHtml(l.nome)}</td><td>${escapeHtml(l.cns)}</td><td>${escapeHtml(l.condicao)}</td><td><span class="badge ${badgeClasse}">${badgeTexto}</span></td></tr>`;
+  }).join('');
+
+  document.getElementById('cardResumo').style.display = 'block';
+  status.textContent = 'Análise concluída.';
+  btn.disabled = false;
+}
+
+async function confirmarImportacao() {
+  if (!planoImportacao) return;
+  const btn = document.getElementById('btnConfirmar');
+  const status = document.getElementById('statusImportacao');
+  const log = document.getElementById('logImportacao');
+  log.style.display = 'block';
+  btn.disabled = true;
+
+  function logLinha(txt) { log.textContent += txt + '\n'; log.scrollTop = log.scrollHeight; }
+
+  if (planoImportacao.paraInserir.length === 0) {
+    logLinha('Nada para gravar — todas já existiam ou nenhum CNS bateu.');
+    status.textContent = 'Concluído (nada novo).';
+    return;
+  }
+
+  try {
+    const payload = planoImportacao.paraInserir.map(p => ({ cidadao_id: p.cidadao_id, condicao: p.condicao }));
+    const TAMANHO_LOTE = 200;
+    let totalInseridos = 0;
+    for (let i = 0; i < payload.length; i += TAMANHO_LOTE) {
+      const lote = payload.slice(i, i + TAMANHO_LOTE);
+      const { error } = await db.from('condicoes_saude').insert(lote);
+      if (error) throw new Error(`Erro ao inserir condições (lote ${i}-${i + lote.length}): ` + error.message);
+      totalInseridos += lote.length;
+      logLinha(`${totalInseridos} de ${payload.length} condições gravadas...`);
+    }
+    logLinha('✅ Importação concluída com sucesso!');
+    status.textContent = 'Concluído — confira em "Famílias" no menu.';
+    btn.textContent = 'Importação concluída';
+  } catch (e) {
+    console.error(e);
+    logLinha('❌ ' + e.message);
+    status.textContent = 'Falhou — veja o log acima. Nada foi apagado; corrija e rode "Analisar" de novo (o que já foi gravado não duplica).';
+    btn.disabled = false;
+  }
+}
+</script>
+</body>
+</html>
