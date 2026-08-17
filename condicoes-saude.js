@@ -29,6 +29,12 @@ const GRUPOS_CONDICOES_SAUDE = [
       { valor: 'Obesidade', label: 'Obesidade', emoji: '⚖️', sigla: 'Obesidade' },
       { valor: 'Asma', label: 'Asma', emoji: '🫁', sigla: 'Asma' },
       { valor: 'DPOC', label: 'DPOC', emoji: '💨', sigla: 'DPOC' },
+      { valor: 'Doença renal', label: 'Doença renal', emoji: '🫘', sigla: 'D. Renal' },
+      { valor: 'Doença respiratória', label: 'Doença respiratória', emoji: '🫁', sigla: 'D. Respiratória' },
+      { valor: 'Doença cardíaca', label: 'Doença cardíaca', emoji: '❤️‍🩹', sigla: 'D. Cardíaca' },
+      { valor: 'Infarto', label: 'Infarto (histórico)', emoji: '💔', sigla: 'Infarto' },
+      { valor: 'AVC/Derrame', label: 'AVC/Derrame (histórico)', emoji: '🧠', sigla: 'AVC' },
+      { valor: 'Câncer', label: 'Câncer', emoji: '🎗️', sigla: 'Câncer' },
     ],
   },
   {
@@ -59,6 +65,7 @@ const GRUPOS_CONDICOES_SAUDE = [
       { valor: 'Idoso', label: 'Idoso', emoji: '👴', sigla: 'Idoso' },
       { valor: 'Idoso frágil', label: 'Idoso frágil', emoji: '🦯', sigla: 'Idoso frágil' },
       { valor: 'Acamado', label: 'Acamado', emoji: '🛏️', sigla: 'Acamado' },
+      { valor: 'Domiciliado', label: 'Domiciliado (atendimento domiciliar)', emoji: '🏠', sigla: 'Domiciliado' },
     ],
   },
   {
@@ -82,6 +89,15 @@ const GRUPOS_CONDICOES_SAUDE = [
       { valor: 'Violência doméstica', label: 'Violência doméstica', emoji: '⚠️', sigla: 'Violência' },
       { valor: 'Insegurança alimentar', label: 'Insegurança alimentar', emoji: '🍽️', sigla: 'Ins. Alimentar' },
       { valor: 'Beneficiário de programa social', label: 'Beneficiário de programa social', emoji: '🏛️', sigla: 'Prog. Social' },
+      { valor: 'Bolsa Família', label: 'Bolsa Família', emoji: '🧾', sigla: 'Bolsa Família' },
+    ],
+  },
+  {
+    grupo: 'Hábitos e Fatores de Risco',
+    icone: 'ph-cigarette',
+    tema: 'habitos',
+    itens: [
+      { valor: 'Fumante', label: 'Fumante', emoji: '🚬', sigla: 'Fumante' },
     ],
   },
 ];

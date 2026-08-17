@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Importar Condições de Saúde (PDF) - ACS Digital</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
+<script src="config.js"></script>
+<script src="auth.js"></script>
+<script src="condicoes-saude.js"></script>
+<script>protegerPagina();</script>
+<style>
+:root {
+  --bg-color: #FAFAFA; --surface: #FFFFFF; --text-main: #111827; --text-muted: #6B7280;
+  --border: #E5E7EB; --primary: #0A84FF; --success: #34C759; --danger: #FF3B30; --warning: #FF9500;
+  --radius: 12px; --chip-bg: #F2F2F7;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+body { background: var(--bg-color); color: var(--text-main); padding: 32px 24px 80px; }
+.wrap { max-width: 980px; margin: 0 auto; }
+h1 { font-size: 22px; margin-bottom: 6px; }
+.subtitle { font-size: 14px; color: var(--text-muted); margin-bottom: 24px; }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; margin-bottom: 20px; }
+.card h2 { font-size: 15px; margin-bottom: 10px; }
+.aviso { background: #FFF4E5; border: 1px solid var(--warning); border-radius: var(--radius); padding: 14px 16px; font-size: 13px; margin-bottom: 20px; line-height: 1.6; }
+.btn { background: var(--primary); color: white; border: none; padding: 10px 18px; border-radius: 8px; font-weight: 600; font-size: 14px; cursor: pointer; }
+.btn:disabled { background: var(--chip-bg); color: var(--text-muted); cursor: not-allowed; }
+.btn.secondary { background: var(--chip-bg); color: var(--text-main); }
+.actions-bar { display: flex; gap: 10px; align-items: center; margin-top: 16px; flex-wrap: wrap; }
+.resumo-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin: 16px 0; }
+.resumo-tile { background: var(--bg-color); border-radius: 10px; padding: 12px 14px; text-align: center; }
+.resumo-tile .num { font-size: 22px; font-weight: 700; }
+.resumo-tile .lbl { font-size: 11px; color: var(--text-muted); text-transform: uppercase; }
+.log { font-size: 13px; color: var(--text-muted); margin-top: 12px; white-space: pre-wrap; max-height: 340px; overflow-y: auto; background: var(--bg-color); border-radius: 8px; padding: 12px; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th { text-align: left; padding: 8px; border-bottom: 2px solid var(--border); font-size: 11px; text-transform: uppercase; color: var(--text-muted); }
+td { padding: 6px 8px; border-bottom: 1px solid var(--border); }
+.table-wrap { max-height: 420px; overflow-y: auto; border: 1px solid var(--border); border-radius: 8px; margin-top: 12px; }
+.badge { font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 999px; }
+.badge.nova { background: rgba(10,132,255,0.12); color: var(--primary); }
+.badge.existente { background: rgba(52,199,89,0.15); color: var(--success); }
+.badge.naoencontrado { background: rgba(255,59,48,0.12); color: var(--danger); }
+.dropzone { border: 2px dashed var(--border); border-radius: var(--radius); padding: 28px; text-align: center; color: var(--text-muted); font-size: 14px; cursor: pointer; }
+.dropzone.arrastando { border-color: var(--primary); background: rgba(10,132,255,0.05); color: var(--primary); }
+.arquivo-linha { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--border); flex-wrap: wrap; }
+.arquivo-linha:last-child { border-bottom: none; }
+.arquivo-nome { flex: 1 1 220px; font-size: 13px; font-weight: 600; min-width: 180px; }
+.arquivo-info { font-size: 12px; color: var(--text-muted); }
+select, input[type=text] { font-size: 13px; padding: 6px 8px; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); color: var(--text-main); }
+.btn.remover { background: none; color: var(--danger); font-weight: 600; padding: 4px 8px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>🏥 Importar Condições de Saúde (a partir dos PDFs)</h1>
+  <p class="subtitle">Sobe direto os relatórios "Relação de Pacientes Por Faixa Etária" (um por condição) exportados do sistema municipal — a leitura do PDF acontece aqui no navegador, nada sai do seu computador além da comparação com o seu próprio Supabase.</p>
+
+  <div class="aviso">
+    ⚠️ <strong>Como funciona:</strong><br><br>
+    1. Solte um ou mais PDFs abaixo. A condição de cada arquivo é <strong>detectada automaticamente</strong> pelo cabeçalho do relatório ("Condições de Saúde: ..."); se não reconhecer, você escolhe manualmente.<br><br>
+    2. Clique em <strong>"Analisar"</strong> — compara cada pessoa (pelo CNS) com quem já está cadastrado. Pessoas com CNS não encontrado no seu banco aparecem destacadas e <strong>não são criadas automaticamente</strong>. Condições que a pessoa já tinha marcada são puladas (sem duplicar).<br><br>
+    3. Nada é gravado até você clicar em <strong>"Confirmar importação"</strong>, depois de revisar a prévia.
+  </div>
+
+  <div class="card">
+    <h2>1. Selecionar arquivos</h2>
+    <div class="dropzone" id="dropzone">Arraste os PDFs aqui, ou clique para escolher os arquivos</div>
+    <input type="file" id="inputArquivos" accept="application/pdf" multiple style="display:none;">
+    <div id="listaArquivos" style="margin-top:14px;"></div>
+    <div class="actions-bar">
+      <button class="btn" id="btnAnalisar" disabled>Analisar</button>
+      <span id="statusAnalise" style="font-size:13px; color:var(--text-muted);"></span>
+    </div>
+  </div>
+
+  <div class="card" id="cardResumo" style="display:none;">
+    <h2>2. Prévia</h2>
+    <div class="resumo-grid">
+      <div class="resumo-tile"><div class="num" id="numNovas">0</div><div class="lbl">Condições novas a gravar</div></div>
+      <div class="resumo-tile"><div class="num" id="numJaExistentes">0</div><div class="lbl">Já tinha essa condição</div></div>
+      <div class="resumo-tile"><div class="num" id="numNaoEncontrados">0</div><div class="lbl">CNS não encontrado no banco</div></div>
+      <div class="resumo-tile"><div class="num" id="numPessoasAfetadas">0</div><div class="lbl">Pessoas que vão receber condição nova</div></div>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Pessoa</th><th>CNS</th><th>Condição</th><th>Situação</th></tr></thead>
+        <tbody id="tabelaPreview"></tbody>
+      </table>
+    </div>
+    <div class="actions-bar">
+      <button class="btn" id="btnConfirmar">Confirmar importação</button>
+      <span id="statusImportacao" style="font-size:13px; color:var(--text-muted);"></span>
+    </div>
+    <div class="log" id="logImportacao" style="display:none;"></div>
+  </div>
+</div>
+
+<script>
+pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
+
+// Mapa: rótulo como aparece no cabeçalho do PDF -> valor canônico usado no app (condicoes-saude.js).
+// Se um PDF trouxer um rótulo que não está aqui, a pessoa escolhe manualmente na lista.
+const MAPA_ROTULO_PDF_PARA_VALOR = {
+  'Hipertensão': 'Hipertensão',
+  'Diabetes': 'Diabetes',
+  'Gestante': 'Gestante',
+  'Acamado': 'Acamado',
+  'Deficiência': 'Pessoa com deficiência',
+  'Saúde Mental': 'Transtorno mental',
+  'Domiciliado': 'Domiciliado',
+  'Doença Cardíaca': 'Doença cardíaca',
+  'Doença cardíaca': 'Doença cardíaca',
+  'Câncer': 'Câncer',
+  'Bolsa Família': 'Bolsa Família',
+  'AVC/Derrame': 'AVC/Derrame',
+  'Infarto': 'Infarto',
+  'Doença respiratória': 'Doença respiratória',
+  'Doença Respiratória': 'Doença respiratória',
+  'Doença renal': 'Doença renal',
+  'Doença Renal': 'Doença renal',
+  'Fumante': 'Fumante',
+};
+
+// Todas as condições do seletor do app, pra montar o <select> de cada arquivo.
+const TODAS_CONDICOES = GRUPOS_CONDICOES_SAUDE.flatMap(g => g.itens.map(i => i.valor));
+
+function escapeHtml(str) { return String(str ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+
+// ---------------------------------------------------------------------
+// 1) Leitura do PDF: extrai [ [cns, nomeCompleto], ... ] e detecta o rótulo da condição
+// ---------------------------------------------------------------------
+async function lerPdf(file) {
+  const buffer = await file.arrayBuffer();
+  const doc = await pdfjsLib.getDocument({ data: buffer }).promise;
+
+  let rotuloDetectado = null;
+  const registros = [];
+
+  for (let p = 1; p <= doc.numPages; p++) {
+    const page = await doc.getPage(p);
+    const content = await page.getTextContent();
+    const items = content.items
+      .map(it => ({ text: it.str, x: it.transform[4], y: it.transform[5] }))
+      .filter(it => it.text.trim() !== '');
+
+    // Na primeira página, detecta o rótulo "Condições de Saúde: X" (o pdf.js entrega a frase
+    // inteira como um único item de texto, então basta separar pelo prefixo).
+    if (p === 1 && !rotuloDetectado) {
+      const itemCondicao = items.find(it => it.text.includes('Condições de Saúde:'));
+      if (itemCondicao) {
+        rotuloDetectado = itemCondicao.text.split('Condições de Saúde:')[1].trim();
+      }
+    }
+
+    // Coluna "Nome - CNS": localiza a linha de cabeçalho (item exatamente "CPF") em cada página
+    // e mantém só as palavras abaixo dela e à esquerda da coluna CPF.
+    const cpfItems = items.filter(it => it.text === 'CPF');
+    if (cpfItems.length === 0) continue;
+    const headerY = Math.max(...cpfItems.map(it => it.y));
+    const cpfX = Math.min(...cpfItems.map(it => it.x));
+
+    const nameWords = items
+      .filter(it => it.y < headerY - 0.5 && it.x < cpfX - 2)
+      .sort((a, b) => (b.y - a.y) || (a.x - b.x));
+
+    let buf = [];
+    for (const w of nameWords) {
+      buf.push(w.text);
+      const m = w.text.match(/-(\d{15})$/);
+      if (m) {
+        const cns = m[1];
+        let nome = buf.join(' ').replace(/-\d{15}$/, '').trim().replace(/\s+-\s*$/, '').trim();
+        registros.push([cns, nome]);
+        buf = [];
+      }
+    }
+  }
+
+  return { rotuloDetectado, registros };
+}
+
+// ---------------------------------------------------------------------
+// 2) UI de seleção de arquivos
+// ---------------------------------------------------------------------
+let arquivosCarregados = []; // { file, id, rotuloDetectado, condicaoEscolhida, registros, status }
+
+const dropzone = document.getElementById('dropzone');
+const inputArquivos = document.getElementById('inputArquivos');
+
+dropzone.addEventListener('click', () => inputArquivos.click());
+dropzone.addEventListener('dragover', e => { e.preventDefault(); dropzone.classList.add('arrastando'); });
+dropzone.addEventListener('dragleave', () => dropzone.classList.remove('arrastando'));
+dropzone.addEventListener('drop', e => {
+  e.preventDefault();
+  dropzone.classList.remove('arrastando');
+  adicionarArquivos(e.dataTransfer.files);
+});
+inputArquivos.addEventListener('change', e => adicionarArquivos(e.target.files));
+
+async function adicionarArquivos(fileList) {
+  const status = document.getElementById('statusAnalise');
+  for (const file of fileList) {
+    if (!file.name.toLowerCase().endsWith('.pdf')) continue;
+    const id = 'f' + Math.random().toString(36).slice(2);
+    const item = { file, id, rotuloDetectado: null, condicaoEscolhida: '', registros: [], status: 'lendo' };
+    arquivosCarregados.push(item);
+    renderListaArquivos();
+
+    try {
+      const { rotuloDetectado, registros } = await lerPdf(file);
+      item.rotuloDetectado = rotuloDetectado;
+      item.registros = registros;
+      item.condicaoEscolhida = MAPA_ROTULO_PDF_PARA_VALOR[rotuloDetectado] || '';
+      item.status = 'lido';
+    } catch (e) {
+      console.error(e);
+      item.status = 'erro';
+      item.erro = e.message;
+    }
+    renderListaArquivos();
+  }
+  atualizarBotaoAnalisar();
+}
+
+function removerArquivo(id) {
+  arquivosCarregados = arquivosCarregados.filter(a => a.id !== id);
+  renderListaArquivos();
+  atualizarBotaoAnalisar();
+}
+
+function definirCondicao(id, valor) {
+  const item = arquivosCarregados.find(a => a.id === id);
+  if (item) item.condicaoEscolhida = valor;
+  atualizarBotaoAnalisar();
+}
+
+function renderListaArquivos() {
+  const wrap = document.getElementById('listaArquivos');
+  wrap.innerHTML = arquivosCarregados.map(item => {
+    let infoTexto = 'Lendo...';
+    if (item.status === 'lido') infoTexto = `${item.registros.length} pessoas encontradas`;
+    if (item.status === 'erro') infoTexto = 'Erro ao ler: ' + escapeHtml(item.erro || '');
+
+    const opcoes = TODAS_CONDICOES.map(v =>
+      `<option value="${escapeHtml(v)}" ${v === item.condicaoEscolhida ? 'selected' : ''}>${escapeHtml(v)}</option>`
+    ).join('');
+
+    const avisoRotulo = item.status === 'lido' && !item.condicaoEscolhida
+      ? `<span style="color:var(--warning); font-size:12px;">⚠️ não reconheci "${escapeHtml(item.rotuloDetectado || '(sem rótulo)')}" — escolha a condição</span>`
+      : (item.rotuloDetectado ? `<span class="arquivo-info">detectado: ${escapeHtml(item.rotuloDetectado)}</span>` : '');
+
+    return `
+      <div class="arquivo-linha">
+        <div class="arquivo-nome">${escapeHtml(item.file.name)}</div>
+        <div class="arquivo-info">${infoTexto}</div>
+        ${avisoRotulo}
+        <select onchange="definirCondicao('${item.id}', this.value)" ${item.status !== 'lido' ? 'disabled' : ''}>
+          <option value="">Escolher condição...</option>
+          ${opcoes}
+        </select>
+        <button class="btn remover" onclick="removerArquivo('${item.id}')">Remover</button>
+      </div>
+    `;
+  }).join('') || '<p style="font-size:13px; color:var(--text-muted);">Nenhum arquivo selecionado.</p>';
+}
+
+function atualizarBotaoAnalisar() {
+  const prontos = arquivosCarregados.length > 0 &&
+    arquivosCarregados.every(a => a.status === 'lido' && a.condicaoEscolhida);
+  document.getElementById('btnAnalisar').disabled = !prontos;
+}
+
+// ---------------------------------------------------------------------
+// 3) Analisar contra o Supabase
+// ---------------------------------------------------------------------
+let planoImportacao = null;
+
+document.getElementById('btnAnalisar').onclick = analisar;
+document.getElementById('btnConfirmar').onclick = confirmarImportacao;
+
+async function analisar() {
+  const btn = document.getElementById('btnAnalisar');
+  const status = document.getElementById('statusAnalise');
+  btn.disabled = true;
+  status.textContent = 'Buscando cadastros e condições existentes...';
+
+  const { data: cidadaosExistentes, error: erroCidadaos } = await db.from('cidadaos').select('id, nome, cns');
+  if (erroCidadaos) {
+    status.textContent = 'Erro ao consultar cidadãos: ' + erroCidadaos.message;
+    btn.disabled = false;
+    return;
+  }
+  const cnsParaId = new Map();
+  cidadaosExistentes.forEach(c => { if (c.cns) cnsParaId.set(c.cns, c); });
+
+  const { data: condicoesExistentes, error: erroCondicoes } = await db.from('condicoes_saude').select('cidadao_id, condicao');
+  if (erroCondicoes) {
+    status.textContent = 'Erro ao consultar condições: ' + erroCondicoes.message;
+    btn.disabled = false;
+    return;
+  }
+  const jaTemCondicao = new Set(condicoesExistentes.map(c => c.cidadao_id + '::' + c.condicao));
+
+  const paraInserir = [];
+  const linhasPreview = [];
+  let jaExistentesCount = 0;
+  let naoEncontradosCount = 0;
+  const pessoasComNova = new Set();
+  const jaProcessadoNesteLote = new Set(); // evita duplicar se a mesma pessoa aparece em 2 arquivos com a mesma condição
+
+  arquivosCarregados.forEach(arquivo => {
+    const condicao = arquivo.condicaoEscolhida;
+    arquivo.registros.forEach(([cns, nome]) => {
+      const cidadao = cnsParaId.get(cns);
+      if (!cidadao) {
+        naoEncontradosCount++;
+        linhasPreview.push({ nome, cns, condicao, situacao: 'naoencontrado' });
+        return;
+      }
+      const chave = cidadao.id + '::' + condicao;
+      if (jaTemCondicao.has(chave) || jaProcessadoNesteLote.has(chave)) {
+        jaExistentesCount++;
+        linhasPreview.push({ nome: cidadao.nome, cns, condicao, situacao: 'existente' });
+        return;
+      }
+      jaProcessadoNesteLote.add(chave);
+      paraInserir.push({ cidadao_id: cidadao.id, condicao, nome: cidadao.nome, cns });
+      pessoasComNova.add(cidadao.id);
+      linhasPreview.push({ nome: cidadao.nome, cns, condicao, situacao: 'nova' });
+    });
+  });
+
+  planoImportacao = { paraInserir };
+
+  document.getElementById('numNovas').textContent = paraInserir.length;
+  document.getElementById('numJaExistentes').textContent = jaExistentesCount;
+  document.getElementById('numNaoEncontrados').textContent = naoEncontradosCount;
+  document.getElementById('numPessoasAfetadas').textContent = pessoasComNova.size;
+
+  const tbody = document.getElementById('tabelaPreview');
+  tbody.innerHTML = linhasPreview.map(l => {
+    const badgeClasse = l.situacao === 'existente' ? 'existente' : (l.situacao === 'naoencontrado' ? 'naoencontrado' : 'nova');
+    const badgeTexto = l.situacao === 'existente' ? 'Já tinha' : (l.situacao === 'naoencontrado' ? 'CNS não encontrado' : 'Nova');
+    return `<tr><td>${escapeHtml(l.nome)}</td><td>${escapeHtml(l.cns)}</td><td>${escapeHtml(l.condicao)}</td><td><span class="badge ${badgeClasse}">${badgeTexto}</span></td></tr>`;
+  }).join('');
+
+  document.getElementById('cardResumo').style.display = 'block';
+  status.textContent = 'Análise concluída.';
+  btn.disabled = false;
+}
+
+async function confirmarImportacao() {
+  if (!planoImportacao) return;
+  const btn = document.getElementById('btnConfirmar');
+  const status = document.getElementById('statusImportacao');
+  const log = document.getElementById('logImportacao');
+  log.style.display = 'block';
+  btn.disabled = true;
+
+  function logLinha(txt) { log.textContent += txt + '\n'; log.scrollTop = log.scrollHeight; }
+
+  if (planoImportacao.paraInserir.length === 0) {
+    logLinha('Nada para gravar — todas já existiam ou nenhum CNS bateu.');
+    status.textContent = 'Concluído (nada novo).';
+    return;
+  }
+
+  try {
+    const payload = planoImportacao.paraInserir.map(p => ({ cidadao_id: p.cidadao_id, condicao: p.condicao }));
+    const TAMANHO_LOTE = 200;
+    let totalInseridos = 0;
+    for (let i = 0; i < payload.length; i += TAMANHO_LOTE) {
+      const lote = payload.slice(i, i + TAMANHO_LOTE);
+      const { error } = await db.from('condicoes_saude').insert(lote);
+      if (error) throw new Error(`Erro ao inserir condições (lote ${i}-${i + lote.length}): ` + error.message);
+      totalInseridos += lote.length;
+      logLinha(`${totalInseridos} de ${payload.length} condições gravadas...`);
+    }
+    logLinha('✅ Importação concluída com sucesso!');
+    status.textContent = 'Concluído — confira em "Famílias" no menu.';
+    btn.textContent = 'Importação concluída';
+  } catch (e) {
+    console.error(e);
+    logLinha('❌ ' + e.message);
+    status.textContent = 'Falhou — veja o log acima. Nada foi apagado; corrija e rode "Analisar" de novo.';
+    btn.disabled = false;
+  }
+}
+</script>
+</body>
+</html>
